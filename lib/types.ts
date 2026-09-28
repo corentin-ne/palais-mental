@@ -13,6 +13,12 @@ export interface BaseItem {
   /** 0 (unrated) to 5, in half steps. */
   rating?: number;
   note?: string;
+  /** Artwork from the catalog (poster, book cover, album art, box art). */
+  coverUrl?: string;
+  /** Where the metadata came from, so a second log of the same title is recognized. */
+  source?: ItemSource;
+  /** Most recent journal event touching this item. */
+  lastLoggedAt?: number;
   /**
    * Hero Swap flag. `false` while the item is still owned by the HeroItemSpawner
    * (materializing / flying); the shelf InstancedMesh only renders settled items.
@@ -28,6 +34,8 @@ export interface Season {
 
 export interface SeriesItem extends BaseItem {
   category: 'series';
+  /** Seasons before the first tracked one (a series logged from season 3 has offset 2). */
+  seasonOffset?: number;
   seasons: Season[];
 }
 
@@ -55,7 +63,21 @@ export type HeroEvent =
 export type CameraFocus = 'window' | CategoryId;
 
 /** Editable metadata of any item. */
-export type ItemDetails = Pick<BaseItem, 'title' | 'creator' | 'year' | 'rating' | 'note'>;
+export type ItemDetails = Pick<BaseItem, 'title' | 'creator' | 'year' | 'rating' | 'note' | 'coverUrl'>;
+
+export type CatalogProvider = 'openlibrary' | 'itunes' | 'wikipedia' | 'manual';
+export interface ItemSource {
+  provider: CatalogProvider;
+  id: string;
+}
+
+/**
+ * The journal is a list of dated events. Items are the collection; events are the
+ * diary of when you watched, read, played or listened.
+ */
+export type JournalEvent =
+  | { id: string; itemId: string; ts: number; kind: 'log' | 'relog' }
+  | { id: string; itemId: string; ts: number; kind: 'episode'; season: number; episode: number; completesSeason: boolean };
 
 export interface PalaceSettings {
   /** Dust, cloud drift and beam shimmer after interactions. */

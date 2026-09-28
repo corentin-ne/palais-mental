@@ -52,20 +52,20 @@ export default function PalaceScreen() {
 
   const onSubmit = (category: CategoryId, details: ItemDetails, episodeCount: number) => {
     setFocus(category); // camera lands first; the hero waits for it, then materializes
-    logItem(category, details, { episodeCount });
+    logItem(category, details, { episodeCount, animate: true });
     setSheet(null);
     haptics.success();
   };
 
   const onEpisode = (id: string) => {
-    const event = logEpisode(id);
+    const event = logEpisode(id, { animate: true });
     if (event) (event.kind === 'episode' && event.completesSeason ? haptics.success : haptics.tap)();
   };
 
   const openItem = (item: PalaceItem) => {
     setSheet(null);
     setFocus(item.category);
-    selectItem(item.id);
+    selectItem(item.id, { inspect: true });
   };
 
   // ---- Swipe to turn your head; while inspecting, the same drag spins the object.

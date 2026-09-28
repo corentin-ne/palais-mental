@@ -233,7 +233,7 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
     if (e.instanceId === undefined) return;
     e.stopPropagation();
     const id = visibleIds[e.instanceId];
-    if (id) selectItem(id);
+    if (id) selectItem(id, { inspect: true });
   };
 
   const b = NICHE_BORDER;
