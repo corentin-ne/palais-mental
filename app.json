@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Palais Mental",
+    "slug": "palais-mental",
+    "version": "0.0.1",
+    "scheme": "palaismental",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#07080B",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.palaismental.app",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true
+      }
+    },
+    "android": {
+      "package": "com.palaismental.app",
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "locales": {
+      "en": "./locales/en.json",
+      "fr": "./locales/fr.json"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-localization",
+      "expo-asset",
+      "expo-status-bar"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
