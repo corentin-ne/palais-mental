@@ -5,9 +5,7 @@ import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg'
 import Icon, { IconName } from './Icon';
 import PressableScale from './PressableScale';
 import { noOutline, makeStyles, useTheme } from '@/constants/theme';
-import { mix } from '@/lib/color';
 import { useSvgId } from '@/lib/svgId';
-import { Gel, Sheen } from './aero/Gloss';
 
 // ------------------------------------------------------------------ Buttons
 interface ButtonProps {
@@ -21,24 +19,20 @@ interface ButtonProps {
 }
 
 export function Button({ label, onPress, icon, tone = 'ink', accent, disabled, compact }: ButtonProps) {
-  const { palette, type, aero } = useTheme();
+  const { palette, type } = useTheme();
   const styles = useStyles();
   const base =
     tone === 'ink' ? palette.primary : tone === 'accent' ? accent ?? palette.primary : tone === 'danger' ? palette.danger : null;
   const fg = tone === 'soft' ? palette.ink : palette.onInk;
-  // Aero: every solid button is a gel — gradient body, specular top, glow at the base.
-  const gel = aero && base ? { from: mix(base, '#FFFFFF', 0.28), to: tone === 'ink' ? palette.primaryDeep : mix(base, '#000000', 0.18) } : null;
   return (
     <PressableScale
       onPress={onPress}
       disabled={disabled}
-      style={[styles.button, compact && styles.buttonCompact, { backgroundColor: gel ? undefined : base ?? palette.field }]}
+      style={[styles.button, compact && styles.buttonCompact, { backgroundColor: base ?? palette.field }]}
     >
-      {gel && <Gel from={gel.from} to={gel.to} />}
-      {aero && !base && <Sheen strength={0.6} />}
       <View style={styles.buttonContent}>
         {icon && <Icon name={icon} size={18} color={fg} strokeWidth={2} />}
-        <Text style={[type.button, { color: fg }, gel && styles.gelText]}>{label}</Text>
+        <Text style={[type.button, { color: fg }]}>{label}</Text>
       </View>
     </PressableScale>
   );
@@ -236,7 +230,7 @@ export function CategoryChip({ icon, label, tint, accent }: { icon: IconName; la
   );
 }
 
-const useStyles = makeStyles(({ palette, fonts, radii, aero }) => ({
+const useStyles = makeStyles(({ palette, fonts, radii }) => ({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -246,10 +240,8 @@ const useStyles = makeStyles(({ palette, fonts, radii, aero }) => ({
     paddingHorizontal: 22,
     borderRadius: radii.pill,
     overflow: 'hidden',
-    ...(aero ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)' } : {}),
   },
   buttonContent: { flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 1 },
-  gelText: { textShadowColor: 'rgba(0,40,80,0.35)', textShadowRadius: 3, textShadowOffset: { width: 0, height: 1 } },
   buttonCompact: { height: 42, paddingHorizontal: 16 },
   iconButton: { alignItems: 'center', justifyContent: 'center', backgroundColor: palette.field },
   fieldWrap: { gap: 8 },

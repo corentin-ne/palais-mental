@@ -11,7 +11,8 @@ import { Button, RatingStars, Ring, Stepper } from './Controls';
 import { noOutline, makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
-import { formatDate } from '@/lib/format';
+import { isAwaited } from '@/lib/releases';
+import { FadeIn, Pop } from './Motion';
 import { PalaceItem, SeriesItem } from '@/lib/types';
 import { DEFAULT_EPISODES, getSeriesProgress, seasonNumber, usePalaceStore } from '@/store/usePalaceStore';
 import { useUiStore } from '@/store/useUiStore';
@@ -50,9 +51,7 @@ function ItemBody({ item, compact }: { item: PalaceItem; compact: boolean }) {
   const haptics = useHaptics();
   const updateItem = usePalaceStore((s) => s.updateItem);
   const deleteItem = usePalaceStore((s) => s.deleteItem);
-  const relogItem = usePalaceStore((s) => s.relogItem);
   const selectItem = usePalaceStore((s) => s.selectItem);
-  const logs = usePalaceStore((s) => s.events.filter((e) => e.itemId === item.id && e.kind !== 'episode'));
   const showToast = useUiStore((s) => s.showToast);
   const spec = CATEGORY_SPECS[item.category];
 
@@ -60,10 +59,10 @@ function ItemBody({ item, compact }: { item: PalaceItem; compact: boolean }) {
   const [creator, setCreator] = useState(item.creator ?? '');
   const [year, setYear] = useState(item.year ? String(item.year) : '');
   const [note, setNote] = useState(item.note ?? '');
-  const [confirming, setConfirming] = useState(false);
 
   const commit = () => updateItem(item.id, { title, creator, year: year ? Number(year) : undefined, note });
-  const last = logs.reduce((m, e) => Math.max(m, e.ts), 0) || item.createdAt;
+  const awaited = isAwaited(item);
+  const fmt = (d: number) => new Intl.DateTimeFormat(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(d));
 
   return (
     <>
@@ -109,29 +108,34 @@ function ItemBody({ item, compact }: { item: PalaceItem; compact: boolean }) {
             style={styles.meta}
             maxLength={4}
           />
-          <View style={{ paddingTop: 6 }}>
-            <RatingStars value={item.rating ?? 0} onChange={(rating) => updateItem(item.id, { rating })} size={26} />
-          </View>
+          {!awaited && (
+            <Pop trigger={item.rating} style={{ paddingTop: 6, alignSelf: 'flex-start' }}>
+              <RatingStars
+                value={item.rating ?? 0}
+                onChange={(rating) => {
+                  haptics.select();
+                  updateItem(item.id, { rating });
+                }}
+                size={26}
+              />
+            </Pop>
+          )}
         </View>
       </View>
 
-      <View style={styles.history}>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={type.bodyMedium}>{t('item.loggedTimes', { count: Math.max(1, logs.length) })}</Text>
-          <Text style={type.serif}>{t('item.lastLogged', { date: formatDate(last, i18n.language) })}</Text>
-        </View>
-        <Button
-          label={t('log.logAgain')}
-          icon="refresh"
-          tone="soft"
-          compact
-          onPress={() => {
-            relogItem(item.id);
-            haptics.success();
-            showToast(t('toast.relogged', { title: item.title }));
-          }}
-        />
-      </View>
+      {(awaited || item.nextEpisode) && (
+        <FadeIn style={styles.release}>
+          <Icon name="bell" size={18} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={type.bodyMedium}>
+              {awaited
+                ? t('item.outOn', { date: fmt(item.releaseDate!) })
+                : t('item.nextEpisode', { code: t('soon.episodeCode', { season: item.nextEpisode!.season, episode: item.nextEpisode!.number }) })}
+            </Text>
+            <Text style={type.serif}>{awaited ? t('item.willNotify') : fmt(item.nextEpisode!.date)}</Text>
+          </View>
+        </FadeIn>
+      )}
 
       {item.category === 'series' && <SeriesBlock item={item} />}
 
@@ -146,20 +150,18 @@ function ItemBody({ item, compact }: { item: PalaceItem; compact: boolean }) {
         style={styles.note}
       />
 
-      {confirming ? (
-        <View style={styles.confirm}>
-          <Text style={type.bodyMedium}>{t('item.removeConfirm', { title: item.title })}</Text>
-          <View style={styles.confirmActions}>
-            <Button label={t('item.keep')} tone="soft" compact onPress={() => setConfirming(false)} />
-            <Button label={t('item.removeYes')} tone="danger" compact onPress={() => deleteItem(item.id)} />
-          </View>
-        </View>
-      ) : (
-        <PressableScale onPress={() => setConfirming(true)} style={styles.remove} accessibilityLabel={t('item.remove')}>
-          <Icon name="trash" size={16} color={palette.danger} />
-          <Text style={styles.removeText}>{t('item.remove')}</Text>
-        </PressableScale>
-      )}
+      <PressableScale
+        onPress={() => {
+          haptics.warn();
+          deleteItem(item.id);
+          showToast(t('toast.removed', { title: item.title }), { kind: 'undo' });
+        }}
+        style={styles.remove}
+        accessibilityLabel={t('item.remove')}
+      >
+        <Icon name="trash" size={16} color={palette.danger} />
+        <Text style={styles.removeText}>{t('item.remove')}</Text>
+      </PressableScale>
     </>
   );
 }
@@ -213,7 +215,7 @@ function SeriesBlock({ item }: { item: SeriesItem }) {
           tone="accent"
           accent={spec.accent}
           onPress={() => {
-            const e = logEpisode(item.id, { animate: pathname === '/palace' });
+            const e = logEpisode(item.id, { animate: pathname === '/' });
             if (e) (e.kind === 'episode' && e.completesSeason ? haptics.success : haptics.tap)();
           }}
         />
@@ -230,6 +232,7 @@ const useStyles = makeStyles(({ palette, fonts, radii }) => ({
   hero: { flexDirection: 'row', gap: 16, alignItems: 'flex-start' },
   title: { ...(noOutline as object), fontFamily: fonts.bold, fontSize: 26, lineHeight: 30, letterSpacing: -0.9, color: palette.ink, padding: 0 },
   meta: { ...(noOutline as object), fontFamily: fonts.medium, fontSize: 15, color: palette.inkSoft, padding: 0, paddingVertical: 1 },
+  release: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: palette.field, borderRadius: radii.md, padding: 14 },
   history: {
     flexDirection: 'row',
     alignItems: 'center',

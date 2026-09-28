@@ -93,7 +93,7 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
     let best: PalaceItem | undefined;
     for (const id of s.order[category]) {
       const it = s.items[id];
-      if (it?.settled && it.coverUrl && (!best || (it.lastLoggedAt ?? it.createdAt) > (best.lastLoggedAt ?? best.createdAt))) best = it;
+      if (it?.settled && it.coverUrl && (!best || it.createdAt > best.createdAt)) best = it;
     }
     return best?.coverUrl;
   });

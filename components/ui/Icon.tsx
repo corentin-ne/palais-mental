@@ -20,7 +20,11 @@ export type IconName =
   | 'grid'
   | 'chart'
   | 'refresh'
-  | 'calendar';
+  | 'calendar'
+  | 'bell'
+  | 'user'
+  | 'undo'
+  | 'chevronRight';
 
 interface Props {
   name: IconName;
@@ -171,6 +175,29 @@ function renderIcon(name: IconName, s: object, color: string) {
           <Path {...s} d="M4 10h16M8.5 3.5v4M15.5 3.5v4" />
         </>
       );
+    case 'bell':
+      return (
+        <>
+          <Path {...s} d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 2h-14z" />
+          <Path {...s} d="M10 20.5a2 2 0 0 0 4 0" />
+        </>
+      );
+    case 'user':
+      return (
+        <>
+          <Circle {...s} cx={12} cy={8.5} r={3.8} />
+          <Path {...s} d="M4.5 20c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5" />
+        </>
+      );
+    case 'undo':
+      return (
+        <>
+          <Path {...s} d="M9 7.5L4.5 12 9 16.5" />
+          <Path {...s} d="M4.5 12H15a4.5 4.5 0 0 1 0 9h-2" />
+        </>
+      );
+    case 'chevronRight':
+      return <Path {...s} d="M9.5 5.5L16 12l-6.5 6.5" />;
     case 'sparkle':
       return <Path {...s} d="M12 3.5l1.9 5.6 5.6 1.9-5.6 1.9L12 18.5l-1.9-5.6L4.5 11l5.6-1.9z" />;
   }

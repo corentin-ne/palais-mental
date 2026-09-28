@@ -17,8 +17,12 @@ export interface BaseItem {
   coverUrl?: string;
   /** Where the metadata came from, so a second log of the same title is recognized. */
   source?: ItemSource;
-  /** Most recent journal event touching this item. */
-  lastLoggedAt?: number;
+  /** Release date of the work (ms). In the future → the item is awaited, and you get notified. */
+  releaseDate?: number;
+  /** Series: next episode on air, refreshed from TVmaze. */
+  nextEpisode?: { date: number; season: number; number: number; name?: string };
+  /** Series with a TVmaze id can be followed for new episodes. */
+  tvmazeId?: number;
   /**
    * Hero Swap flag. `false` while the item is still owned by the HeroItemSpawner
    * (materializing / flying); the shelf InstancedMesh only renders settled items.
@@ -65,24 +69,26 @@ export type CameraFocus = 'window' | CategoryId;
 /** Editable metadata of any item. */
 export type ItemDetails = Pick<BaseItem, 'title' | 'creator' | 'year' | 'rating' | 'note' | 'coverUrl'>;
 
-export type CatalogProvider = 'openlibrary' | 'itunes' | 'wikipedia' | 'manual';
+export type CatalogProvider =
+  | 'openlibrary'
+  | 'googlebooks'
+  | 'itunes'
+  | 'tvmaze'
+  | 'musicbrainz'
+  | 'deezer'
+  | 'steam'
+  | 'wikipedia'
+  | 'manual';
 export interface ItemSource {
   provider: CatalogProvider;
   id: string;
 }
 
-/**
- * The journal is a list of dated events. Items are the collection; events are the
- * diary of when you watched, read, played or listened.
- */
-export type JournalEvent =
-  | { id: string; itemId: string; ts: number; kind: 'log' | 'relog' }
-  | { id: string; itemId: string; ts: number; kind: 'episode'; season: number; episode: number; completesSeason: boolean };
 
 export interface PalaceSettings {
   /** Dust, cloud drift and beam shimmer after interactions. */
   ambient: boolean;
   haptics: boolean;
-  /** Visual experience: crisp editorial, or the Frutiger Aero sky-and-glass world. */
-  style?: 'editorial' | 'aero';
+  /** Local notifications for releases and new episodes. */
+  notifications: boolean;
 }

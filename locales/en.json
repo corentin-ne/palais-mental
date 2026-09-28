@@ -3,9 +3,7 @@
     "title": "Mental Palace",
     "items_one": "{{count}} memory",
     "items_other": "{{count}} memories",
-    "level": "Level {{level}}",
-    "hintEmpty": "Tap + to place your first memory in the light",
-    "hint": "Swipe to look around"
+    "level": "Level {{level}}"
   },
   "nav": {
     "window": "Window",
@@ -30,19 +28,13 @@
     "videogames": "Studio"
   },
   "log": {
-    "title": "Add a memory",
-    "subtitle": "What stayed with you?",
-    "kept_one": "{{count}} kept",
-    "kept_other": "{{count}} kept",
-    "kept_zero": "Empty niche",
     "titleLabel": "Title",
     "titlePlaceholder": "e.g. {{example}}",
     "year": "Year",
     "rating": "Rating",
     "note": "Note",
     "notePlaceholder": "What do you want to remember?",
-    "episodes": "Episodes in season 1",
-    "submit": "Log it",
+    "submit": "Add to the palace",
     "back": "Back",
     "cancel": "Cancel",
     "searchAll": "Search films, series, books, albums, games…",
@@ -61,31 +53,27 @@
     "episodesCount_other": "{{count}} episodes",
     "inPalace": "Already in your palace",
     "searchHint": "Start typing a title.",
-    "recent": "Recently logged",
-    "confirmTitle": "New entry",
-    "logAgainTitle": "Log again",
-    "alreadyLogged_one": "Already logged once. This adds a new entry to your journal.",
-    "alreadyLogged_other": "Already logged {{count}} times. This adds a new entry to your journal.",
-    "when": "When",
-    "today": "Today",
-    "yesterday": "Yesterday",
-    "earlier": "Earlier",
+    "confirmTitle": "New object",
     "wholeSeason": "Whole season",
     "stillWatching": "Still watching",
-    "logAgain": "Log again"
+    "clear": "Clear",
+    "recentSearches": "Recent searches",
+    "comingOn": "Out {{date}}",
+    "alreadyTitle": "Already here",
+    "alreadyBody": "This one already has its place in your palace.",
+    "openIt": "Open it",
+    "awaitTitle": "Not out yet",
+    "awaitBody": "Comes out {{date}}. It gets its place now, and you'll get a quiet heads-up that day.",
+    "await": "Wait for it"
   },
   "item": {
-    "added": "Added {{date}}",
     "remove": "Remove from the palace",
-    "removeConfirm": "Remove “{{title}}” from your palace?",
-    "keep": "Keep",
-    "removeYes": "Remove",
     "close": "Close",
     "notePlaceholder": "Add a note…",
     "yearPlaceholder": "Year",
-    "loggedTimes_one": "Logged once",
-    "loggedTimes_other": "Logged {{count}} times",
-    "lastLogged": "last on {{date}}"
+    "outOn": "Out {{date}}",
+    "nextEpisode": "Next: {{code}}",
+    "willNotify": "You'll get a heads-up that day"
   },
   "series": {
     "progress": "S{{season}} · {{watched}}/{{total}}",
@@ -108,12 +96,14 @@
   "library": {
     "all": "Everything",
     "search": "Search titles, people, notes…",
-    "sortRecent": "Recent",
     "sortAlpha": "A–Z",
     "sortRating": "Rating",
     "empty": "Nothing here yet.",
     "noResults": "No match for “{{q}}”.",
-    "title": "Library"
+    "title": "Library",
+    "sortAdded": "Added",
+    "soon": "Soon",
+    "addFirst": "Add the first one"
   },
   "settings": {
     "title": "Settings",
@@ -127,10 +117,9 @@
     "resetConfirm": "Remove every memory? This can't be undone.",
     "resetYes": "Reset",
     "cancel": "Cancel",
-    "version": "Version {{version}}"
-  },
-  "hero": {
-    "placed": "Placed in {{category}}"
+    "version": "Version {{version}}",
+    "notifications": "Release notifications",
+    "notificationsHint": "New episodes and release days of things in your palace."
   },
   "language": {
     "system": "Auto",
@@ -154,55 +143,95 @@
     "videogames": "Mobius Digital"
   },
   "tabs": {
-    "journal": "Journal",
     "library": "Library",
     "palace": "Palace",
-    "you": "You"
-  },
-  "journal": {
-    "title": "Journal",
-    "searchPlaceholder": "Log a film, a book, an album…",
-    "today": "Today",
-    "yesterday": "Yesterday",
-    "entries_one": "{{count}} entry",
-    "entries_other": "{{count}} entries",
-    "episode": "S{{season}} · E{{episode}}",
-    "again": "Again",
-    "emptyTitle": "Nothing logged yet",
-    "emptyBody": "Search for something you watched, read, heard or played — it takes three taps."
+    "you": "You",
+    "soon": "Soon"
   },
   "toast": {
-    "logged": "Logged “{{title}}”",
-    "relogged": "Logged “{{title}}” again",
-    "episode": "{{title}} · episode {{episode}}",
-    "see": "See it"
+    "see": "See it",
+    "placed": "“{{title}}” has its place",
+    "awaited": "Waiting for “{{title}}”",
+    "decor": "Your {{category}} niche earned {{object}}",
+    "roomGrew": "Your palace just grew a little",
+    "removed": "“{{title}}” removed",
+    "undo": "Undo"
+  },
+  "palace": {
+    "objects_one": "{{count}} object",
+    "objects_other": "{{count}} objects",
+    "emptyTitle": "Your palace is waiting",
+    "emptyBody": "Tap + and add the first film, book or album that stayed with you."
+  },
+  "soon": {
+    "title": "Soon",
+    "subtitle": "Releases and new episodes, only from your palace",
+    "thisWeek": "This week",
+    "later": "Later",
+    "today": "today",
+    "tomorrow": "tomorrow",
+    "episodeCode": "S{{season}} · E{{episode}}",
+    "release": {
+      "movies": "Film",
+      "series": "Series premiere",
+      "music": "Album",
+      "books": "Book",
+      "boardgames": "Board game",
+      "videogames": "Game"
+    },
+    "askTitle": "Know the day it's out",
+    "askBody": "A quiet notification on release day, nothing else. No account, no marketing.",
+    "askCta": "Turn on",
+    "emptyTitle": "Nothing announced yet",
+    "emptyBody": "Series you add are followed automatically, and anything not released yet waits here.",
+    "emptyCta": "Find a series",
+    "channel": "Releases",
+    "outToday": "Out today",
+    "newEpisode": "New episode"
   },
   "you": {
     "title": "You",
-    "subtitle": "Your {{year}}",
-    "logs_one": "log this year",
-    "logs_other": "logs this year",
-    "streak_one": "day in a row",
-    "streak_other": "days in a row",
-    "avg": "average rating",
-    "byCategory": "By collection",
-    "byMonth": "Month by month",
-    "favourites": "Favourites"
+    "subtitle": "Your mental palace",
+    "objects_one": "object in your palace",
+    "objects_other": "objects in your palace",
+    "room": "Room {{level}}",
+    "avg": "{{avg}} ★ average",
+    "roomNext_one": "{{count}} more object and the room opens up",
+    "roomNext_other": "{{count}} more objects and the room opens up",
+    "roomMax": "Your palace has reached its full size",
+    "niches": "Niches",
+    "nextDecor_one": "{{count}} more to earn {{object}}",
+    "nextDecor_other": "{{count}} more to earn {{object}}",
+    "startNiche": "Add one to furnish this niche",
+    "nicheComplete": "Fully furnished",
+    "favourites": "Most loved"
   },
-  "style": {
-    "title": "Experience",
-    "editorial": "Editorial",
-    "editorialHint": "Paper, ink and covers",
-    "aero": "Aero",
-    "aeroHint": "Sky, glass and bubbles"
+  "decor": {
+    "plant": "a plant",
+    "clapper": "a clapperboard",
+    "popcorn": "a popcorn box",
+    "reel": "a film reel",
+    "projector": "a projector",
+    "remote": "a remote",
+    "tv": "a little TV",
+    "mug": "a mug",
+    "headphones": "headphones",
+    "speaker": "a speaker",
+    "turntable": "a turntable",
+    "cassette": "a cassette",
+    "bookends": "bookends",
+    "lamp": "a reading lamp",
+    "glasses": "reading glasses",
+    "candle": "a candle",
+    "dice": "dice",
+    "meeples": "meeples",
+    "hourglass": "an hourglass",
+    "trophy": "a trophy",
+    "controller": "a controller",
+    "cartridge": "a cartridge",
+    "console": "a console"
   },
-  "aero": {
-    "morning": "Good morning",
-    "afternoon": "Good afternoon",
-    "evening": "Good evening",
-    "night": "Good night",
-    "thisWeek": "this week",
-    "streak_one": "{{count}}-day streak",
-    "streak_other": "{{count}}-day streak"
+  "hero": {
+    "placed": "Placed in {{category}}"
   }
 }

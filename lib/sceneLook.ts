@@ -1,5 +1,3 @@
-import { usePalaceStore } from '@/store/usePalaceStore';
-
 /** Everything the 3D palace varies between the two experiences. */
 export interface SceneLook {
   background: string;
@@ -26,7 +24,7 @@ export interface SceneLook {
   cushion: string;
 }
 
-export const SCENE_LOOKS: Record<'editorial' | 'aero', SceneLook> = {
+export const SCENE_LOOKS: Record<'editorial', SceneLook> = {
   editorial: {
     background: '#FAF9F6',
     hemi: ['#FFFFFF', '#E9E1D6', 1.05],
@@ -50,33 +48,8 @@ export const SCENE_LOOKS: Record<'editorial' | 'aero', SceneLook> = {
     pillows: ['#E9B7A2', '#CADAC1'],
     cushion: '#F1DECB',
   },
-  // Aero: a glass pavilion at noon — cool daylight, glossy white lacquer, aqua linings, bubbles.
-  aero: {
-    background: '#DDF1FB',
-    hemi: ['#EEF8FF', '#CFE3DE', 0.85],
-    sun: ['#FFFFFF', 1.3],
-    fill: ['#DDF3FF', 0.4],
-    envIntensity: 0.7,
-    floorCenter: '#DCEBEA',
-    floorEdge: '#D2E4E3',
-    wall: '#EEF5F9',
-    dome: '#F6FAFD',
-    frame: '#FFFFFF',
-    lacquer: '#FFFFFF',
-    lacquerRoughness: 0.12,
-    liningAccent: 0.45,
-    zenith: '#2C96E2',
-    horizon: '#BFEAFF',
-    dust: '#E4F6FF',
-    dustSize: 22,
-    bloom: 0.3,
-    rug: ['#BFE3EA', '#E4F4F6'],
-    pillows: ['#8FD0F0', '#BDE7B4'],
-    cushion: '#F4FAFC',
-  },
 };
 
 export function useSceneLook(): SceneLook {
-  const style = usePalaceStore((s) => s.settings.style ?? 'editorial');
-  return SCENE_LOOKS[style];
+  return SCENE_LOOKS.editorial;
 }

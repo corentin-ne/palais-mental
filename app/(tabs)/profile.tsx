@@ -1,115 +1,86 @@
-import { useSceneVisibility } from '@/hooks/useSceneVisibility';
-import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
 
 import CoverArt from '@/components/ui/CoverArt';
-import StylePicker from '@/components/ui/StylePicker';
 import Icon from '@/components/ui/Icon';
 import PressableScale from '@/components/ui/PressableScale';
 import { Button, Segmented, Toggle } from '@/components/ui/Controls';
+import { FadeIn, useCountUp } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
-import { averageRating, byMonth, countsByCategory, currentStreak, eventsInYear } from '@/lib/stats';
-import { CATEGORIES } from '@/lib/types';
+import { DECOR_THRESHOLDS, nextDecor, roomProgress, unlockedDecorCount } from '@/lib/milestones';
+import { CATEGORIES, CategoryId } from '@/lib/types';
 import type { LanguagePreference } from '@/locales/i18n';
 import { usePalaceStore } from '@/store/usePalaceStore';
 
-/** Your year in numbers, your favourites, and the app's few settings. */
+/** Your palace as a whole: how far it has grown, what each niche earns next, what you love most. */
 export default function ProfileScreen() {
-  const hidden = useSceneVisibility();
-  const { palette, type } = useTheme();
+  const { t } = useTranslation();
+  const { type } = useTheme();
   const styles = useStyles();
-  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
-  const events = usePalaceStore((s) => s.events);
   const items = usePalaceStore((s) => s.items);
+  const order = usePalaceStore((s) => s.order);
   const selectItem = usePalaceStore((s) => s.selectItem);
-  const year = new Date().getFullYear();
+  const total = Object.keys(items).length;
+  const room = roomProgress(total);
 
-  const stats = useMemo(() => {
-    const yearEvents = eventsInYear(events, year);
-    const list = Object.values(items);
-    return {
-      total: yearEvents.length,
-      byCat: countsByCategory(yearEvents, items),
-      months: byMonth(yearEvents),
-      streak: currentStreak(events),
-      avg: averageRating(list),
-      favourites: list
+  const favourites = useMemo(
+    () =>
+      Object.values(items)
         .filter((i) => (i.rating ?? 0) >= 4)
-        .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || (b.lastLoggedAt ?? 0) - (a.lastLoggedAt ?? 0))
+        .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || a.title.localeCompare(b.title))
         .slice(0, 12),
-    };
-  }, [events, items, year]);
-
-  const maxMonth = Math.max(1, ...stats.months);
-  const month = new Date().getMonth();
-  const monthLetters = Array.from({ length: 12 }, (_, m) =>
-    new Intl.DateTimeFormat(i18n.language, { month: 'narrow' }).format(new Date(year, m, 1)),
+    [items],
   );
+  const rated = Object.values(items).filter((i) => i.rating);
+  const avg = rated.length ? rated.reduce((s, i) => s + (i.rating ?? 0), 0) / rated.length : 0;
+  const shownTotal = Math.round(useCountUp(total));
 
   return (
-    <ScrollView style={[styles.root, hidden]} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 120 }]}>
+    <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 120 }]}>
       <View style={{ gap: 2 }}>
-        <Text style={type.serif}>{t('you.subtitle', { year })}</Text>
+        <Text style={type.serif}>{t('you.subtitle')}</Text>
         <Text style={type.display}>{t('you.title')}</Text>
       </View>
 
-      <View style={styles.bigRow}>
-        <Big value={String(stats.total)} label={t('you.logs', { count: stats.total })} />
-        <Big value={String(stats.streak)} label={t('you.streak', { count: stats.streak })} />
-        <Big value={stats.avg ? stats.avg.toFixed(1) : '–'} label={t('you.avg')} />
+      <FadeIn style={styles.card}>
+        <View style={styles.rowBetween}>
+          <View>
+            <Text style={styles.big}>{shownTotal}</Text>
+            <Text style={type.small}>{t('you.objects', { count: total })}</Text>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={styles.level}>{t('you.room', { level: room.level + 1 })}</Text>
+            <Text style={type.small}>{avg ? t('you.avg', { avg: avg.toFixed(1) }) : ' '}</Text>
+          </View>
+        </View>
+        <Progress fraction={room.fraction} />
+        <Text style={type.small}>{room.to === null ? t('you.roomMax') : t('you.roomNext', { count: room.remaining })}</Text>
+      </FadeIn>
+
+      <View style={{ gap: 10 }}>
+        <Text style={type.label}>{t('you.niches')}</Text>
+        {CATEGORIES.map((c, i) => (
+          <FadeIn key={c} index={i + 1}>
+            <NicheRow category={c} count={order[c].length} />
+          </FadeIn>
+        ))}
       </View>
 
-      <View style={styles.card}>
-        <Text style={type.label}>{t('you.byCategory')}</Text>
-        <View style={styles.stack}>
-          {CATEGORIES.map((c) =>
-            stats.byCat[c] ? (
-              <View key={c} style={{ flex: stats.byCat[c], backgroundColor: CATEGORY_SPECS[c].accent }} />
-            ) : null,
-          )}
-          {stats.total === 0 && <View style={{ flex: 1, backgroundColor: palette.hairline }} />}
-        </View>
-        <View style={styles.legend}>
-          {CATEGORIES.map((c) => (
-            <View key={c} style={styles.legendItem}>
-              <Icon name={c} size={16} color={CATEGORY_SPECS[c].accent} strokeWidth={2} />
-              <Text style={styles.legendValue}>{stats.byCat[c]}</Text>
-              <Text style={styles.legendLabel} numberOfLines={1}>
-                {t(`categories.${c}`)}
-              </Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={type.label}>{t('you.byMonth')}</Text>
-        <View style={styles.bars}>
-          {stats.months.map((v, m) => (
-            <View key={m} style={styles.barCol}>
-              <Text style={styles.barValue}>{v || ''}</Text>
-              <View style={styles.barTrack}>
-                <View style={[styles.bar, { height: `${(v / maxMonth) * 100}%`, backgroundColor: m === month ? palette.primary : palette.fieldActive }]} />
-              </View>
-              <Text style={[styles.barLabel, m === month && { color: palette.ink }]}>{monthLetters[m]}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      {stats.favourites.length > 0 && (
+      {favourites.length > 0 && (
         <View style={{ gap: 12 }}>
           <Text style={type.label}>{t('you.favourites')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
-            {stats.favourites.map((i) => (
-              <PressableScale key={i.id} onPress={() => selectItem(i.id)} depth={0.95}>
-                <CoverArt uri={i.coverUrl} title={i.title} category={i.category} width={96} aspect={2 / 3} />
-              </PressableScale>
+            {favourites.map((i, n) => (
+              <FadeIn key={i.id} index={n}>
+                <PressableScale onPress={() => selectItem(i.id)} depth={0.95}>
+                  <CoverArt uri={i.coverUrl} title={i.title} category={i.category} width={96} aspect={2 / 3} />
+                </PressableScale>
+              </FadeIn>
             ))}
           </ScrollView>
         </View>
@@ -120,20 +91,58 @@ export default function ProfileScreen() {
   );
 }
 
-function Big({ value, label }: { value: string; label: string }) {
+function Progress({ fraction, color }: { fraction: number; color?: string }) {
+  const { palette } = useTheme();
   const styles = useStyles();
+  const w = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(w, { toValue: Math.max(0.02, Math.min(1, fraction)), useNativeDriver: false, damping: 20, stiffness: 120 }).start();
+  }, [fraction, w]);
   return (
-    <View style={styles.big}>
-      <Text style={styles.bigValue}>{value}</Text>
-      <Text style={styles.bigLabel}>{label}</Text>
+    <View style={styles.track}>
+      <Animated.View
+        style={[styles.fill, { backgroundColor: color ?? palette.ink, width: w.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }]}
+      />
+    </View>
+  );
+}
+
+function NicheRow({ category, count }: { category: CategoryId; count: number }) {
+  const { t } = useTranslation();
+  const { type } = useTheme();
+  const styles = useStyles();
+  const spec = CATEGORY_SPECS[category];
+  const next = nextDecor(category, count);
+  const unlocked = unlockedDecorCount(count);
+  const prev = unlocked ? DECOR_THRESHOLDS[unlocked - 1] : 0;
+  const shown = Math.round(useCountUp(count));
+  return (
+    <View style={styles.niche}>
+      <View style={[styles.nicheIcon, { backgroundColor: spec.tint }]}>
+        <Icon name={category} size={20} color={spec.accent} strokeWidth={2} />
+      </View>
+      <View style={{ flex: 1, gap: 6 }}>
+        <View style={styles.rowBetween}>
+          <Text style={type.bodyMedium}>{t(`categories.${category}`)}</Text>
+          <Text style={styles.nicheCount}>{shown}</Text>
+        </View>
+        <Progress fraction={next ? (count - prev) / (next.at - prev) : 1} color={spec.accent} />
+        <Text style={type.small} numberOfLines={1}>
+          {next
+            ? count === 0
+              ? t('you.startNiche')
+              : t('you.nextDecor', { count: next.remaining, object: t(`decor.${next.id}`) })
+            : t('you.nicheComplete')}
+        </Text>
+      </View>
     </View>
   );
 }
 
 function Settings() {
+  const { t } = useTranslation();
   const { type } = useTheme();
   const styles = useStyles();
-  const { t } = useTranslation();
   const language = usePalaceStore((s) => s.language);
   const setLanguage = usePalaceStore((s) => s.setLanguage);
   const settings = usePalaceStore((s) => s.settings);
@@ -143,10 +152,6 @@ function Settings() {
   return (
     <View style={{ gap: 14 }}>
       <Text style={type.title}>{t('settings.title')}</Text>
-      <View style={{ gap: 10 }}>
-        <Text style={type.label}>{t('style.title')}</Text>
-        <StylePicker />
-      </View>
       <View style={{ gap: 10 }}>
         <Text style={type.label}>{t('settings.language')}</Text>
         <Segmented<LanguagePreference>
@@ -160,12 +165,14 @@ function Settings() {
         />
       </View>
       <View style={styles.card}>
+        <Toggle label={t('settings.notifications')} hint={t('settings.notificationsHint')} value={settings.notifications} onChange={(v) => setSetting('notifications', v)} />
+        <View style={styles.divider} />
         <Toggle label={t('settings.ambient')} hint={t('settings.ambientHint')} value={settings.ambient} onChange={(v) => setSetting('ambient', v)} />
         <View style={styles.divider} />
         <Toggle label={t('settings.haptics')} value={settings.haptics} onChange={(v) => setSetting('haptics', v)} />
       </View>
       {confirming ? (
-        <View style={styles.confirm}>
+        <FadeIn style={styles.confirm}>
           <Text style={type.bodyMedium}>{t('settings.resetConfirm')}</Text>
           <View style={styles.confirmActions}>
             <Button label={t('settings.cancel')} tone="soft" compact onPress={() => setConfirming(false)} />
@@ -179,7 +186,7 @@ function Settings() {
               }}
             />
           </View>
-        </View>
+        </FadeIn>
       ) : (
         <Button label={t('settings.reset')} tone="soft" icon="trash" onPress={() => setConfirming(true)} />
       )}
@@ -191,23 +198,16 @@ function Settings() {
 const useStyles = makeStyles(({ palette, fonts, radii }) => ({
   root: { flex: 1, backgroundColor: palette.screen },
   content: { paddingHorizontal: 20, gap: 22, maxWidth: 720, width: '100%', alignSelf: 'center' },
-  bigRow: { flexDirection: 'row', gap: 10 },
-  big: { flex: 1, backgroundColor: palette.surface, borderRadius: radii.lg, padding: 14, gap: 2, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.hairline },
-  bigValue: { fontFamily: fonts.bold, fontSize: 32, letterSpacing: -1.2, color: palette.ink, fontVariant: ['tabular-nums'] },
-  bigLabel: { fontFamily: fonts.medium, fontSize: 12.5, color: palette.inkSoft },
-  card: { backgroundColor: palette.surface, borderRadius: radii.lg, padding: 16, gap: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.hairline },
-  stack: { flexDirection: 'row', height: 12, borderRadius: 6, overflow: 'hidden', gap: 2 },
-  legend: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 },
-  legendItem: { width: '33.33%', gap: 2 },
-  legendValue: { fontFamily: fonts.bold, fontSize: 20, letterSpacing: -0.6, color: palette.ink, fontVariant: ['tabular-nums'] },
-  legendLabel: { fontFamily: fonts.medium, fontSize: 12, color: palette.inkSoft },
-  bars: { flexDirection: 'row', gap: 6, height: 130 },
-  barCol: { flex: 1, alignItems: 'center', gap: 4 },
-  barValue: { fontFamily: fonts.medium, fontSize: 10, color: palette.inkSoft, height: 13, fontVariant: ['tabular-nums'] },
-  barTrack: { flex: 1, width: '100%', justifyContent: 'flex-end' },
-  bar: { width: '100%', borderRadius: 4, minHeight: 3 },
-  barLabel: { fontFamily: fonts.semibold, fontSize: 11, color: palette.inkFaint, textTransform: 'uppercase' },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: palette.hairline },
+  card: { backgroundColor: palette.surface, borderRadius: radii.lg, padding: 16, gap: 12, borderWidth: 1, borderColor: palette.hairline },
+  rowBetween: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  big: { fontFamily: fonts.bold, fontSize: 44, letterSpacing: -1.8, color: palette.ink, fontVariant: ['tabular-nums'] },
+  level: { fontFamily: fonts.semibold, fontSize: 15, color: palette.ink },
+  track: { height: 6, borderRadius: 3, backgroundColor: palette.field, overflow: 'hidden' },
+  fill: { height: 6, borderRadius: 3 },
+  niche: { flexDirection: 'row', gap: 14, alignItems: 'center', backgroundColor: palette.surface, borderRadius: radii.lg, padding: 14, borderWidth: 1, borderColor: palette.hairline },
+  nicheIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  nicheCount: { fontFamily: fonts.bold, fontSize: 17, color: palette.ink, fontVariant: ['tabular-nums'] },
+  divider: { height: 1, backgroundColor: palette.hairline },
   confirm: { gap: 12, backgroundColor: palette.dangerTint, borderRadius: radii.md, padding: 14 },
   confirmActions: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },
 }));

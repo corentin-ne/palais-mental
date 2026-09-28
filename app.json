@@ -16,7 +16,10 @@
     },
     "android": {
       "package": "com.palaismental.app",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -26,7 +29,8 @@
       "expo-router",
       "expo-localization",
       "expo-asset",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

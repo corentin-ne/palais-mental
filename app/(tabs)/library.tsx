@@ -1,20 +1,22 @@
-import { useSceneVisibility } from '@/hooks/useSceneVisibility';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { FlatList, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import CoverArt from '@/components/ui/CoverArt';
-import CoverFlow from '@/components/ui/aero/CoverFlow';
 import Icon from '@/components/ui/Icon';
 import PressableScale from '@/components/ui/PressableScale';
 import { RatingStars, Segmented } from '@/components/ui/Controls';
-import { noOutline, makeStyles, useTheme } from '@/constants/theme';
+import { FadeIn, animateLayout } from '@/components/ui/Motion';
+import { makeStyles, noOutline, useTheme } from '@/constants/theme';
+import { useHaptics } from '@/hooks/useHaptics';
+import { isAwaited } from '@/lib/releases';
 import { CATEGORIES, CategoryId, PalaceItem } from '@/lib/types';
 import { usePalaceStore } from '@/store/usePalaceStore';
+import { useUiStore } from '@/store/useUiStore';
 
-type Sort = 'recent' | 'rating' | 'alpha';
+type Sort = 'added' | 'rating' | 'alpha';
 type Scope = CategoryId | 'all';
 
 const COLUMNS = 3;
@@ -22,18 +24,19 @@ const GAP = 14;
 
 /** The whole collection as a wall of covers. */
 export default function LibraryScreen() {
-  const hidden = useSceneVisibility();
-  const { palette, type, aero } = useTheme();
-  const styles = useStyles();
   const { t } = useTranslation();
+  const { palette, type } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
+  const haptics = useHaptics();
   const { width } = useWindowDimensions();
   const params = useLocalSearchParams<{ c?: string }>();
   const items = usePalaceStore((s) => s.items);
   const selectItem = usePalaceStore((s) => s.selectItem);
+  const openSearch = useUiStore((s) => s.openSearch);
   const [scope, setScope] = useState<Scope>('all');
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<Sort>('recent');
+  const [sort, setSort] = useState<Sort>('added');
 
   useEffect(() => {
     if (params.c && (CATEGORIES as readonly string[]).includes(params.c)) setScope(params.c as CategoryId);
@@ -59,20 +62,25 @@ export default function LibraryScreen() {
       sort === 'alpha'
         ? a.title.localeCompare(b.title)
         : sort === 'rating'
-          ? (b.rating ?? 0) - (a.rating ?? 0) || (b.lastLoggedAt ?? b.createdAt) - (a.lastLoggedAt ?? a.createdAt)
-          : (b.lastLoggedAt ?? b.createdAt) - (a.lastLoggedAt ?? a.createdAt),
+          ? (b.rating ?? 0) - (a.rating ?? 0) || a.title.localeCompare(b.title)
+          : b.createdAt - a.createdAt,
     );
     return list;
   }, [items, scope, query, sort]);
 
   const contentWidth = Math.min(width, 720) - 40;
   const cell = (contentWidth - GAP * (COLUMNS - 1)) / COLUMNS;
+  const change = <T,>(fn: (v: T) => void) => (v: T) => {
+    haptics.select();
+    animateLayout();
+    fn(v);
+  };
 
   return (
     <FlatList
-      style={[styles.root, hidden]}
+      style={styles.root}
       data={rows}
-      key={COLUMNS}
+      key={`${scope}-${sort}`}
       numColumns={COLUMNS}
       keyExtractor={(i) => i.id}
       columnWrapperStyle={styles.columns}
@@ -84,14 +92,6 @@ export default function LibraryScreen() {
             <Text style={type.display}>{t('library.title')}</Text>
             <Text style={styles.count}>{counts.all}</Text>
           </View>
-          {aero && !query && (
-            <CoverFlow
-              items={Object.values(items)
-                .sort((x, y) => (y.lastLoggedAt ?? y.createdAt) - (x.lastLoggedAt ?? x.createdAt))
-                .slice(0, 14)}
-              onOpen={(i) => selectItem(i.id)}
-            />
-          )}
           <View style={styles.search}>
             <Icon name="search" size={18} color={palette.inkSoft} />
             <TextInput
@@ -107,11 +107,9 @@ export default function LibraryScreen() {
             {(['all', ...CATEGORIES] as Scope[]).map((s) => {
               const active = s === scope;
               return (
-                <PressableScale key={s} onPress={() => setScope(s)} style={[styles.chip, active && styles.chipActive]}>
+                <PressableScale key={s} onPress={() => change(setScope)(s)} style={[styles.chip, active && styles.chipActive]}>
                   {s !== 'all' && <Icon name={s} size={15} color={active ? palette.onInk : palette.inkSoft} strokeWidth={2} />}
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                    {s === 'all' ? t('library.all') : t(`categories.${s}`)}
-                  </Text>
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{s === 'all' ? t('library.all') : t(`categories.${s}`)}</Text>
                   <Text style={[styles.chipCount, active && styles.chipTextActive]}>{counts[s] ?? 0}</Text>
                 </PressableScale>
               );
@@ -119,28 +117,50 @@ export default function LibraryScreen() {
           </ScrollView>
           <Segmented<Sort>
             value={sort}
-            onChange={setSort}
+            onChange={change(setSort)}
             options={[
-              { value: 'recent', label: t('library.sortRecent') },
+              { value: 'added', label: t('library.sortAdded') },
               { value: 'rating', label: t('library.sortRating') },
               { value: 'alpha', label: t('library.sortAlpha') },
             ]}
           />
           {rows.length === 0 && (
-            <Text style={[type.serif, styles.empty]}>{query ? t('library.noResults', { q: query }) : t('library.empty')}</Text>
+            <FadeIn style={styles.empty}>
+              <Text style={[type.serif, { textAlign: 'center' }]}>{query ? t('library.noResults', { q: query }) : t('library.empty')}</Text>
+              {!query && (
+                <PressableScale onPress={() => openSearch(scope === 'all' ? 'all' : scope)} style={styles.emptyCta}>
+                  <Icon name="plus" size={16} color={palette.onInk} strokeWidth={2.2} />
+                  <Text style={styles.emptyCtaText}>{t('library.addFirst')}</Text>
+                </PressableScale>
+              )}
+            </FadeIn>
           )}
         </View>
       }
-      renderItem={({ item }) => <Cell item={item} width={cell} onPress={() => selectItem(item.id)} />}
+      renderItem={({ item, index }) => (
+        <FadeIn index={index} distance={18}>
+          <Cell item={item} width={cell} onPress={() => selectItem(item.id)} />
+        </FadeIn>
+      )}
     />
   );
 }
 
 function Cell({ item, width, onPress }: { item: PalaceItem; width: number; onPress: () => void }) {
+  const { t } = useTranslation();
   const styles = useStyles();
+  const awaited = isAwaited(item);
   return (
-    <PressableScale onPress={onPress} style={{ width, gap: 7 }} depth={0.96}>
-      <CoverArt uri={item.coverUrl} title={item.title} category={item.category} width={width} aspect={2 / 3} />
+    <PressableScale onPress={onPress} style={{ width, gap: 7 }} depth={0.95}>
+      <View>
+        <CoverArt uri={item.coverUrl} title={item.title} category={item.category} width={width} aspect={2 / 3} />
+        {awaited && (
+          <View style={styles.soonBadge}>
+            <Icon name="bell" size={11} color="#FFFFFF" strokeWidth={2.2} />
+            <Text style={styles.soonText}>{t('library.soon')}</Text>
+          </View>
+        )}
+      </View>
       <View style={{ gap: 3 }}>
         <Text style={styles.cellTitle} numberOfLines={1}>
           {item.title}
@@ -173,7 +193,22 @@ const useStyles = makeStyles(({ palette, fonts, radii }) => ({
   chipText: { fontFamily: fonts.semibold, fontSize: 13.5, color: palette.inkSoft },
   chipCount: { fontFamily: fonts.medium, fontSize: 12, color: palette.inkFaint, fontVariant: ['tabular-nums'] },
   chipTextActive: { color: palette.onInk },
-  empty: { textAlign: 'center', paddingVertical: 40 },
+  empty: { alignItems: 'center', gap: 16, paddingVertical: 40 },
+  emptyCta: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: palette.primary, borderRadius: radii.pill, paddingHorizontal: 18, height: 44 },
+  emptyCtaText: { fontFamily: fonts.semibold, fontSize: 14.5, color: palette.onInk },
+  soonBadge: {
+    position: 'absolute',
+    left: 6,
+    top: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(22,20,18,0.78)',
+    borderRadius: radii.pill,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  soonText: { fontFamily: fonts.semibold, fontSize: 10.5, color: '#FFFFFF' },
   cellTitle: { fontFamily: fonts.semibold, fontSize: 13.5, color: palette.ink, letterSpacing: -0.1 },
   cellMeta: { fontFamily: fonts.body, fontSize: 12, color: palette.inkSoft },
 }));

@@ -9,7 +9,6 @@ import {
   HeroEvent,
   ItemDetails,
   ItemSource,
-  JournalEvent,
   PalaceItem,
   PalaceSettings,
   SeriesItem,
@@ -22,14 +21,14 @@ export const MAX_EPISODES = 64;
 
 type CategoryOrder = Record<CategoryId, string[]>;
 
-export interface LogOptions {
-  /** When the thing was watched/read/played (defaults to now). */
-  date?: number;
+export interface AddOptions {
   source?: ItemSource;
-  /** Series: season number this log is about (1-based) and its episode count. */
+  releaseDate?: number;
+  tvmazeId?: number;
+  /** Series: season number to start from (1-based) and its episode count. */
   season?: number;
   episodeCount?: number;
-  /** Series: the whole season was watched. */
+  /** Series: that season is already watched. */
   seasonComplete?: boolean;
   /** Play the center-screen hero in the palace (only when the palace is on screen). */
   animate?: boolean;
@@ -40,10 +39,10 @@ export interface PalaceState {
   items: Record<string, PalaceItem>;
   /** Per-category slot order: index in this array === shelf slot index. */
   order: CategoryOrder;
-  /** The diary, oldest first. */
-  events: JournalEvent[];
   language: LanguagePreference;
   settings: PalaceSettings;
+  /** Last few catalog searches, most recent first (recognition over recall). */
+  recentSearches: string[];
 
   // ---- transient (not persisted)
   focus: CameraFocus;
@@ -56,21 +55,23 @@ export interface PalaceState {
    * while the object glides back to its slot, then the inspector clears it.
    */
   inspectId: string | null;
+  /** Last removed item, kept briefly so removal can be undone instead of confirmed. */
+  lastRemoved: { item: PalaceItem; index: number } | null;
 
   findExisting: (category: CategoryId, title: string, source?: ItemSource) => PalaceItem | undefined;
-  logItem: (category: CategoryId, details: ItemDetails, opts?: LogOptions) => string;
-  relogItem: (id: string, date?: number) => void;
+  addItem: (category: CategoryId, details: ItemDetails, opts?: AddOptions) => { id: string; existed: boolean };
   updateItem: (id: string, patch: Partial<ItemDetails>) => void;
+  setNextEpisode: (id: string, next: PalaceItem['nextEpisode'] | undefined) => void;
   deleteItem: (id: string) => void;
+  undoDelete: () => void;
   logEpisode: (seriesId: string, opts?: { animate?: boolean }) => HeroEvent | null;
   addSeason: (seriesId: string, episodeCount: number) => void;
-  /** Series logged again for a given season: make sure it exists, optionally mark it watched. */
-  markSeason: (seriesId: string, season: number, episodeCount: number, complete: boolean) => void;
   /** Hero Swap commit: the hero unmounts and the item joins its shelf InstancedMesh. */
   completeHero: (eventId: string) => void;
   setFocus: (focus: CameraFocus) => void;
   selectItem: (id: string | null, opts?: { inspect?: boolean }) => void;
   endInspect: (id: string) => void;
+  rememberSearch: (query: string) => void;
   setLanguage: (language: LanguagePreference) => void;
   setSetting: <K extends keyof PalaceSettings>(key: K, value: PalaceSettings[K]) => void;
   resetPalace: () => void;
@@ -105,7 +106,7 @@ function cleanDetails(patch: Partial<ItemDetails>): Partial<ItemDetails> {
 export interface SeriesProgress {
   /** Season currently being watched (first incomplete), or last season if all done. */
   seasonIndex: number;
-  /** Human season number (accounts for series logged from a later season). */
+  /** Human season number (accounts for series added from a later season). */
   seasonNumber: number;
   watched: number;
   total: number;
@@ -142,13 +143,14 @@ export const usePalaceStore = create<PalaceState>()(
     (set, get) => ({
       items: {},
       order: emptyOrder(),
-      events: [],
       language: 'system',
-      settings: { ambient: true, haptics: true, style: 'editorial' },
+      settings: { ambient: true, haptics: true, notifications: true },
+      recentSearches: [],
       focus: 'window',
       heroQueue: [],
       selectedId: null,
       inspectId: null,
+      lastRemoved: null,
 
       findExisting: (category, title, source) => {
         const items = Object.values(get().items);
@@ -160,15 +162,11 @@ export const usePalaceStore = create<PalaceState>()(
         return items.find((i) => i.category === category && normTitle(i.title) === t);
       },
 
-      logItem: (category, details, opts = {}) => {
+      addItem: (category, details, opts = {}) => {
         const existing = get().findExisting(category, details.title, opts.source);
-        if (existing) {
-          get().relogItem(existing.id, opts.date);
-          return existing.id;
-        }
+        if (existing) return { id: existing.id, existed: true };
         const id = uid();
         const now = Date.now();
-        const ts = opts.date ?? now;
         const clean = cleanDetails(details);
         const animate = !!opts.animate;
         const base = {
@@ -176,9 +174,10 @@ export const usePalaceStore = create<PalaceState>()(
           id,
           title: clean.title || '—',
           source: opts.source,
+          releaseDate: opts.releaseDate,
+          tvmazeId: opts.tvmazeId,
           createdAt: now,
           updatedAt: now,
-          lastLoggedAt: ts,
           settled: !animate,
         };
         let item: PalaceItem;
@@ -199,20 +198,9 @@ export const usePalaceStore = create<PalaceState>()(
           items: { ...s.items, [id]: item },
           // Slot is reserved immediately so the hero knows where to fly.
           order: { ...s.order, [category]: [...s.order[category], id] },
-          events: [...s.events, { id: uid(), itemId: id, ts, kind: 'log' }],
           heroQueue: animate ? [...s.heroQueue, { id: uid(), kind: 'item', itemId: id }] : s.heroQueue,
         }));
-        return id;
-      },
-
-      relogItem: (id, date) => {
-        const item = get().items[id];
-        if (!item) return;
-        const ts = date ?? Date.now();
-        set((s) => ({
-          items: { ...s.items, [id]: { ...item, lastLoggedAt: Math.max(item.lastLoggedAt ?? 0, ts), updatedAt: Date.now() } },
-          events: [...s.events, { id: uid(), itemId: id, ts, kind: 'relog' }],
-        }));
+        return { id, existed: false };
       },
 
       updateItem: (id, patch) => {
@@ -223,20 +211,41 @@ export const usePalaceStore = create<PalaceState>()(
         set((s) => ({ items: { ...s.items, [id]: { ...item, ...clean, updatedAt: Date.now() } as PalaceItem } }));
       },
 
+      setNextEpisode: (id, next) => {
+        const item = get().items[id];
+        if (!item) return;
+        const same =
+          item.nextEpisode?.date === next?.date && item.nextEpisode?.number === next?.number && item.nextEpisode?.season === next?.season;
+        if (same) return;
+        set((s) => ({ items: { ...s.items, [id]: { ...item, nextEpisode: next } } }));
+      },
+
       deleteItem: (id) => {
         const item = get().items[id];
         if (!item) return;
+        const index = get().order[item.category].indexOf(id);
         set((s) => {
           const items = { ...s.items };
           delete items[id];
           return {
             items,
             order: { ...s.order, [item.category]: s.order[item.category].filter((x) => x !== id) },
-            events: s.events.filter((e) => e.itemId !== id),
             heroQueue: s.heroQueue.filter((e) => e.itemId !== id || e === s.heroQueue[0]),
             selectedId: s.selectedId === id ? null : s.selectedId,
             inspectId: s.inspectId === id ? null : s.inspectId,
+            lastRemoved: { item: { ...item, settled: true }, index },
           };
+        });
+      },
+
+      undoDelete: () => {
+        const removed = get().lastRemoved;
+        if (!removed) return;
+        const { item, index } = removed;
+        set((s) => {
+          const list = [...s.order[item.category]];
+          list.splice(Math.min(index, list.length), 0, item.id);
+          return { items: { ...s.items, [item.id]: item }, order: { ...s.order, [item.category]: list }, lastRemoved: null };
         });
       },
 
@@ -246,7 +255,6 @@ export const usePalaceStore = create<PalaceState>()(
         const progress = getSeriesProgress(item);
         if (progress.allComplete) return null;
 
-        const now = Date.now();
         const seasons = item.seasons.map((s, i) => (i === progress.seasonIndex ? { ...s, watched: s.watched + 1 } : s));
         const hero: HeroEvent = {
           id: uid(),
@@ -259,19 +267,7 @@ export const usePalaceStore = create<PalaceState>()(
         };
         // Progress is committed (and persisted) right away; the hero is purely presentational.
         set((s) => ({
-          items: { ...s.items, [seriesId]: { ...item, seasons, updatedAt: now, lastLoggedAt: now } },
-          events: [
-            ...s.events,
-            {
-              id: uid(),
-              itemId: seriesId,
-              ts: now,
-              kind: 'episode',
-              season: progress.seasonNumber,
-              episode: progress.watched + 1,
-              completesSeason: hero.kind === 'episode' && hero.completesSeason,
-            },
-          ],
+          items: { ...s.items, [seriesId]: { ...item, seasons, updatedAt: Date.now() } },
           heroQueue: opts.animate ? [...s.heroQueue, hero] : s.heroQueue,
           // The hero takes the box out of the niche itself.
           selectedId: opts.animate && s.selectedId === seriesId ? null : s.selectedId,
@@ -294,18 +290,6 @@ export const usePalaceStore = create<PalaceState>()(
         }));
       },
 
-      markSeason: (seriesId, season, episodeCount, complete) => {
-        const item = get().items[seriesId];
-        if (!item || item.category !== 'series') return;
-        const offset = item.seasonOffset ?? 0;
-        const index = season - 1 - offset;
-        if (index < 0) return; // before the first tracked season: the relog event is enough
-        const seasons = [...item.seasons];
-        while (seasons.length <= index) seasons.push({ episodeCount: clampEpisodes(episodeCount), watched: 0 });
-        if (complete) seasons[index] = { ...seasons[index], watched: seasons[index].episodeCount };
-        set((s) => ({ items: { ...s.items, [seriesId]: { ...item, seasons, updatedAt: Date.now() } } }));
-      },
-
       completeHero: (eventId) => {
         const [head, ...rest] = get().heroQueue;
         if (!head || head.id !== eventId) return;
@@ -320,22 +304,31 @@ export const usePalaceStore = create<PalaceState>()(
       selectItem: (id, opts) =>
         set((s) => ({ selectedId: id, inspectId: id && opts?.inspect ? id : id ? null : s.inspectId })),
       endInspect: (id) => set((s) => (s.inspectId === id && s.selectedId !== id ? { inspectId: null } : s)),
+      rememberSearch: (query) => {
+        const q = query.trim();
+        if (q.length < 2) return;
+        set((s) => ({ recentSearches: [q, ...s.recentSearches.filter((x) => x.toLocaleLowerCase() !== q.toLocaleLowerCase())].slice(0, 8) }));
+      },
       setLanguage: (language) => set({ language }),
       setSetting: (key, value) => set((s) => ({ settings: { ...s.settings, [key]: value } })),
       resetPalace: () =>
-        set({ items: {}, order: emptyOrder(), events: [], heroQueue: [], focus: 'window', selectedId: null, inspectId: null }),
+        set({ items: {}, order: emptyOrder(), heroQueue: [], focus: 'window', selectedId: null, inspectId: null, lastRemoved: null }),
     }),
     {
       name: 'palais-mental/v1',
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ items: s.items, order: s.order, events: s.events, language: s.language, settings: s.settings }),
-      // v1/v2 had no journal: every existing item gets one "log" event at its creation date.
-      migrate: (persisted, version) => {
-        const p = (persisted ?? {}) as Partial<PalaceState>;
-        if (version < 3) {
-          p.events = Object.values(p.items ?? {}).map((i) => ({ id: uid(), itemId: i.id, ts: i.createdAt, kind: 'log' as const }));
-        }
+      partialize: (s) => ({
+        items: s.items,
+        order: s.order,
+        language: s.language,
+        settings: s.settings,
+        recentSearches: s.recentSearches,
+      }),
+      // v4 drops the journal (the palace is timeless); extra fields in older saves are ignored.
+      migrate: (persisted) => {
+        const p = (persisted ?? {}) as Partial<PalaceState> & { events?: unknown };
+        delete p.events;
         return p;
       },
       // Any hero interrupted by an app kill lands directly on its shelf.
@@ -348,9 +341,9 @@ export const usePalaceStore = create<PalaceState>()(
           ...current,
           ...p,
           items,
-          events: p.events ?? [],
           order: { ...emptyOrder(), ...p.order },
           settings: { ...current.settings, ...p.settings },
+          recentSearches: p.recentSearches ?? [],
         };
       },
     },

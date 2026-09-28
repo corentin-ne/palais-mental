@@ -3,9 +3,7 @@
     "title": "Palais Mental",
     "items_one": "{{count}} souvenir",
     "items_other": "{{count}} souvenirs",
-    "level": "Niveau {{level}}",
-    "hintEmpty": "Touchez + pour mettre un premier souvenir en lumière",
-    "hint": "Glissez pour regarder autour de vous"
+    "level": "Niveau {{level}}"
   },
   "nav": {
     "window": "Fenêtre",
@@ -30,19 +28,13 @@
     "videogames": "Studio"
   },
   "log": {
-    "title": "Ajouter un souvenir",
-    "subtitle": "Qu'est-ce qui vous a marqué ?",
-    "kept_one": "{{count}} gardé",
-    "kept_other": "{{count}} gardés",
-    "kept_zero": "Niche vide",
     "titleLabel": "Titre",
     "titlePlaceholder": "ex. {{example}}",
     "year": "Année",
     "rating": "Note",
     "note": "Mot",
     "notePlaceholder": "Que voulez-vous en retenir ?",
-    "episodes": "Épisodes de la saison 1",
-    "submit": "Noter",
+    "submit": "Ajouter au palais",
     "back": "Retour",
     "cancel": "Annuler",
     "searchAll": "Films, séries, livres, albums, jeux…",
@@ -61,31 +53,27 @@
     "episodesCount_other": "{{count}} épisodes",
     "inPalace": "Déjà dans votre palais",
     "searchHint": "Commencez à taper un titre.",
-    "recent": "Récemment",
-    "confirmTitle": "Nouvelle entrée",
-    "logAgainTitle": "Encore une fois",
-    "alreadyLogged_one": "Déjà noté une fois. Ceci ajoute une nouvelle entrée au journal.",
-    "alreadyLogged_other": "Déjà noté {{count}} fois. Ceci ajoute une nouvelle entrée au journal.",
-    "when": "Quand",
-    "today": "Aujourd'hui",
-    "yesterday": "Hier",
-    "earlier": "Avant",
+    "confirmTitle": "Nouvel objet",
     "wholeSeason": "Saison entière",
     "stillWatching": "En cours",
-    "logAgain": "Noter à nouveau"
+    "clear": "Effacer",
+    "recentSearches": "Recherches récentes",
+    "comingOn": "Sortie le {{date}}",
+    "alreadyTitle": "Déjà là",
+    "alreadyBody": "Celui-ci a déjà sa place dans votre palais.",
+    "openIt": "L'ouvrir",
+    "awaitTitle": "Pas encore sorti",
+    "awaitBody": "Sortie le {{date}}. Il prend sa place dès maintenant, et vous serez prévenu ce jour-là.",
+    "await": "L'attendre"
   },
   "item": {
-    "added": "Ajouté le {{date}}",
     "remove": "Retirer du palais",
-    "removeConfirm": "Retirer « {{title}} » de votre palais ?",
-    "keep": "Garder",
-    "removeYes": "Retirer",
     "close": "Fermer",
     "notePlaceholder": "Ajouter un mot…",
     "yearPlaceholder": "Année",
-    "loggedTimes_one": "Noté une fois",
-    "loggedTimes_other": "Noté {{count}} fois",
-    "lastLogged": "dernière fois le {{date}}"
+    "outOn": "Sortie {{date}}",
+    "nextEpisode": "Prochain : {{code}}",
+    "willNotify": "Vous serez prévenu ce jour-là"
   },
   "series": {
     "progress": "S{{season}} · {{watched}}/{{total}}",
@@ -108,12 +96,14 @@
   "library": {
     "all": "Tout",
     "search": "Titres, personnes, notes…",
-    "sortRecent": "Récents",
     "sortAlpha": "A–Z",
     "sortRating": "Note",
     "empty": "Rien pour l'instant.",
     "noResults": "Aucun résultat pour « {{q}} ».",
-    "title": "Collection"
+    "title": "Collection",
+    "sortAdded": "Ajout",
+    "soon": "Bientôt",
+    "addFirst": "Ajouter le premier"
   },
   "settings": {
     "title": "Réglages",
@@ -127,10 +117,9 @@
     "resetConfirm": "Effacer tous les souvenirs ? C'est irréversible.",
     "resetYes": "Réinitialiser",
     "cancel": "Annuler",
-    "version": "Version {{version}}"
-  },
-  "hero": {
-    "placed": "Placé dans {{category}}"
+    "version": "Version {{version}}",
+    "notifications": "Notifications de sortie",
+    "notificationsHint": "Nouveaux épisodes et jours de sortie de ce qui est dans votre palais."
   },
   "language": {
     "system": "Auto",
@@ -154,55 +143,95 @@
     "videogames": "Mobius Digital"
   },
   "tabs": {
-    "journal": "Journal",
     "library": "Collection",
     "palace": "Palais",
-    "you": "Vous"
-  },
-  "journal": {
-    "title": "Journal",
-    "searchPlaceholder": "Un film, un livre, un album…",
-    "today": "Aujourd'hui",
-    "yesterday": "Hier",
-    "entries_one": "{{count}} entrée",
-    "entries_other": "{{count}} entrées",
-    "episode": "S{{season}} · É{{episode}}",
-    "again": "Encore",
-    "emptyTitle": "Rien pour l'instant",
-    "emptyBody": "Cherchez ce que vous avez vu, lu, écouté ou joué — trois touches suffisent."
+    "you": "Vous",
+    "soon": "Bientôt"
   },
   "toast": {
-    "logged": "« {{title}} » noté",
-    "relogged": "« {{title}} » noté à nouveau",
-    "episode": "{{title}} · épisode {{episode}}",
-    "see": "Voir"
+    "see": "Voir",
+    "placed": "« {{title}} » a trouvé sa place",
+    "awaited": "En attente de « {{title}} »",
+    "decor": "Votre niche {{category}} a gagné {{object}}",
+    "roomGrew": "Votre palais vient de s'agrandir",
+    "removed": "« {{title}} » retiré",
+    "undo": "Annuler"
+  },
+  "palace": {
+    "objects_one": "{{count}} objet",
+    "objects_other": "{{count}} objets",
+    "emptyTitle": "Votre palais vous attend",
+    "emptyBody": "Touchez + et ajoutez le premier film, livre ou album qui vous a marqué."
+  },
+  "soon": {
+    "title": "Bientôt",
+    "subtitle": "Sorties et nouveaux épisodes, uniquement de votre palais",
+    "thisWeek": "Cette semaine",
+    "later": "Plus tard",
+    "today": "aujourd'hui",
+    "tomorrow": "demain",
+    "episodeCode": "S{{season}} · É{{episode}}",
+    "release": {
+      "movies": "Film",
+      "series": "Première de la série",
+      "music": "Album",
+      "books": "Livre",
+      "boardgames": "Jeu de société",
+      "videogames": "Jeu"
+    },
+    "askTitle": "Savoir le jour de la sortie",
+    "askBody": "Une notification discrète le jour J, rien d'autre. Pas de compte, pas de pub.",
+    "askCta": "Activer",
+    "emptyTitle": "Rien d'annoncé pour l'instant",
+    "emptyBody": "Les séries ajoutées sont suivies automatiquement, et tout ce qui n'est pas encore sorti attend ici.",
+    "emptyCta": "Trouver une série",
+    "channel": "Sorties",
+    "outToday": "Sort aujourd'hui",
+    "newEpisode": "Nouvel épisode"
   },
   "you": {
     "title": "Vous",
-    "subtitle": "Votre année {{year}}",
-    "logs_one": "entrée cette année",
-    "logs_other": "entrées cette année",
-    "streak_one": "jour d'affilée",
-    "streak_other": "jours d'affilée",
-    "avg": "note moyenne",
-    "byCategory": "Par collection",
-    "byMonth": "Mois par mois",
+    "subtitle": "Votre palais mental",
+    "objects_one": "objet dans votre palais",
+    "objects_other": "objets dans votre palais",
+    "room": "Pièce {{level}}",
+    "avg": "{{avg}} ★ en moyenne",
+    "roomNext_one": "Encore {{count}} objet et la pièce s'agrandit",
+    "roomNext_other": "Encore {{count}} objets et la pièce s'agrandit",
+    "roomMax": "Votre palais a atteint sa taille maximale",
+    "niches": "Niches",
+    "nextDecor_one": "Encore {{count}} pour gagner {{object}}",
+    "nextDecor_other": "Encore {{count}} pour gagner {{object}}",
+    "startNiche": "Ajoutez-en un pour meubler cette niche",
+    "nicheComplete": "Entièrement meublée",
     "favourites": "Coups de cœur"
   },
-  "style": {
-    "title": "Ambiance",
-    "editorial": "Éditorial",
-    "editorialHint": "Papier, encre et pochettes",
-    "aero": "Aero",
-    "aeroHint": "Ciel, verre et bulles"
+  "decor": {
+    "plant": "une plante",
+    "clapper": "un clap",
+    "popcorn": "un pot de pop-corn",
+    "reel": "une bobine",
+    "projector": "un projecteur",
+    "remote": "une télécommande",
+    "tv": "une petite télé",
+    "mug": "un mug",
+    "headphones": "un casque",
+    "speaker": "une enceinte",
+    "turntable": "une platine",
+    "cassette": "une cassette",
+    "bookends": "des serre-livres",
+    "lamp": "une lampe de lecture",
+    "glasses": "des lunettes",
+    "candle": "une bougie",
+    "dice": "des dés",
+    "meeples": "des meeples",
+    "hourglass": "un sablier",
+    "trophy": "un trophée",
+    "controller": "une manette",
+    "cartridge": "une cartouche",
+    "console": "une console"
   },
-  "aero": {
-    "morning": "Bonjour",
-    "afternoon": "Bon après-midi",
-    "evening": "Bonsoir",
-    "night": "Bonne nuit",
-    "thisWeek": "cette semaine",
-    "streak_one": "{{count}} jour d'affilée",
-    "streak_other": "{{count}} jours d'affilée"
+  "hero": {
+    "placed": "Placé dans {{category}}"
   }
 }

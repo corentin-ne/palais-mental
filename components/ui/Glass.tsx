@@ -3,7 +3,6 @@ import { Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 
 import { makeStyles, useTheme } from '@/constants/theme';
-import { Sheen } from './aero/Gloss';
 
 interface Props {
   children?: ReactNode;
@@ -32,7 +31,6 @@ export default function Glass({ children, radius = 22, style, contentStyle, stro
           style={StyleSheet.absoluteFill}
         />
         <View style={[StyleSheet.absoluteFill, { backgroundColor: strong ? palette.glassStrong : palette.glass }]} />
-        {glass.sheen && <Sheen strength={strong ? 0.55 : 0.75} height={0.48} />}
         {/* Web paints absolutely positioned layers over static siblings: lift the content explicitly. */}
         <View style={[styles.content, contentStyle]}>{children}</View>
       </View>

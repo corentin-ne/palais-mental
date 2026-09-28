@@ -10,6 +10,7 @@ import { makeStyles, useTheme } from '@/constants/theme';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
 import { CategoryId, SeriesItem } from '@/lib/types';
 import { getSeriesProgress, usePalaceStore } from '@/store/usePalaceStore';
+import { DECOR_THRESHOLDS, nextDecor, unlockedDecorCount } from '@/lib/milestones';
 
 interface Props {
   category: CategoryId;
@@ -36,6 +37,9 @@ export default function FocusCard({ category, onLibrary, onEpisode }: Props) {
     }),
   );
   const progress = current ? getSeriesProgress(current) : null;
+  const next = nextDecor(category, count);
+  const unlocked = unlockedDecorCount(count);
+  const prev = unlocked ? DECOR_THRESHOLDS[unlocked - 1] : 0;
 
   return (
     <Glass radius={radii.lg} contentStyle={styles.card}>
@@ -55,7 +59,16 @@ export default function FocusCard({ category, onLibrary, onEpisode }: Props) {
         )}
       </View>
 
-      {count === 0 && <Text style={type.small}>{t('focus.empty')}</Text>}
+      {count === 0 ? (
+        <Text style={type.small}>{t('focus.empty')}</Text>
+      ) : next ? (
+        <View style={{ gap: 6 }}>
+          <View style={styles.track}>
+            <View style={[styles.fill, { width: `${Math.max(4, ((count - prev) / (next.at - prev)) * 100)}%`, backgroundColor: spec.accent }]} />
+          </View>
+          <Text style={type.small}>{t('you.nextDecor', { count: next.remaining, object: t(`decor.${next.id}`) })}</Text>
+        </View>
+      ) : null}
 
       {current && progress && (
         <View style={styles.series}>
@@ -81,6 +94,8 @@ export default function FocusCard({ category, onLibrary, onEpisode }: Props) {
 }
 
 const useStyles = makeStyles(({ palette, fonts, radii }) => ({
+  track: { height: 5, borderRadius: 3, backgroundColor: palette.field, overflow: 'hidden' },
+  fill: { height: 5, borderRadius: 3 },
   card: { padding: 14, gap: 12 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   badge: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },

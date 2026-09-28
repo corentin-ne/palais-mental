@@ -8,31 +8,31 @@ export interface LogDraft {
   title: string;
   creator?: string;
   year?: number;
+  releaseDate?: number;
   coverUrl?: string;
   season?: number;
   episodeCount?: number;
+  tvmazeId?: number;
   source?: CatalogResult['source'];
 }
 
 export interface Toast {
   id: number;
   message: string;
-  itemId?: string;
+  /** "see" jumps to the object in the palace; "undo" restores the last removal. */
+  action?: { kind: 'see'; itemId: string } | { kind: 'undo' };
 }
 
 interface UiState {
-  /** Log flow: closed, searching (optionally scoped to a category), or confirming a draft. */
+  /** Add flow: closed, searching (optionally scoped to a category), or confirming a draft. */
   log: { stage: 'closed' | 'search' | 'confirm'; category: CategoryId | 'all'; draft?: LogDraft };
   toast: Toast | null;
-  /** Bumped on every successful log; Aero answers with a burst of bubbles. */
-  celebrations: number;
-  celebrate: () => void;
   openSearch: (category?: CategoryId | 'all') => void;
   setSearchCategory: (category: CategoryId | 'all') => void;
   confirm: (draft: LogDraft) => void;
   backToSearch: () => void;
   closeLog: () => void;
-  showToast: (message: string, itemId?: string) => void;
+  showToast: (message: string, action?: Toast['action']) => void;
   hideToast: () => void;
 }
 
@@ -40,13 +40,11 @@ interface UiState {
 export const useUiStore = create<UiState>((set) => ({
   log: { stage: 'closed', category: 'all' },
   toast: null,
-  celebrations: 0,
-  celebrate: () => set((s) => ({ celebrations: s.celebrations + 1 })),
   openSearch: (category = 'all') => set({ log: { stage: 'search', category } }),
   setSearchCategory: (category) => set((s) => ({ log: { ...s.log, category } })),
   confirm: (draft) => set((s) => ({ log: { ...s.log, stage: 'confirm', draft } })),
   backToSearch: () => set((s) => ({ log: { ...s.log, stage: 'search', draft: undefined } })),
   closeLog: () => set((s) => ({ log: { ...s.log, stage: 'closed' } })),
-  showToast: (message, itemId) => set((s) => ({ toast: { id: Date.now(), message, itemId }, celebrations: s.celebrations + 1 })),
+  showToast: (message, action) => set({ toast: { id: Date.now(), message, action } }),
   hideToast: () => set({ toast: null }),
 }));
