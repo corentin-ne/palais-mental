@@ -42,9 +42,37 @@
     "note": "Note",
     "notePlaceholder": "What do you want to remember?",
     "episodes": "Episodes in season 1",
-    "submit": "Place in the palace",
+    "submit": "Log it",
     "back": "Back",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "searchAll": "Search films, series, books, albums, games…",
+    "search": {
+      "movies": "Search a film",
+      "series": "Search a series",
+      "music": "Search an album",
+      "books": "Search a book",
+      "boardgames": "Search a board game",
+      "videogames": "Search a video game"
+    },
+    "noResults": "Nothing found in the catalog.",
+    "addManually": "Add “{{title}}” yourself",
+    "addManuallyHint": "Enter the details by hand",
+    "episodesCount_one": "{{count}} episode",
+    "episodesCount_other": "{{count}} episodes",
+    "inPalace": "Already in your palace",
+    "searchHint": "Start typing a title.",
+    "recent": "Recently logged",
+    "confirmTitle": "New entry",
+    "logAgainTitle": "Log again",
+    "alreadyLogged_one": "Already logged once. This adds a new entry to your journal.",
+    "alreadyLogged_other": "Already logged {{count}} times. This adds a new entry to your journal.",
+    "when": "When",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "earlier": "Earlier",
+    "wholeSeason": "Whole season",
+    "stillWatching": "Still watching",
+    "logAgain": "Log again"
   },
   "item": {
     "added": "Added {{date}}",
@@ -54,7 +82,10 @@
     "removeYes": "Remove",
     "close": "Close",
     "notePlaceholder": "Add a note…",
-    "yearPlaceholder": "Year"
+    "yearPlaceholder": "Year",
+    "loggedTimes_one": "Logged once",
+    "loggedTimes_other": "Logged {{count}} times",
+    "lastLogged": "last on {{date}}"
   },
   "series": {
     "progress": "S{{season}} · {{watched}}/{{total}}",
@@ -81,7 +112,8 @@
     "sortAlpha": "A–Z",
     "sortRating": "Rating",
     "empty": "Nothing here yet.",
-    "noResults": "No match for “{{q}}”."
+    "noResults": "No match for “{{q}}”.",
+    "title": "Library"
   },
   "settings": {
     "title": "Settings",
@@ -120,5 +152,41 @@
     "books": "Italo Calvino",
     "boardgames": "Michael Kiesling",
     "videogames": "Mobius Digital"
+  },
+  "tabs": {
+    "journal": "Journal",
+    "library": "Library",
+    "palace": "Palace",
+    "you": "You"
+  },
+  "journal": {
+    "title": "Journal",
+    "searchPlaceholder": "Log a film, a book, an album…",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "entries_one": "{{count}} entry",
+    "entries_other": "{{count}} entries",
+    "episode": "S{{season}} · E{{episode}}",
+    "again": "Again",
+    "emptyTitle": "Nothing logged yet",
+    "emptyBody": "Search for something you watched, read, heard or played — it takes three taps."
+  },
+  "toast": {
+    "logged": "Logged “{{title}}”",
+    "relogged": "Logged “{{title}}” again",
+    "episode": "{{title}} · episode {{episode}}",
+    "see": "See it"
+  },
+  "you": {
+    "title": "You",
+    "subtitle": "Your {{year}}",
+    "logs_one": "log this year",
+    "logs_other": "logs this year",
+    "streak_one": "day in a row",
+    "streak_other": "days in a row",
+    "avg": "average rating",
+    "byCategory": "By collection",
+    "byMonth": "Month by month",
+    "favourites": "Favourites"
   }
 }

@@ -36,10 +36,10 @@ const BASE = getRoomDims(0);
 const WIN_UNIFORM = new Vector4(WINDOW.halfWidth, WINDOW.sill, WINDOW.springLine, 0);
 
 const COLORS = {
-  floorCenter: new Color('#EADCCB'),
-  floorEdge: new Color('#E4D4C1'),
-  wall: new Color('#F6F2EC'),
-  dome: new Color('#F8F6F3'),
+  floorCenter: new Color('#ECE3D8'),
+  floorEdge: new Color('#E6DCD0'),
+  wall: new Color('#F8F6F2'),
+  dome: new Color('#FBFAF8'),
 };
 
 /**

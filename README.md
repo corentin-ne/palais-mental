@@ -14,42 +14,35 @@ npm run typecheck
 
 ## What you can do
 
-- **Log** a movie, series, album, book, board game or video game: title, creator (director, artist, author…), year, a rating out of five in half stars, and a note.
-- **Wander**: the dock, a horizontal swipe, or a tap on a niche turns your head toward a collection. The window is home.
-- **Inspect**: tap any object in a niche. It slides out and floats in front of you while its sheet is open. Drag to turn it. Every field edits in place. Remove it with an inline confirmation, and the rest of the shelf glides to close the gap.
-- **Series**: log episodes from the niche card or from the box itself. Each episode adds a slice to the season disc, and a finished season snaps into its media box. Add seasons as they come.
-- **Library**: search every memory by title, person, year or note. Filter by collection and sort by recent, A–Z or rating.
-- **Settings**: language (Auto / English / Français), ambient light and dust, haptics, per-collection counts, and a guarded reset.
+Palais Mental is a **log app first**. The 3D palace is where your log turns into a place.
 
-## Art direction
+- **Log in three taps**: tap **+**, type a few letters, then tap the right cover. Titles, creators, years and artwork come from public catalogs: Open Library for books, iTunes for films, series seasons (with episode counts) and albums, and Wikipedia for board and video games. Manual entry is always one row away. Pick when it happened (today, yesterday or any earlier day), add a rating in half stars and a note.
+- **Journal**: your diary, day by day, with cover thumbnails, ratings, notes, "again" badges and episode entries. A *Continue watching* row logs the next episode of a series in one tap. A search with nothing typed offers your recent logs for a quick re-log.
+- **Library**: every memory as a wall of covers. Search by title, person, year or note, filter by collection with counts, and sort by recent, rating or A–Z.
+- **Palace**: the collection as a round, cornerless, sunlit room. Each collection has an arched niche that shows its latest cover face-out and grows as it fills. Swipe or tap a chip to turn toward a collection; tap an object to lift it out and open it.
+- **You**: logs this year, streak, average rating, a split by collection, month-by-month bars, favourites, and settings (language, ambient effects, haptics, reset).
 
-Luminous, soft, modern. No dark mode. The camera always stands **inside** the room at eye level (1.2–1.75 m). No top-down, bird's-eye or isometric shot exists.
+## Design
 
-- **A cornerless room**: the palace is a single lathe surface. A flat floor rolls through a wide cove into a round wall and closes in a dome. The room is a backdrop, not a set. The arched window is cut into the wall in the fragment shader and framed in deep lacquered moulding with a cushioned seat.
-- **Collections as sculpted niches**: lacquered arches set into the curved wall, lined with the category's pastel, fitted with oak planks and warm light lines. They swell wider, then taller, as they fill.
-- **Refined objects**: two parts per item (a tinted body plus vertex-coloured trims): cases with spine labels, books with boards, page blocks and gilt bands, sleeves with the vinyl peeking out, board-game boxes with lid seams, game cases with headers.
-- **Light**: baked image-based lighting (a procedural PMREM studio) for soft reflections, fake volumetric god rays, a floor sun patch with mullion shadows, and dust that only glints inside a beam. On web: N8AO ambient occlusion, bloom on true highlights only, auto-focus depth of field, SMAA, and Khronos PBR Neutral tone mapping.
-- **Interface**: frosted glass (expo-blur), Fraunces for display and Figtree for text, hand-drawn SVG icons, spring-driven sheets and presses, and haptics.
+Editorial and crisp. Near-white paper, near-black ink, and the cover art as the colour. Instrument Sans for the interface; Instrument Serif italic for dates, notes and quiet accents. A floating glass tab bar keeps the log button at its centre. Anything without artwork gets a generated cover (a collection-palette gradient, the title in serif italic, and the collection's icon).
+
+The palace renders crisply: ambient occlusion, bloom on true highlights only, Neutral tone mapping so covers keep their real colours, and no depth-of-field haze.
 
 ## Structure
 
 ```
-app/                         _layout (fonts, i18n) · index (room + overlay, swipe navigation)
-components/3d/
-  MentalPalace.tsx           canvas (frameloop="demand"), IBL, lights, ambient clock
-  CameraRig.tsx              eye-level bezier dolly + yaw/pitch head turns inside the circle
-  CategoryShelf.tsx          sculpted niche, 2 InstancedMeshes, reflow, tap-to-focus / tap-to-inspect
-  HeroItemSpawner.tsx        center-screen spawn, sunbeam/halo/sparkles, disc slices, fly-to-slot
-  InspectItem.tsx            lift an object out of its niche and present it
-  ItemModel.tsx              one item from the shared cached geometry (hero + inspector)
-  Effects(.native).tsx       post stack on web / intentional no-op on native
-  environment/               RoomShell (dome, window, seat, plants, rug), SkyAndLandscape, SunShafts, DustMotes
-components/ui/               Glass, Sheet, Controls, Icon, Dock, TopBar, FocusCard, HeroCaption,
-                             LogSheet, ItemSheet, LibrarySheet, SettingsSheet
-shaders/                     sky, lightShaft, dust, heroFx, common (window SDF, output chunks)
-lib/                         palaceLayout (round room, zones, niches), itemGeometry, itemVisuals, envMap, …
-store/usePalaceStore.ts      zustand + AsyncStorage (items, order, language, settings)
-locales/                     en.json, fr.json, i18n.ts
+app/_layout.tsx                 fonts, i18n, root stack
+app/(tabs)/_layout.tsx          tabs + global LogFlow, ItemSheet, Toast
+app/(tabs)/index.tsx            Journal
+app/(tabs)/library.tsx          Library
+app/(tabs)/palace.tsx           3D palace + overlay
+app/(tabs)/profile.tsx          You: stats and settings
+components/ui/                  LogFlow (search → confirm), ItemSheet, CoverArt, TabBar, Toast, Glass, Sheet, Controls, Icon…
+components/3d/                  MentalPalace, CameraRig, CategoryShelf, FeaturedCover, HeroItemSpawner, InspectItem, environment/…
+lib/catalog.ts                  keyless catalog search + pure, tested parsers
+lib/stats.ts                    journal grouping, streaks, yearly stats
+store/usePalaceStore.ts         items, journal events, settings (persisted, schema v3)
+store/useUiStore.ts             log flow and toast state (transient)
 ```
 
 ## Architecture notes
@@ -57,6 +50,10 @@ locales/                     en.json, fr.json, i18n.ts
 **Rendering budget.** `frameloop="demand"`: nothing renders while the room is still. Flights, niche growth, shelf reflow, heroes and the inspector call `invalidate()` only while they move. Ambient life runs on an *ambient clock* that only advances for a few seconds after an interaction; it can be switched off. Each collection costs two draw calls, and each VFX is one analytic single-pass shader. The light count is fixed, so no shaders recompile mid-animation.
 
 **Additive effects** end in `ADDITIVE_OUTPUT_CHUNK`, which applies tone mapping but no colour-space conversion. That way glows sum in linear space both through the web composer and when drawing straight to the sRGB canvas on native.
+
+**Journal model.** Items are the collection. `events` is the diary: `log`, `relog` and `episode` entries with their own dates. Logging a title that is already in the collection (same catalog id, or same category and title) adds a `relog` event instead of a duplicate. Schema v3 migrates older saves by giving every item one `log` event at its creation date.
+
+**Heroes only where they are seen.** Logging from the Journal or the Library commits instantly. The center-screen hero plays only when you log from the Palace tab, so a hidden canvas never animates.
 
 **Hero Swap.** Logging commits data and reserves the slot immediately, then queues a `HeroEvent`. The hero plays in the center of the screen and flies to the slot computed from the same pure layout the shelf uses. `completeHero` settles the item in the same commit that unmounts the hero. Both sides share cached geometry, so the swap is invisible. The inspector uses the same trick in reverse: `inspectId` hides the instance until the object has glided back.
 

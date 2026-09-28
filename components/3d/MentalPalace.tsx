@@ -20,7 +20,7 @@ import { safeDelta } from '@/lib/easing';
 import { sceneSignals, wakeAmbient } from '@/lib/sceneSignals';
 import { selectRoomLevel, usePalaceStore } from '@/store/usePalaceStore';
 
-export const PALACE_BG = '#F6EEE4';
+export const PALACE_BG = '#FAF9F6';
 
 export type RoomDimsRef = MutableRefObject<RoomDims>;
 
@@ -105,9 +105,9 @@ function Lighting() {
   const [lx, ly, lz] = SUN_LIGHT_DIR;
   return (
     <>
-      <hemisphereLight args={['#FBF8F4', '#EADDCE', 1.0]} />
+      <hemisphereLight args={['#FFFFFF', '#E9E1D6', 1.05]} />
       {/* Sun: enters through the window, same direction as the god rays. */}
-      <directionalLight position={[-lx * 10, -ly * 10, -lz * 10]} intensity={1.5} color="#FFEBD2" />
+      <directionalLight position={[-lx * 10, -ly * 10, -lz * 10]} intensity={1.5} color="#FFF1DE" />
       {/* Soft bounce from the room, so faces turned away from the window stay luminous. */}
       <directionalLight position={[1.5, 3, 5]} intensity={0.4} color="#F4F1FF" />
     </>

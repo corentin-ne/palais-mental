@@ -64,6 +64,8 @@ export interface PalaceState {
   deleteItem: (id: string) => void;
   logEpisode: (seriesId: string, opts?: { animate?: boolean }) => HeroEvent | null;
   addSeason: (seriesId: string, episodeCount: number) => void;
+  /** Series logged again for a given season: make sure it exists, optionally mark it watched. */
+  markSeason: (seriesId: string, season: number, episodeCount: number, complete: boolean) => void;
   /** Hero Swap commit: the hero unmounts and the item joins its shelf InstancedMesh. */
   completeHero: (eventId: string) => void;
   setFocus: (focus: CameraFocus) => void;
@@ -290,6 +292,18 @@ export const usePalaceStore = create<PalaceState>()(
             },
           },
         }));
+      },
+
+      markSeason: (seriesId, season, episodeCount, complete) => {
+        const item = get().items[seriesId];
+        if (!item || item.category !== 'series') return;
+        const offset = item.seasonOffset ?? 0;
+        const index = season - 1 - offset;
+        if (index < 0) return; // before the first tracked season: the relog event is enough
+        const seasons = [...item.seasons];
+        while (seasons.length <= index) seasons.push({ episodeCount: clampEpisodes(episodeCount), watched: 0 });
+        if (complete) seasons[index] = { ...seasons[index], watched: seasons[index].episodeCount };
+        set((s) => ({ items: { ...s.items, [seriesId]: { ...item, seasons, updatedAt: Date.now() } } }));
       },
 
       completeHero: (eventId) => {

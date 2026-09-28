@@ -32,7 +32,7 @@ export default function DustMotes({ dimsRef }: { dimsRef: RoomDimsRef }) {
       blending: AdditiveBlending,
       uniforms: {
         uTime: { value: 0 },
-        uSize: { value: 14 },
+        uSize: { value: 11 },
         uPixelRatio: { value: 1 },
         uBoxMin: { value: new Vector3() },
         uBoxSize: { value: new Vector3() },

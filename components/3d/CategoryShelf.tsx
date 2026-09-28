@@ -18,6 +18,7 @@ import {
 import { useShallow } from 'zustand/react/shallow';
 
 import type { RoomDimsRef } from './MentalPalace';
+import FeaturedCover from './FeaturedCover';
 import { CategoryId, PalaceItem } from '@/lib/types';
 import { CATEGORY_SPECS, getItemColor, getItemHeightScale } from '@/lib/itemVisuals';
 import { BODY_ROUGHNESS, getItemParts, nicheOutline, softBox } from '@/lib/itemGeometry';
@@ -86,6 +87,16 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
     }),
   );
   const items = usePalaceStore((s) => s.items);
+
+  // Most recently logged item that has artwork: displayed face-out under the arch.
+  const featuredUrl = usePalaceStore((s) => {
+    let best: PalaceItem | undefined;
+    for (const id of s.order[category]) {
+      const it = s.items[id];
+      if (it?.settled && it.coverUrl && (!best || (it.lastLoggedAt ?? it.createdAt) > (best.lastLoggedAt ?? best.createdAt))) best = it;
+    }
+    return best?.coverUrl;
+  });
 
   const count = order.length; // includes reserved (in-flight) slots
   const layout = useMemo(() => getShelfLayout(category, count), [category, count]);
@@ -260,6 +271,15 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
           </mesh>
         ))}
       </group>
+
+      {featuredUrl && (
+        <FeaturedCover
+          url={featuredUrl}
+          maxWidth={layout.length * 0.62}
+          maxHeight={Math.max(0.12, layout.archSpace * 0.78)}
+          position={[0, NICHE_BASE_Y + layout.tiers * layout.tierHeight + 0.01, layout.depth * 0.45]}
+        />
+      )}
 
       {/* All items of this category: two draw calls. */}
       <instancedMesh

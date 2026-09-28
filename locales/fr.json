@@ -42,9 +42,37 @@
     "note": "Mot",
     "notePlaceholder": "Que voulez-vous en retenir ?",
     "episodes": "Épisodes de la saison 1",
-    "submit": "Placer dans le palais",
+    "submit": "Noter",
     "back": "Retour",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "searchAll": "Films, séries, livres, albums, jeux…",
+    "search": {
+      "movies": "Chercher un film",
+      "series": "Chercher une série",
+      "music": "Chercher un album",
+      "books": "Chercher un livre",
+      "boardgames": "Chercher un jeu de société",
+      "videogames": "Chercher un jeu vidéo"
+    },
+    "noResults": "Rien trouvé dans le catalogue.",
+    "addManually": "Ajouter « {{title}} » vous-même",
+    "addManuallyHint": "Saisir les détails à la main",
+    "episodesCount_one": "{{count}} épisode",
+    "episodesCount_other": "{{count}} épisodes",
+    "inPalace": "Déjà dans votre palais",
+    "searchHint": "Commencez à taper un titre.",
+    "recent": "Récemment",
+    "confirmTitle": "Nouvelle entrée",
+    "logAgainTitle": "Encore une fois",
+    "alreadyLogged_one": "Déjà noté une fois. Ceci ajoute une nouvelle entrée au journal.",
+    "alreadyLogged_other": "Déjà noté {{count}} fois. Ceci ajoute une nouvelle entrée au journal.",
+    "when": "Quand",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "earlier": "Avant",
+    "wholeSeason": "Saison entière",
+    "stillWatching": "En cours",
+    "logAgain": "Noter à nouveau"
   },
   "item": {
     "added": "Ajouté le {{date}}",
@@ -54,7 +82,10 @@
     "removeYes": "Retirer",
     "close": "Fermer",
     "notePlaceholder": "Ajouter un mot…",
-    "yearPlaceholder": "Année"
+    "yearPlaceholder": "Année",
+    "loggedTimes_one": "Noté une fois",
+    "loggedTimes_other": "Noté {{count}} fois",
+    "lastLogged": "dernière fois le {{date}}"
   },
   "series": {
     "progress": "S{{season}} · {{watched}}/{{total}}",
@@ -81,7 +112,8 @@
     "sortAlpha": "A–Z",
     "sortRating": "Note",
     "empty": "Rien pour l'instant.",
-    "noResults": "Aucun résultat pour « {{q}} »."
+    "noResults": "Aucun résultat pour « {{q}} ».",
+    "title": "Collection"
   },
   "settings": {
     "title": "Réglages",
@@ -120,5 +152,41 @@
     "books": "Italo Calvino",
     "boardgames": "Michael Kiesling",
     "videogames": "Mobius Digital"
+  },
+  "tabs": {
+    "journal": "Journal",
+    "library": "Collection",
+    "palace": "Palais",
+    "you": "Vous"
+  },
+  "journal": {
+    "title": "Journal",
+    "searchPlaceholder": "Un film, un livre, un album…",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "entries_one": "{{count}} entrée",
+    "entries_other": "{{count}} entrées",
+    "episode": "S{{season}} · É{{episode}}",
+    "again": "Encore",
+    "emptyTitle": "Rien pour l'instant",
+    "emptyBody": "Cherchez ce que vous avez vu, lu, écouté ou joué — trois touches suffisent."
+  },
+  "toast": {
+    "logged": "« {{title}} » noté",
+    "relogged": "« {{title}} » noté à nouveau",
+    "episode": "{{title}} · épisode {{episode}}",
+    "see": "Voir"
+  },
+  "you": {
+    "title": "Vous",
+    "subtitle": "Votre année {{year}}",
+    "logs_one": "entrée cette année",
+    "logs_other": "entrées cette année",
+    "streak_one": "jour d'affilée",
+    "streak_other": "jours d'affilée",
+    "avg": "note moyenne",
+    "byCategory": "Par collection",
+    "byMonth": "Mois par mois",
+    "favourites": "Coups de cœur"
   }
 }

@@ -4,7 +4,7 @@ import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg'
 
 import Icon, { IconName } from './Icon';
 import PressableScale from './PressableScale';
-import { fonts, palette, radii, type } from '@/constants/theme';
+import { fonts, palette, radii, type, noOutline } from '@/constants/theme';
 
 // ------------------------------------------------------------------ Buttons
 interface ButtonProps {
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   buttonCompact: { height: 42, paddingHorizontal: 16 },
   iconButton: { alignItems: 'center', justifyContent: 'center', backgroundColor: palette.field },
   fieldWrap: { gap: 8 },
-  field: {
+  field: { ...(noOutline as object),
     fontFamily: fonts.body,
     fontSize: 16,
     color: palette.ink,

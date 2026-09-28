@@ -15,7 +15,12 @@ export type IconName =
   | 'trash'
   | 'check'
   | 'minus'
-  | 'sparkle';
+  | 'sparkle'
+  | 'journal'
+  | 'grid'
+  | 'chart'
+  | 'refresh'
+  | 'calendar';
 
 interface Props {
   name: IconName;
@@ -130,6 +135,38 @@ function renderIcon(name: IconName, s: object, color: string) {
         <>
           <Path {...s} d="M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7" />
           <Path {...s} d="M6.5 7l.8 11.3A2 2 0 0 0 9.3 20h5.4a2 2 0 0 0 2-1.7L17.5 7" />
+        </>
+      );
+    case 'journal':
+      return (
+        <>
+          <Path {...s} d="M6 3.5h11a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6z" />
+          <Path {...s} d="M6 3.5v17M9.5 8h6M9.5 11.5h4" />
+        </>
+      );
+    case 'grid':
+      return (
+        <>
+          <Rect {...s} x={4} y={4} width={6.5} height={7.5} rx={1.8} />
+          <Rect {...s} x={13.5} y={4} width={6.5} height={7.5} rx={1.8} />
+          <Rect {...s} x={4} y={14.5} width={6.5} height={5.5} rx={1.8} />
+          <Rect {...s} x={13.5} y={14.5} width={6.5} height={5.5} rx={1.8} />
+        </>
+      );
+    case 'chart':
+      return <Path {...s} d="M5 20v-6M10 20V9M15 20v-8M20 20V4" />;
+    case 'refresh':
+      return (
+        <>
+          <Path {...s} d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" />
+          <Path {...s} d="M19.5 4.5v3.8h-3.8" />
+        </>
+      );
+    case 'calendar':
+      return (
+        <>
+          <Rect {...s} x={4} y={5.5} width={16} height={14.5} rx={3} />
+          <Path {...s} d="M4 10h16M8.5 3.5v4M15.5 3.5v4" />
         </>
       );
     case 'sparkle':

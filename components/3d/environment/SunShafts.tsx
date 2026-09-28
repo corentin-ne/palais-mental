@@ -89,8 +89,8 @@ export default function SunShafts({ dimsRef }: { dimsRef: RoomDimsRef }) {
       outerGeo: buildShaftGeometry(1),
       coreGeo: buildShaftGeometry(0.62),
       patchGeo: buildPatchGeometry(),
-      outerMat: shaft(0.09),
-      coreMat: shaft(0.075),
+      outerMat: shaft(0.055),
+      coreMat: shaft(0.045),
       patchMat: new ShaderMaterial({
         vertexShader: patchVertex,
         fragmentShader: patchFragment,
