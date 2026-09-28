@@ -1,0 +1,51 @@
+{
+  "app": {
+    "title": "Mental Palace",
+    "subtitle": "Your life, furnished.",
+    "hint": "Tap a zone to explore",
+    "back": "Room",
+    "items_one": "{{count}} memory",
+    "items_other": "{{count}} memories",
+    "level": "Room level {{level}}"
+  },
+  "categories": {
+    "movies": "Movies",
+    "series": "TV Series",
+    "music": "Music",
+    "books": "Books",
+    "boardgames": "Board Games",
+    "videogames": "Video Games"
+  },
+  "log": {
+    "button": "Log",
+    "chooseCategory": "What are you logging?",
+    "titleLabel": "Title",
+    "titlePlaceholder": "e.g. {{example}}",
+    "episodesLabel": "Episodes in season 1",
+    "submit": "Add to the palace",
+    "cancel": "Cancel",
+    "back": "Back"
+  },
+  "series": {
+    "empty": "No series yet. Log one to get your first media box.",
+    "progress": "S{{season}} · {{watched}}/{{total}}",
+    "completed": "All seasons complete",
+    "logEpisode": "Log Episode",
+    "newSeason": "New season",
+    "newSeasonEpisodes": "Episodes in season {{season}}",
+    "confirm": "Confirm"
+  },
+  "language": {
+    "system": "Auto",
+    "en": "EN",
+    "fr": "FR"
+  },
+  "examples": {
+    "movies": "In the Mood for Love",
+    "series": "The Leftovers",
+    "music": "Kind of Blue",
+    "books": "Invisible Cities",
+    "boardgames": "Azul",
+    "videogames": "Outer Wilds"
+  }
+}

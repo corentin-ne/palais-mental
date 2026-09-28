@@ -1,0 +1,51 @@
+{
+  "app": {
+    "title": "Palais Mental",
+    "subtitle": "Votre vie, meublée.",
+    "hint": "Touchez une zone pour l'explorer",
+    "back": "Pièce",
+    "items_one": "{{count}} souvenir",
+    "items_other": "{{count}} souvenirs",
+    "level": "Pièce niveau {{level}}"
+  },
+  "categories": {
+    "movies": "Films",
+    "series": "Séries TV",
+    "music": "Musique",
+    "books": "Livres",
+    "boardgames": "Jeux de société",
+    "videogames": "Jeux vidéo"
+  },
+  "log": {
+    "button": "Ajouter",
+    "chooseCategory": "Qu'ajoutez-vous ?",
+    "titleLabel": "Titre",
+    "titlePlaceholder": "ex. {{example}}",
+    "episodesLabel": "Épisodes dans la saison 1",
+    "submit": "Ajouter au palais",
+    "cancel": "Annuler",
+    "back": "Retour"
+  },
+  "series": {
+    "empty": "Aucune série. Ajoutez-en une pour obtenir votre premier boîtier.",
+    "progress": "S{{season}} · {{watched}}/{{total}}",
+    "completed": "Toutes les saisons terminées",
+    "logEpisode": "Ajouter un épisode",
+    "newSeason": "Nouvelle saison",
+    "newSeasonEpisodes": "Épisodes de la saison {{season}}",
+    "confirm": "Valider"
+  },
+  "language": {
+    "system": "Auto",
+    "en": "EN",
+    "fr": "FR"
+  },
+  "examples": {
+    "movies": "In the Mood for Love",
+    "series": "The Leftovers",
+    "music": "Kind of Blue",
+    "books": "Les Villes invisibles",
+    "boardgames": "Azul",
+    "videogames": "Outer Wilds"
+  }
+}
