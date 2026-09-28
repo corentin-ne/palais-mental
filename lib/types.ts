@@ -83,4 +83,6 @@ export interface PalaceSettings {
   /** Dust, cloud drift and beam shimmer after interactions. */
   ambient: boolean;
   haptics: boolean;
+  /** Visual experience: crisp editorial, or the Frutiger Aero sky-and-glass world. */
+  style?: 'editorial' | 'aero';
 }

@@ -10,7 +10,7 @@ import Glass from '@/components/ui/Glass';
 import HeroCaption from '@/components/ui/HeroCaption';
 import Icon, { IconName } from '@/components/ui/Icon';
 import PressableScale from '@/components/ui/PressableScale';
-import { fonts, palette, radii } from '@/constants/theme';
+import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
 import { ZONE_SEQUENCE } from '@/lib/palaceLayout';
@@ -26,6 +26,8 @@ const SWIPE_DISTANCE = 56;
  * out and open it.
  */
 export default function PalaceScreen() {
+  const { palette, radii } = useTheme();
+  const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -110,11 +112,11 @@ export default function PalaceScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ palette, fonts }) => ({
   root: { flex: 1, backgroundColor: palette.bg },
   chips: { paddingHorizontal: 16, gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14 },
   chipText: { fontFamily: fonts.semibold, fontSize: 13.5, color: palette.inkSoft },
   caption: { paddingTop: 16, alignItems: 'center' },
   bottom: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: 16, width: '100%', maxWidth: 560, alignSelf: 'center' },
-});
+}));

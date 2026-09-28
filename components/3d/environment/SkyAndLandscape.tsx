@@ -5,6 +5,7 @@ import { BackSide, Color, Group, IcosahedronGeometry, InstancedMesh, Matrix4, Qu
 import { skyFragment, skyVertex } from '@/shaders/sky';
 import { SUN_VISUAL_DIR } from '@/lib/palaceLayout';
 import { sceneSignals } from '@/lib/sceneSignals';
+import { useSceneLook } from '@/lib/sceneLook';
 
 /** Deterministic PRNG so the sky composition is identical on every launch. */
 function mulberry32(seed: number) {
@@ -32,6 +33,7 @@ const CLOUDS: [number, number, number, number][] = [
  * stylized clouds (one instanced draw call) and soft pastel hills.
  */
 export default function SkyAndLandscape() {
+  const look = useSceneLook();
   const skyMat = useMemo(
     () =>
       new ShaderMaterial({
@@ -84,6 +86,8 @@ export default function SkyAndLandscape() {
 
   // Clouds only drift while the ambient clock runs (it freezes when the loop sleeps).
   useFrame(() => {
+    (skyMat.uniforms.uZenith.value as Color).set(look.zenith);
+    (skyMat.uniforms.uHorizon.value as Color).set(look.horizon);
     if (cloudGroup.current) cloudGroup.current.position.x = Math.sin(sceneSignals.ambientTime * 0.03) * 1.2;
   });
 

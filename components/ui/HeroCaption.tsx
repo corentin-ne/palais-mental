@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 
 import Glass from './Glass';
 import Icon from './Icon';
-import { fonts, palette, type } from '@/constants/theme';
+import { makeStyles, useTheme } from '@/constants/theme';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
 import { selectActiveHero, usePalaceStore } from '@/store/usePalaceStore';
 
 /** Names the object being brought into the light, then fades away with it. */
 export default function HeroCaption() {
+  const { type } = useTheme();
+  const styles = useStyles();
   const { t } = useTranslation();
   const hero = usePalaceStore(selectActiveHero);
   const item = usePalaceStore((s) => (hero ? s.items[hero.itemId] : undefined));
@@ -53,8 +55,8 @@ export default function HeroCaption() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ palette, fonts }) => ({
   wrap: { alignSelf: 'center', maxWidth: '86%' },
   inner: { alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, gap: 4 },
   title: { fontFamily: fonts.displayItalic, fontSize: 20, color: palette.ink },
-});
+}));

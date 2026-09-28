@@ -1,6 +1,6 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-import { palette } from '@/constants/theme';
+import { useTheme } from '@/constants/theme';
 import { CategoryId } from '@/lib/types';
 
 export type IconName =
@@ -30,7 +30,9 @@ interface Props {
 }
 
 /** Hand-drawn 24px line icons: round caps and joins, one stroke weight. */
-export default function Icon({ name, size = 22, color = palette.ink, strokeWidth = 1.7 }: Props) {
+export default function Icon({ name, size = 22, color: colorProp, strokeWidth = 1.7 }: Props) {
+  const theme = useTheme();
+  const color = colorProp ?? theme.palette.ink;
   const s = { stroke: color, strokeWidth, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">

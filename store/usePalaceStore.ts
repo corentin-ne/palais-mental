@@ -144,7 +144,7 @@ export const usePalaceStore = create<PalaceState>()(
       order: emptyOrder(),
       events: [],
       language: 'system',
-      settings: { ambient: true, haptics: true },
+      settings: { ambient: true, haptics: true, style: 'editorial' },
       focus: 'window',
       heroQueue: [],
       selectedId: null,

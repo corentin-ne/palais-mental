@@ -188,5 +188,21 @@
     "byCategory": "Par collection",
     "byMonth": "Mois par mois",
     "favourites": "Coups de cœur"
+  },
+  "style": {
+    "title": "Ambiance",
+    "editorial": "Éditorial",
+    "editorialHint": "Papier, encre et pochettes",
+    "aero": "Aero",
+    "aeroHint": "Ciel, verre et bulles"
+  },
+  "aero": {
+    "morning": "Bonjour",
+    "afternoon": "Bon après-midi",
+    "evening": "Bonsoir",
+    "night": "Bonne nuit",
+    "thisWeek": "cette semaine",
+    "streak_one": "{{count}} jour d'affilée",
+    "streak_other": "{{count}} jours d'affilée"
   }
 }

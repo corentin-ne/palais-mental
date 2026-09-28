@@ -4,7 +4,10 @@ import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg'
 
 import Icon, { IconName } from './Icon';
 import PressableScale from './PressableScale';
-import { fonts, palette, radii, type, noOutline } from '@/constants/theme';
+import { noOutline, makeStyles, useTheme } from '@/constants/theme';
+import { mix } from '@/lib/color';
+import { useSvgId } from '@/lib/svgId';
+import { Gel, Sheen } from './aero/Gloss';
 
 // ------------------------------------------------------------------ Buttons
 interface ButtonProps {
@@ -18,18 +21,31 @@ interface ButtonProps {
 }
 
 export function Button({ label, onPress, icon, tone = 'ink', accent, disabled, compact }: ButtonProps) {
-  const bg =
-    tone === 'ink' ? palette.ink : tone === 'accent' ? accent ?? palette.ink : tone === 'danger' ? palette.danger : palette.field;
+  const { palette, type, aero } = useTheme();
+  const styles = useStyles();
+  const base =
+    tone === 'ink' ? palette.primary : tone === 'accent' ? accent ?? palette.primary : tone === 'danger' ? palette.danger : null;
   const fg = tone === 'soft' ? palette.ink : palette.onInk;
+  // Aero: every solid button is a gel — gradient body, specular top, glow at the base.
+  const gel = aero && base ? { from: mix(base, '#FFFFFF', 0.28), to: tone === 'ink' ? palette.primaryDeep : mix(base, '#000000', 0.18) } : null;
   return (
-    <PressableScale onPress={onPress} disabled={disabled} style={[styles.button, compact && styles.buttonCompact, { backgroundColor: bg }]}>
-      {icon && <Icon name={icon} size={18} color={fg} strokeWidth={2} />}
-      <Text style={[type.button, { color: fg }]}>{label}</Text>
+    <PressableScale
+      onPress={onPress}
+      disabled={disabled}
+      style={[styles.button, compact && styles.buttonCompact, { backgroundColor: gel ? undefined : base ?? palette.field }]}
+    >
+      {gel && <Gel from={gel.from} to={gel.to} />}
+      {aero && !base && <Sheen strength={0.6} />}
+      <View style={styles.buttonContent}>
+        {icon && <Icon name={icon} size={18} color={fg} strokeWidth={2} />}
+        <Text style={[type.button, { color: fg }, gel && styles.gelText]}>{label}</Text>
+      </View>
     </PressableScale>
   );
 }
 
 export function IconButton({ icon, onPress, label, size = 44 }: { icon: IconName; onPress: () => void; label: string; size?: number }) {
+  const styles = useStyles();
   return (
     <PressableScale
       onPress={onPress}
@@ -49,6 +65,8 @@ interface FieldProps extends TextInputProps {
 }
 
 export function Field({ label, large, style, ...rest }: FieldProps) {
+  const { palette, type } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.fieldWrap}>
       {label && <Text style={type.label}>{label}</Text>}
@@ -64,6 +82,7 @@ export function Field({ label, large, style, ...rest }: FieldProps) {
 // ------------------------------------------------------------------ Rating
 /** Five stars; tap a star to set, tap the current one again to halve, tap again to clear. */
 export function RatingStars({ value = 0, onChange, size = 28 }: { value?: number; onChange?: (v: number) => void; size?: number }) {
+  const styles = useStyles();
   return (
     <View style={styles.stars} accessibilityRole="adjustable" accessibilityValue={{ min: 0, max: 5, now: value }}>
       {[1, 2, 3, 4, 5].map((n) => {
@@ -81,7 +100,8 @@ export function RatingStars({ value = 0, onChange, size = 28 }: { value?: number
 
 const STAR = 'M12 3.2l2.6 5.5 6 .7-4.4 4.1 1.2 5.9L12 16.5l-5.4 2.9 1.2-5.9L3.4 9.4l6-.7z';
 function Star({ size, fill }: { size: number; fill: number }) {
-  const id = `half${size}`;
+  const { palette } = useTheme();
+  const id = useSvgId('star');
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Defs>
@@ -103,6 +123,7 @@ function Star({ size, fill }: { size: number; fill: number }) {
 
 // ------------------------------------------------------------------ Stepper
 export function Stepper({ value, onChange, min = 1, max = 64 }: { value: number; onChange: (v: number) => void; min?: number; max?: number }) {
+  const styles = useStyles();
   return (
     <View style={styles.stepper}>
       <PressableScale accessibilityLabel="−" style={styles.stepBtn} onPress={() => onChange(Math.max(min, value - 1))}>
@@ -126,6 +147,7 @@ export function Segmented<T extends string>({
   value: T;
   onChange: (v: T) => void;
 }) {
+  const styles = useStyles();
   return (
     <View style={styles.segmented}>
       {options.map((o) => {
@@ -148,6 +170,8 @@ export function Segmented<T extends string>({
 
 // ------------------------------------------------------------------ Toggle
 export function Toggle({ value, onChange, label, hint }: { value: boolean; onChange: (v: boolean) => void; label: string; hint?: string }) {
+  const { palette, type } = useTheme();
+  const styles = useStyles();
   const x = useRef(new Animated.Value(value ? 1 : 0)).current;
   useEffect(() => {
     Animated.spring(x, { toValue: value ? 1 : 0, useNativeDriver: false, damping: 18, stiffness: 260 }).start();
@@ -177,6 +201,7 @@ export function Toggle({ value, onChange, label, hint }: { value: boolean; onCha
 
 // ------------------------------------------------------------------ Progress ring (season disc)
 export function Ring({ fraction, size = 40, color, children }: { fraction: number; size?: number; color: string; children?: ReactNode }) {
+  const { palette } = useTheme();
   const r = size / 2 - 3;
   const c = 2 * Math.PI * r;
   return (
@@ -202,6 +227,7 @@ export function Ring({ fraction, size = 40, color, children }: { fraction: numbe
 
 // ------------------------------------------------------------------ Category chip
 export function CategoryChip({ icon, label, tint, accent }: { icon: IconName; label: string; tint: string; accent: string }) {
+  const styles = useStyles();
   return (
     <View style={[styles.chip, { backgroundColor: tint }]}>
       <Icon name={icon} size={15} color={accent} strokeWidth={2} />
@@ -210,7 +236,7 @@ export function CategoryChip({ icon, label, tint, accent }: { icon: IconName; la
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ palette, fonts, radii, aero }) => ({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -219,7 +245,11 @@ const styles = StyleSheet.create({
     height: 54,
     paddingHorizontal: 22,
     borderRadius: radii.pill,
+    overflow: 'hidden',
+    ...(aero ? { borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)' } : {}),
   },
+  buttonContent: { flexDirection: 'row', alignItems: 'center', gap: 8, zIndex: 1 },
+  gelText: { textShadowColor: 'rgba(0,40,80,0.35)', textShadowRadius: 3, textShadowOffset: { width: 0, height: 1 } },
   buttonCompact: { height: 42, paddingHorizontal: 16 },
   iconButton: { alignItems: 'center', justifyContent: 'center', backgroundColor: palette.field },
   fieldWrap: { gap: 8 },
@@ -271,4 +301,4 @@ const styles = StyleSheet.create({
   },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 11, paddingVertical: 6, borderRadius: radii.pill },
   chipText: { fontFamily: fonts.semibold, fontSize: 13, letterSpacing: 0.2 },
-});
+}));

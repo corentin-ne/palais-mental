@@ -1,3 +1,4 @@
+import { useSceneVisibility } from '@/hooks/useSceneVisibility';
 import { useMemo } from 'react';
 import { ScrollView, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -5,10 +6,11 @@ import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
 import CoverArt from '@/components/ui/CoverArt';
+import AeroJournalHeader from '@/components/ui/aero/Gadgets';
 import Icon from '@/components/ui/Icon';
 import PressableScale from '@/components/ui/PressableScale';
 import { RatingStars } from '@/components/ui/Controls';
-import { fonts, palette, radii, shadow, type } from '@/constants/theme';
+import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
 import { itemMeta } from '@/lib/format';
@@ -21,6 +23,9 @@ const DAY = 86_400_000;
 
 /** The diary: what you watched, read, heard and played, day by day. */
 export default function JournalScreen() {
+  const hidden = useSceneVisibility();
+  const { palette, type, aero } = useTheme();
+  const styles = useStyles();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const events = usePalaceStore((s) => s.events);
@@ -42,35 +47,41 @@ export default function JournalScreen() {
 
   return (
     <SectionList
-      style={styles.root}
+      style={[styles.root, hidden]}
       contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: insets.bottom + 120 }}
       sections={sections}
       keyExtractor={(e) => e.id}
       stickySectionHeadersEnabled={false}
       ListHeaderComponent={
         <View style={styles.header}>
-          <View style={{ gap: 2 }}>
-            <Text style={type.serif}>{todayLong}</Text>
-            <Text style={type.display}>{t('journal.title')}</Text>
-          </View>
-
-          <PressableScale onPress={() => openSearch('all')} style={styles.searchPill} depth={0.98}>
-            <Icon name="search" size={19} color={palette.inkSoft} />
-            <Text style={styles.searchText}>{t('journal.searchPlaceholder')}</Text>
-          </PressableScale>
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.shortcutsScroller} contentContainerStyle={styles.shortcuts}>
-            {CATEGORIES.map((c) => (
-              <PressableScale key={c} onPress={() => openSearch(c)} style={styles.shortcut} depth={0.94}>
-                <View style={[styles.shortcutIcon, { backgroundColor: CATEGORY_SPECS[c].tint }]}>
-                  <Icon name={c} size={22} color={CATEGORY_SPECS[c].accent} strokeWidth={1.9} />
-                </View>
-                <Text style={styles.shortcutText} numberOfLines={1}>
-                  {t(`categories.${c}`)}
-                </Text>
-              </PressableScale>
-            ))}
-          </ScrollView>
+          {aero ? (
+            <AeroJournalHeader />
+          ) : (
+            <>
+            <View style={{ gap: 2 }}>
+              <Text style={type.serif}>{todayLong}</Text>
+              <Text style={type.display}>{t('journal.title')}</Text>
+            </View>
+  
+            <PressableScale onPress={() => openSearch('all')} style={styles.searchPill} depth={0.98}>
+              <Icon name="search" size={19} color={palette.inkSoft} />
+              <Text style={styles.searchText}>{t('journal.searchPlaceholder')}</Text>
+            </PressableScale>
+  
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.shortcutsScroller} contentContainerStyle={styles.shortcuts}>
+              {CATEGORIES.map((c) => (
+                <PressableScale key={c} onPress={() => openSearch(c)} style={styles.shortcut} depth={0.94}>
+                  <View style={[styles.shortcutIcon, { backgroundColor: CATEGORY_SPECS[c].tint }]}>
+                    <Icon name={c} size={22} color={CATEGORY_SPECS[c].accent} strokeWidth={1.9} />
+                  </View>
+                  <Text style={styles.shortcutText} numberOfLines={1}>
+                    {t(`categories.${c}`)}
+                  </Text>
+                </PressableScale>
+              ))}
+            </ScrollView>
+            </>
+          )}
 
           <ContinueWatching />
 
@@ -89,12 +100,14 @@ export default function JournalScreen() {
         </View>
       )}
       renderItem={({ item }) => <JournalRow event={item} />}
-      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      ItemSeparatorComponent={() => (aero ? null : <View style={styles.separator} />)}
     />
   );
 }
 
 function JournalRow({ event }: { event: JournalEvent }) {
+  const { type, radii } = useTheme();
+  const styles = useStyles();
   const { t } = useTranslation();
   const item = usePalaceStore((s) => s.items[event.itemId]);
   const selectItem = usePalaceStore((s) => s.selectItem);
@@ -141,6 +154,8 @@ function JournalRow({ event }: { event: JournalEvent }) {
 
 /** Series in progress: the most frequent log of all, one tap each. */
 function ContinueWatching() {
+  const { palette, type, radii } = useTheme();
+  const styles = useStyles();
   const { t } = useTranslation();
   const haptics = useHaptics();
   const showToast = useUiStore((s) => s.showToast);
@@ -195,8 +210,8 @@ function ContinueWatching() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.bg },
+const useStyles = makeStyles(({ palette, fonts, radii, shadow, aero }) => ({
+  root: { flex: 1, backgroundColor: palette.screen },
   header: { paddingHorizontal: 20, gap: 22, paddingBottom: 6 },
   searchPill: {
     flexDirection: 'row',
@@ -219,7 +234,19 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', gap: 8, paddingVertical: 36, paddingHorizontal: 12 },
   dayHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 26, paddingBottom: 10 },
   dayText: { fontFamily: fonts.bold, fontSize: 19, letterSpacing: -0.5, color: palette.ink, textTransform: 'capitalize' },
-  row: { flexDirection: 'row', gap: 14, paddingHorizontal: 20, paddingVertical: 10 },
+  row: aero
+    ? {
+        flexDirection: 'row',
+        gap: 14,
+        marginHorizontal: 16,
+        marginVertical: 5,
+        padding: 12,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.5)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.9)',
+      }
+    : { flexDirection: 'row', gap: 14, paddingHorizontal: 20, paddingVertical: 10 },
   rowText: { flex: 1, gap: 4, paddingTop: 2 },
   rowTitle: { fontFamily: fonts.semibold, fontSize: 16.5, lineHeight: 21, letterSpacing: -0.3, color: palette.ink },
   rowMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -244,4 +271,4 @@ const styles = StyleSheet.create({
   progressTrack: { height: 4, borderRadius: 2, backgroundColor: palette.hairline, overflow: 'hidden' },
   progressFill: { height: 4, borderRadius: 2 },
   cwAdd: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-});
+}));

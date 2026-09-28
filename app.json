@@ -2,7 +2,7 @@
   "expo": {
     "name": "Palais Mental",
     "slug": "palais-mental",
-    "version": "0.0.6",
+    "version": "0.0.7",
     "scheme": "palaismental",
     "orientation": "portrait",
     "userInterfaceStyle": "light",

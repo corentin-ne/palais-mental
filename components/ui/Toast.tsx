@@ -7,12 +7,13 @@ import { useTranslation } from 'react-i18next';
 import Glass from './Glass';
 import Icon from './Icon';
 import PressableScale from './PressableScale';
-import { fonts, palette } from '@/constants/theme';
+import { makeStyles, useTheme } from '@/constants/theme';
 import { Toast as ToastModel, useUiStore } from '@/store/useUiStore';
 import { usePalaceStore } from '@/store/usePalaceStore';
 
 /** Confirmation after a log, with a shortcut to see the object on its shelf. */
 export default function Toast() {
+  const styles = useStyles();
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -68,10 +69,10 @@ export default function Toast() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ palette, fonts }) => ({
   wrap: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
   inner: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 16, paddingRight: 6, paddingVertical: 6, minHeight: 48 },
   text: { fontFamily: fonts.medium, fontSize: 14.5, color: palette.ink, flexShrink: 1 },
   action: { backgroundColor: palette.ink, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9 },
   actionText: { fontFamily: fonts.semibold, fontSize: 13, color: palette.onInk },
-});
+}));

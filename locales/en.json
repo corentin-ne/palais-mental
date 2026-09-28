@@ -188,5 +188,21 @@
     "byCategory": "By collection",
     "byMonth": "Month by month",
     "favourites": "Favourites"
+  },
+  "style": {
+    "title": "Experience",
+    "editorial": "Editorial",
+    "editorialHint": "Paper, ink and covers",
+    "aero": "Aero",
+    "aeroHint": "Sky, glass and bubbles"
+  },
+  "aero": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening",
+    "night": "Good night",
+    "thisWeek": "this week",
+    "streak_one": "{{count}}-day streak",
+    "streak_other": "{{count}}-day streak"
   }
 }

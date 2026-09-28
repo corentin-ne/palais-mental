@@ -8,7 +8,7 @@ import Icon from './Icon';
 import CoverArt from './CoverArt';
 import PressableScale from './PressableScale';
 import { Button, RatingStars, Ring, Stepper } from './Controls';
-import { fonts, palette, radii, type, noOutline } from '@/constants/theme';
+import { noOutline, makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
 import { formatDate } from '@/lib/format';
@@ -44,6 +44,8 @@ export default function ItemSheet() {
 }
 
 function ItemBody({ item, compact }: { item: PalaceItem; compact: boolean }) {
+  const { palette, type } = useTheme();
+  const styles = useStyles();
   const { t, i18n } = useTranslation();
   const haptics = useHaptics();
   const updateItem = usePalaceStore((s) => s.updateItem);
@@ -163,6 +165,8 @@ function ItemBody({ item, compact }: { item: PalaceItem; compact: boolean }) {
 }
 
 function SeriesBlock({ item }: { item: SeriesItem }) {
+  const { type } = useTheme();
+  const styles = useStyles();
   const { t } = useTranslation();
   const pathname = usePathname();
   const haptics = useHaptics();
@@ -218,7 +222,7 @@ function SeriesBlock({ item }: { item: SeriesItem }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ palette, fonts, radii }) => ({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   catPill: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: radii.pill, paddingHorizontal: 10, paddingVertical: 5 },
   catPillText: { fontFamily: fonts.semibold, fontSize: 12.5 },
@@ -256,4 +260,4 @@ const styles = StyleSheet.create({
   ringText: { fontFamily: fonts.semibold, fontSize: 14, color: palette.ink },
   seasonMeta: { fontFamily: fonts.medium, fontSize: 11.5, color: palette.inkSoft, fontVariant: ['tabular-nums'] },
   rowBetween: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
-});
+}));

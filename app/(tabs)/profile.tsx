@@ -1,3 +1,4 @@
+import { useSceneVisibility } from '@/hooks/useSceneVisibility';
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -5,10 +6,11 @@ import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
 
 import CoverArt from '@/components/ui/CoverArt';
+import StylePicker from '@/components/ui/StylePicker';
 import Icon from '@/components/ui/Icon';
 import PressableScale from '@/components/ui/PressableScale';
 import { Button, Segmented, Toggle } from '@/components/ui/Controls';
-import { fonts, palette, radii, type } from '@/constants/theme';
+import { makeStyles, useTheme } from '@/constants/theme';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
 import { averageRating, byMonth, countsByCategory, currentStreak, eventsInYear } from '@/lib/stats';
 import { CATEGORIES } from '@/lib/types';
@@ -17,6 +19,9 @@ import { usePalaceStore } from '@/store/usePalaceStore';
 
 /** Your year in numbers, your favourites, and the app's few settings. */
 export default function ProfileScreen() {
+  const hidden = useSceneVisibility();
+  const { palette, type } = useTheme();
+  const styles = useStyles();
   const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const events = usePalaceStore((s) => s.events);
@@ -47,7 +52,7 @@ export default function ProfileScreen() {
   );
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 120 }]}>
+    <ScrollView style={[styles.root, hidden]} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 120 }]}>
       <View style={{ gap: 2 }}>
         <Text style={type.serif}>{t('you.subtitle', { year })}</Text>
         <Text style={type.display}>{t('you.title')}</Text>
@@ -89,7 +94,7 @@ export default function ProfileScreen() {
             <View key={m} style={styles.barCol}>
               <Text style={styles.barValue}>{v || ''}</Text>
               <View style={styles.barTrack}>
-                <View style={[styles.bar, { height: `${(v / maxMonth) * 100}%`, backgroundColor: m === month ? palette.ink : palette.fieldActive }]} />
+                <View style={[styles.bar, { height: `${(v / maxMonth) * 100}%`, backgroundColor: m === month ? palette.primary : palette.fieldActive }]} />
               </View>
               <Text style={[styles.barLabel, m === month && { color: palette.ink }]}>{monthLetters[m]}</Text>
             </View>
@@ -116,6 +121,7 @@ export default function ProfileScreen() {
 }
 
 function Big({ value, label }: { value: string; label: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.big}>
       <Text style={styles.bigValue}>{value}</Text>
@@ -125,6 +131,8 @@ function Big({ value, label }: { value: string; label: string }) {
 }
 
 function Settings() {
+  const { type } = useTheme();
+  const styles = useStyles();
   const { t } = useTranslation();
   const language = usePalaceStore((s) => s.language);
   const setLanguage = usePalaceStore((s) => s.setLanguage);
@@ -135,6 +143,10 @@ function Settings() {
   return (
     <View style={{ gap: 14 }}>
       <Text style={type.title}>{t('settings.title')}</Text>
+      <View style={{ gap: 10 }}>
+        <Text style={type.label}>{t('style.title')}</Text>
+        <StylePicker />
+      </View>
       <View style={{ gap: 10 }}>
         <Text style={type.label}>{t('settings.language')}</Text>
         <Segmented<LanguagePreference>
@@ -176,8 +188,8 @@ function Settings() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.bg },
+const useStyles = makeStyles(({ palette, fonts, radii }) => ({
+  root: { flex: 1, backgroundColor: palette.screen },
   content: { paddingHorizontal: 20, gap: 22, maxWidth: 720, width: '100%', alignSelf: 'center' },
   bigRow: { flexDirection: 'row', gap: 10 },
   big: { flex: 1, backgroundColor: palette.surface, borderRadius: radii.lg, padding: 14, gap: 2, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.hairline },
@@ -198,4 +210,4 @@ const styles = StyleSheet.create({
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: palette.hairline },
   confirm: { gap: 12, backgroundColor: palette.dangerTint, borderRadius: radii.md, padding: 14 },
   confirmActions: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },
-});
+}));

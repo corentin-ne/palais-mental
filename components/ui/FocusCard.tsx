@@ -6,7 +6,7 @@ import Glass from './Glass';
 import Icon from './Icon';
 import PressableScale from './PressableScale';
 import { Button } from './Controls';
-import { fonts, palette, radii, type } from '@/constants/theme';
+import { makeStyles, useTheme } from '@/constants/theme';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
 import { CategoryId, SeriesItem } from '@/lib/types';
 import { getSeriesProgress, usePalaceStore } from '@/store/usePalaceStore';
@@ -19,6 +19,8 @@ interface Props {
 
 /** What you are looking at: the niche's name and size, and for series, where you left off. */
 export default function FocusCard({ category, onLibrary, onEpisode }: Props) {
+  const { palette, type, radii } = useTheme();
+  const styles = useStyles();
   const { t } = useTranslation();
   const spec = CATEGORY_SPECS[category];
   const count = usePalaceStore((s) => s.order[category].length);
@@ -78,7 +80,7 @@ export default function FocusCard({ category, onLibrary, onEpisode }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ palette, fonts, radii }) => ({
   card: { padding: 14, gap: 12 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   badge: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
@@ -96,4 +98,4 @@ const styles = StyleSheet.create({
   seriesTitle: { fontFamily: fonts.display, fontSize: 17, color: palette.ink },
   segments: { flexDirection: 'row', gap: 3, height: 5 },
   segment: { flex: 1, borderRadius: 3 },
-});
+}));

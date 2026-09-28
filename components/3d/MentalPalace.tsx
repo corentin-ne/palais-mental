@@ -17,6 +17,7 @@ import { CATEGORIES } from '@/lib/types';
 import { RoomDims, SUN_LIGHT_DIR, getRoomDims } from '@/lib/palaceLayout';
 import { bakePalaceEnvironment } from '@/lib/envMap';
 import { safeDelta } from '@/lib/easing';
+import { useSceneLook } from '@/lib/sceneLook';
 import { sceneSignals, wakeAmbient } from '@/lib/sceneSignals';
 import { selectRoomLevel, usePalaceStore } from '@/store/usePalaceStore';
 
@@ -30,6 +31,7 @@ export type RoomDimsRef = MutableRefObject<RoomDims>;
  * screen opens a short "breathing" window in which dust and clouds drift.
  */
 export default function MentalPalace() {
+  const look = useSceneLook();
   const level = usePalaceStore(selectRoomLevel);
   const ambient = usePalaceStore((s) => s.settings.ambient);
   // Animated (damped) room dimensions, shared by the shell and every niche.
@@ -49,7 +51,7 @@ export default function MentalPalace() {
         wakeAmbient(8); // let the room come alive on first open
       }}
     >
-      <color attach="background" args={[PALACE_BG]} />
+      <color attach="background" args={[look.background]} />
       <fog attach="fog" args={['#F8E9D6', 30, 110]} />
       <PalaceEnvironment />
       <Lighting />
@@ -74,11 +76,15 @@ function PalaceEnvironment() {
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
   const invalidate = useThree((s) => s.invalidate);
+  const { envIntensity } = useSceneLook();
+  useEffect(() => {
+    scene.environmentIntensity = envIntensity;
+    invalidate();
+  }, [scene, envIntensity, invalidate]);
   useEffect(() => {
     const tex = bakePalaceEnvironment(gl);
     if (!tex) return;
     scene.environment = tex;
-    scene.environmentIntensity = 0.65;
     invalidate();
     return () => {
       scene.environment = null;
@@ -101,15 +107,16 @@ function AmbientClock({ enabled }: { enabled: boolean }) {
 }
 
 function Lighting() {
+  const look = useSceneLook();
   // Fixed light count: adding/removing lights at runtime forces shader recompiles (frame hitches).
   const [lx, ly, lz] = SUN_LIGHT_DIR;
   return (
     <>
-      <hemisphereLight args={['#FFFFFF', '#E9E1D6', 1.05]} />
+      <hemisphereLight args={look.hemi} />
       {/* Sun: enters through the window, same direction as the god rays. */}
-      <directionalLight position={[-lx * 10, -ly * 10, -lz * 10]} intensity={1.5} color="#FFF1DE" />
+      <directionalLight position={[-lx * 10, -ly * 10, -lz * 10]} intensity={look.sun[1]} color={look.sun[0]} />
       {/* Soft bounce from the room, so faces turned away from the window stay luminous. */}
-      <directionalLight position={[1.5, 3, 5]} intensity={0.4} color="#F4F1FF" />
+      <directionalLight position={[1.5, 3, 5]} intensity={look.fill[1]} color={look.fill[0]} />
     </>
   );
 }

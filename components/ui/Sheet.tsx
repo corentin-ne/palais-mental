@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Glass from './Glass';
-import { palette, radii } from '@/constants/theme';
+import { makeStyles, useTheme } from '@/constants/theme';
 
 interface Props {
   visible: boolean;
@@ -43,6 +43,8 @@ export default function Sheet({
   scroll = true,
   accessibilityLabel,
 }: Props) {
+  const { radii } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(visible);
   const progress = useRef(new Animated.Value(0)).current;
@@ -112,7 +114,7 @@ export default function Sheet({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ palette }) => ({
   anchor: { flex: 1, justifyContent: 'flex-end' },
   sheetWrap: { width: '100%', maxWidth: 620, alignSelf: 'center', paddingHorizontal: 6 },
   glass: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
@@ -121,4 +123,4 @@ const styles = StyleSheet.create({
   handle: { width: 40, height: 5, borderRadius: 3, backgroundColor: palette.hairline },
   body: { flexGrow: 0 },
   content: { paddingHorizontal: 22, paddingTop: 6, gap: 18 },
-});
+}));

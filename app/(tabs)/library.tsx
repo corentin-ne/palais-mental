@@ -1,3 +1,4 @@
+import { useSceneVisibility } from '@/hooks/useSceneVisibility';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -5,10 +6,11 @@ import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import CoverArt from '@/components/ui/CoverArt';
+import CoverFlow from '@/components/ui/aero/CoverFlow';
 import Icon from '@/components/ui/Icon';
 import PressableScale from '@/components/ui/PressableScale';
 import { RatingStars, Segmented } from '@/components/ui/Controls';
-import { fonts, palette, radii, type, noOutline } from '@/constants/theme';
+import { noOutline, makeStyles, useTheme } from '@/constants/theme';
 import { CATEGORIES, CategoryId, PalaceItem } from '@/lib/types';
 import { usePalaceStore } from '@/store/usePalaceStore';
 
@@ -20,6 +22,9 @@ const GAP = 14;
 
 /** The whole collection as a wall of covers. */
 export default function LibraryScreen() {
+  const hidden = useSceneVisibility();
+  const { palette, type, aero } = useTheme();
+  const styles = useStyles();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -65,7 +70,7 @@ export default function LibraryScreen() {
 
   return (
     <FlatList
-      style={styles.root}
+      style={[styles.root, hidden]}
       data={rows}
       key={COLUMNS}
       numColumns={COLUMNS}
@@ -79,6 +84,14 @@ export default function LibraryScreen() {
             <Text style={type.display}>{t('library.title')}</Text>
             <Text style={styles.count}>{counts.all}</Text>
           </View>
+          {aero && !query && (
+            <CoverFlow
+              items={Object.values(items)
+                .sort((x, y) => (y.lastLoggedAt ?? y.createdAt) - (x.lastLoggedAt ?? x.createdAt))
+                .slice(0, 14)}
+              onOpen={(i) => selectItem(i.id)}
+            />
+          )}
           <View style={styles.search}>
             <Icon name="search" size={18} color={palette.inkSoft} />
             <TextInput
@@ -124,6 +137,7 @@ export default function LibraryScreen() {
 }
 
 function Cell({ item, width, onPress }: { item: PalaceItem; width: number; onPress: () => void }) {
+  const styles = useStyles();
   return (
     <PressableScale onPress={onPress} style={{ width, gap: 7 }} depth={0.96}>
       <CoverArt uri={item.coverUrl} title={item.title} category={item.category} width={width} aspect={2 / 3} />
@@ -143,8 +157,8 @@ function Cell({ item, width, onPress }: { item: PalaceItem; width: number; onPre
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.bg },
+const useStyles = makeStyles(({ palette, fonts, radii }) => ({
+  root: { flex: 1, backgroundColor: palette.screen },
   content: { paddingHorizontal: 20, gap: 22, maxWidth: 760, width: '100%', alignSelf: 'center' },
   columns: { gap: GAP },
   header: { gap: 16, paddingBottom: 6 },
@@ -155,11 +169,11 @@ const styles = StyleSheet.create({
   chipsScroller: { marginHorizontal: -20, flexGrow: 0 },
   chips: { paddingHorizontal: 20, gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 14, borderRadius: radii.pill, backgroundColor: palette.field },
-  chipActive: { backgroundColor: palette.ink },
+  chipActive: { backgroundColor: palette.primary },
   chipText: { fontFamily: fonts.semibold, fontSize: 13.5, color: palette.inkSoft },
   chipCount: { fontFamily: fonts.medium, fontSize: 12, color: palette.inkFaint, fontVariant: ['tabular-nums'] },
   chipTextActive: { color: palette.onInk },
   empty: { textAlign: 'center', paddingVertical: 40 },
   cellTitle: { fontFamily: fonts.semibold, fontSize: 13.5, color: palette.ink, letterSpacing: -0.1 },
   cellMeta: { fontFamily: fonts.body, fontSize: 12, color: palette.inkSoft },
-});
+}));

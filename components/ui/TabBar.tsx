@@ -6,7 +6,8 @@ import type { BottomTabBarProps } from 'expo-router/tabs';
 import Glass from './Glass';
 import Icon, { IconName } from './Icon';
 import PressableScale from './PressableScale';
-import { fonts, palette, shadow } from '@/constants/theme';
+import { makeStyles, useTheme } from '@/constants/theme';
+import { Gel, Sheen } from './aero/Gloss';
 import { useHaptics } from '@/hooks/useHaptics';
 import { usePalaceStore } from '@/store/usePalaceStore';
 import { useUiStore } from '@/store/useUiStore';
@@ -23,6 +24,8 @@ const TABS: Record<string, { icon: IconName; label: string }> = {
  * logging is one tap away.
  */
 export default function TabBar({ state, navigation }: BottomTabBarProps) {
+  const { palette, aero } = useTheme();
+  const styles = useStyles();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const haptics = useHaptics();
@@ -51,7 +54,12 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
           }
         }}
       >
-        <Icon name={tab.icon} size={22} color={active ? palette.ink : palette.inkFaint} strokeWidth={active ? 2 : 1.7} />
+        <View style={[styles.iconWell, aero && active && styles.iconWellActive]}>
+          {aero && active && <Sheen strength={0.8} />}
+          <View style={{ zIndex: 1 }}>
+            <Icon name={tab.icon} size={22} color={active ? (aero ? palette.primaryDeep : palette.ink) : palette.inkFaint} strokeWidth={active ? 2 : 1.7} />
+          </View>
+        </View>
         <Text style={[styles.label, active && styles.labelActive]}>{t(tab.label)}</Text>
       </PressableScale>
     );
@@ -76,28 +84,34 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
           style={styles.add}
           depth={0.9}
         >
-          <Icon name="plus" size={26} color={palette.onInk} strokeWidth={2.3} />
+          {aero && <Gel from="#5CCBFF" to={palette.primaryDeep} />}
+          <View style={{ zIndex: 1 }}>
+            <Icon name="plus" size={26} color={palette.onInk} strokeWidth={2.3} />
+          </View>
         </PressableScale>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ palette, fonts, shadow, aero }) => ({
   wrap: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', paddingHorizontal: 16 },
   bar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 6 },
   tab: { width: 66, height: 52, alignItems: 'center', justifyContent: 'center', gap: 3 },
   label: { fontFamily: fonts.medium, fontSize: 10.5, color: palette.inkFaint, letterSpacing: 0.1 },
   labelActive: { color: palette.ink, fontFamily: fonts.semibold },
   addSlot: { width: 64 },
+  iconWell: { width: 40, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  iconWellActive: { backgroundColor: 'rgba(255,255,255,0.75)', borderWidth: 1, borderColor: '#FFFFFF' },
   addWrap: { position: 'absolute', top: -12, left: 0, right: 0, alignItems: 'center' },
   add: {
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: palette.ink,
+    backgroundColor: palette.primary,
+    ...(aero ? { overflow: 'hidden' as const, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.9)' } : {}),
     alignItems: 'center',
     justifyContent: 'center',
     ...shadow.lifted,
   },
-});
+}));

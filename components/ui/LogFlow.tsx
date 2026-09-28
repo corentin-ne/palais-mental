@@ -8,7 +8,7 @@ import Icon from './Icon';
 import CoverArt from './CoverArt';
 import PressableScale from './PressableScale';
 import { Button, Field, RatingStars, Segmented, Stepper } from './Controls';
-import { fonts, palette, radii, type, noOutline } from '@/constants/theme';
+import { noOutline, makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { CatalogResult, searchAll, searchCategory } from '@/lib/catalog';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
@@ -39,6 +39,8 @@ export default function LogFlow() {
 type Groups = { category: CategoryId; results: CatalogResult[] }[];
 
 function SearchPane() {
+  const { palette, type } = useTheme();
+  const styles = useStyles();
   const { t, i18n } = useTranslation();
   const category = useUiStore((s) => s.log.category);
   const setCategory = useUiStore((s) => s.setSearchCategory);
@@ -165,6 +167,8 @@ function SearchPane() {
 }
 
 function ResultRow({ result, inPalace, onPress }: { result: CatalogResult; inPalace: boolean; onPress: () => void }) {
+  const { type, radii } = useTheme();
+  const styles = useStyles();
   const { t } = useTranslation();
   const meta = [
     result.creator,
@@ -194,6 +198,8 @@ function ResultRow({ result, inPalace, onPress }: { result: CatalogResult; inPal
 
 /** Empty query: the things you log most often are right there. */
 function Recent() {
+  const { palette, type, radii } = useTheme();
+  const styles = useStyles();
   const { t } = useTranslation();
   const items = usePalaceStore((s) => s.items);
   const confirm = useUiStore((s) => s.confirm);
@@ -245,6 +251,8 @@ function draftFromItem(i: PalaceItem): LogDraft {
 
 // ------------------------------------------------------------------ Confirm
 function ConfirmPane({ draft }: { draft: LogDraft }) {
+  const { palette, type, radii } = useTheme();
+  const styles = useStyles();
   const { t, i18n } = useTranslation();
   const pathname = usePathname();
   const haptics = useHaptics();
@@ -438,7 +446,7 @@ const startOfDay = (ts: number) => {
   return d.getTime();
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ palette, fonts, radii }) => ({
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   search: {
     flex: 1,
@@ -463,7 +471,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     backgroundColor: palette.field,
   },
-  chipActive: { backgroundColor: palette.ink },
+  chipActive: { backgroundColor: palette.primary },
   chipText: { fontFamily: fonts.semibold, fontSize: 13.5, color: palette.inkSoft },
   chipTextActive: { color: palette.onInk },
   center: { textAlign: 'center', paddingVertical: 20 },
@@ -492,4 +500,4 @@ const styles = StyleSheet.create({
   },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   note: { minHeight: 76, textAlignVertical: 'top' },
-});
+}));

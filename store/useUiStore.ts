@@ -24,6 +24,9 @@ interface UiState {
   /** Log flow: closed, searching (optionally scoped to a category), or confirming a draft. */
   log: { stage: 'closed' | 'search' | 'confirm'; category: CategoryId | 'all'; draft?: LogDraft };
   toast: Toast | null;
+  /** Bumped on every successful log; Aero answers with a burst of bubbles. */
+  celebrations: number;
+  celebrate: () => void;
   openSearch: (category?: CategoryId | 'all') => void;
   setSearchCategory: (category: CategoryId | 'all') => void;
   confirm: (draft: LogDraft) => void;
@@ -37,11 +40,13 @@ interface UiState {
 export const useUiStore = create<UiState>((set) => ({
   log: { stage: 'closed', category: 'all' },
   toast: null,
+  celebrations: 0,
+  celebrate: () => set((s) => ({ celebrations: s.celebrations + 1 })),
   openSearch: (category = 'all') => set({ log: { stage: 'search', category } }),
   setSearchCategory: (category) => set((s) => ({ log: { ...s.log, category } })),
   confirm: (draft) => set((s) => ({ log: { ...s.log, stage: 'confirm', draft } })),
   backToSearch: () => set((s) => ({ log: { ...s.log, stage: 'search', draft: undefined } })),
   closeLog: () => set((s) => ({ log: { ...s.log, stage: 'closed' } })),
-  showToast: (message, itemId) => set({ toast: { id: Date.now(), message, itemId } }),
+  showToast: (message, itemId) => set((s) => ({ toast: { id: Date.now(), message, itemId }, celebrations: s.celebrations + 1 })),
   hideToast: () => set({ toast: null }),
 }));

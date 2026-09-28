@@ -11,11 +11,19 @@ import {
   InstrumentSans_700Bold,
 } from '@expo-google-fonts/instrument-sans';
 import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
+import {
+  OpenSans_300Light,
+  OpenSans_400Regular,
+  OpenSans_400Regular_Italic,
+  OpenSans_500Medium,
+  OpenSans_600SemiBold,
+} from '@expo-google-fonts/open-sans';
 
-import { palette } from '@/constants/theme';
+import { makeStyles, useTheme } from '@/constants/theme';
 import { useLanguageSync } from '@/hooks/useLanguageSync';
 
 export default function RootLayout() {
+  const { palette } = useTheme();
   useLanguageSync();
   const [loaded, error] = useFonts({
     InstrumentSans_400Regular,
@@ -24,6 +32,11 @@ export default function RootLayout() {
     InstrumentSans_700Bold,
     InstrumentSerif_400Regular,
     InstrumentSerif_400Regular_Italic,
+    OpenSans_300Light,
+    OpenSans_400Regular,
+    OpenSans_400Regular_Italic,
+    OpenSans_500Medium,
+    OpenSans_600SemiBold,
   });
 
   // Hold on the room's ground colour until the type is ready; on failure, system fonts take over.

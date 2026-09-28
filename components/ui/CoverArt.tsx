@@ -4,7 +4,8 @@ import { Image } from 'expo-image';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import Icon from './Icon';
-import { fonts, radii, shadow } from '@/constants/theme';
+import { useSvgId } from '@/lib/svgId';
+import { makeStyles, useTheme } from '@/constants/theme';
 import { CATEGORY_SPECS, hashString } from '@/lib/itemVisuals';
 import { CategoryId } from '@/lib/types';
 
@@ -34,13 +35,16 @@ interface Props {
  * gets a generated cover: a gradient in the collection's palette, the title set in
  * serif italic, and the collection's mark.
  */
-export default function CoverArt({ uri, title, category, width, aspect, radius = radii.sm, elevated = true }: Props) {
+export default function CoverArt({ uri, title, category, width, aspect, radius, elevated = true }: Props) {
+  const { shadow, radii } = useTheme();
+  const styles = useStyles();
   const [failed, setFailed] = useState(false);
+  const r = radius ?? radii.sm;
   const height = width / (aspect ?? COVER_ASPECT[category]);
   const showImage = !!uri && !failed;
   return (
-    <View style={[{ width, height, borderRadius: radius }, elevated && shadow.cover]}>
-      <View style={[styles.clip, { borderRadius: radius }]}>
+    <View style={[{ width, height, borderRadius: r }, elevated && shadow.cover]}>
+      <View style={[styles.clip, { borderRadius: r }]}>
         {showImage ? (
           <Image
             source={{ uri }}
@@ -60,11 +64,12 @@ export default function CoverArt({ uri, title, category, width, aspect, radius =
 }
 
 function Generated({ title, category, width, height }: { title: string; category: CategoryId; width: number; height: number }) {
+  const styles = useStyles();
   const spec = CATEGORY_SPECS[category];
   const h = hashString(title || category);
   const a = spec.palette[h % spec.palette.length];
   const b = spec.palette[(h >> 3) % spec.palette.length];
-  const id = `g${h}`;
+  const id = useSvgId('cover');
   const small = width < 70;
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -89,8 +94,8 @@ function Generated({ title, category, width, height }: { title: string; category
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ fonts }) => ({
   clip: { flex: 1, overflow: 'hidden', backgroundColor: '#EEE9E2' },
   generated: { flex: 1, justifyContent: 'space-between' },
   genTitle: { fontFamily: fonts.displayItalic, color: 'rgba(22,20,18,0.82)', lineHeight: undefined },
-});
+}));

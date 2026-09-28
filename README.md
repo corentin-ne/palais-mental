@@ -22,11 +22,22 @@ Palais Mental is a **log app first**. The 3D palace is where your log turns into
 - **Palace**: the collection as a round, cornerless, sunlit room. Each collection has an arched niche that shows its latest cover face-out and grows as it fills. Swipe or tap a chip to turn toward a collection; tap an object to lift it out and open it.
 - **You**: logs this year, streak, average rating, a split by collection, month-by-month bars, favourites, and settings (language, ambient effects, haptics, reset).
 
-## Design
+## Two experiences
 
-Editorial and crisp. Near-white paper, near-black ink, and the cover art as the colour. Instrument Sans for the interface; Instrument Serif italic for dates, notes and quiet accents. A floating glass tab bar keeps the log button at its centre. Anything without artwork gets a generated cover (a collection-palette gradient, the title in serif italic, and the collection's icon).
+Choose one under **You → Experience**. The switch is instant.
 
-The palace renders crisply: ambient occlusion, bloom on true highlights only, Neutral tone mapping so covers keep their real colours, and no depth-of-field haze.
+**Editorial.** Crisp paper and ink: near-white background, near-black text, and the cover art as the only colour. Instrument Sans for the interface, Instrument Serif italic for dates and notes.
+
+**Aero.** Frutiger Aero, distilled: nostalgic but minimal. This is a different experience, not just a reskin:
+- A living sky behind every screen: a clear gradient, aurora veils, a soft light-wave, and glass bubbles drifting upward (vector shapes animated with the native driver).
+- Frosted glass everywhere, with a specular sheen. Gel buttons have a gradient body, a glossy top and a glow at the base. The log button is an aqua orb.
+- **Journal gadgets**, like the old desktop sidebar: a clock that greets you by time of day, a glossy weekly ring with your streak, and glossy category orbs.
+- **Cover Flow** in the Library: recent covers turn toward you as they reach the centre and are mirrored on a glossy floor.
+- Every log releases a **burst of bubbles** from the log button.
+- In the palace: cool noon daylight, glossy white lacquer, aqua-lined niches, a mint rug, and bubbles in place of dust.
+- Open Sans, a humanist face in the spirit of Frutiger and Segoe, with big titles set light.
+
+Both styles share one codebase. Components read tokens through `useTheme()` and styles through `makeStyles()`, and the 3D palace reads its variant through `useSceneLook()`.
 
 ## Structure
 

@@ -30,12 +30,13 @@ import { WINDOW_SDF } from '@/shaders/common';
 import { COVE_RADIUS, RoomDims, WINDOW, getRoomDims } from '@/lib/palaceLayout';
 import { softBox, windowOutline } from '@/lib/itemGeometry';
 import { safeDelta } from '@/lib/easing';
+import { useSceneLook } from '@/lib/sceneLook';
 import { selectRoomLevel, usePalaceStore } from '@/store/usePalaceStore';
 
 const BASE = getRoomDims(0);
 const WIN_UNIFORM = new Vector4(WINDOW.halfWidth, WINDOW.sill, WINDOW.springLine, 0);
 
-const COLORS = {
+const DEFAULT_COLORS = {
   floorCenter: new Color('#ECE3D8'),
   floorEdge: new Color('#E6DCD0'),
   wall: new Color('#F8F6F2'),
@@ -48,7 +49,7 @@ const COLORS = {
  * gentle vertex-colour gradient (sandy floor → cream wall → luminous dome) does the
  * work of ambient occlusion for free.
  */
-function buildShellGeometry(d: RoomDims): LatheGeometry {
+function buildShellGeometry(d: RoomDims, COLORS: typeof DEFAULT_COLORS = DEFAULT_COLORS): LatheGeometry {
   const R = d.radius;
   const c = COVE_RADIUS;
   const H = d.wallHeight;
@@ -179,7 +180,6 @@ export default function RoomShell({ dimsRef }: { dimsRef: RoomDimsRef }) {
     const plantA = buildPlant(9, 0.55, 0.16, 11);
     const plantB = buildPlant(13, 0.95, 0.13, 29);
     return {
-      shellGeo: buildShellGeometry(BASE),
       shellMat: buildShellMaterial(),
       frameGeo: new ExtrudeGeometry(frameShape, {
         depth: 0.36,
@@ -203,6 +203,23 @@ export default function RoomShell({ dimsRef }: { dimsRef: RoomDimsRef }) {
       stemMat: new MeshStandardMaterial({ color: '#7FA36E', roughness: 0.7 }),
     };
   }, []);
+
+  const look = useSceneLook();
+  const shellGeo = useMemo(
+    () =>
+      buildShellGeometry(BASE, {
+        floorCenter: new Color(look.floorCenter),
+        floorEdge: new Color(look.floorEdge),
+        wall: new Color(look.wall),
+        dome: new Color(look.dome),
+      }),
+    [look],
+  );
+  useEffect(() => () => shellGeo.dispose(), [shellGeo]);
+  useEffect(() => {
+    res.frameMat.color.set(look.frame);
+    invalidate();
+  }, [look, res, invalidate]);
 
   useEffect(
     () => () =>
@@ -236,20 +253,20 @@ export default function RoomShell({ dimsRef }: { dimsRef: RoomDimsRef }) {
 
   return (
     <group>
-      <mesh ref={shell} geometry={res.shellGeo} material={res.shellMat} />
+      <mesh ref={shell} geometry={shellGeo} material={res.shellMat} />
 
       {/* ---- The window: the home view and the light source of the whole palace */}
       <group ref={windowGroup}>
         <mesh geometry={res.frameGeo} material={res.frameMat} position-z={-0.24} />
         {/* Window seat: a long cushion and two pillows tucked into the deep sill */}
         <mesh geometry={res.cushionGeo} position={[0, sill + 0.055, 0.02]}>
-          <meshStandardMaterial color="#F1DECB" roughness={0.9} />
+          <meshStandardMaterial color={look.cushion} roughness={0.9} />
         </mesh>
         <mesh geometry={res.pillowGeo} position={[-hw + 0.3, sill + 0.2, -0.02]} rotation={[0.2, 0.35, 0.1]} scale={[0.17, 0.14, 0.07]}>
-          <meshStandardMaterial color="#E9B7A2" roughness={0.9} />
+          <meshStandardMaterial color={look.pillows[0]} roughness={0.9} />
         </mesh>
         <mesh geometry={res.pillowGeo} position={[-hw + 0.58, sill + 0.18, 0.02]} rotation={[0.1, -0.2, -0.12]} scale={[0.15, 0.12, 0.065]}>
-          <meshStandardMaterial color="#CADAC1" roughness={0.9} />
+          <meshStandardMaterial color={look.pillows[1]} roughness={0.9} />
         </mesh>
         {/* A small plant on the seat, the first thing framed at home */}
         <group position={[hw - 0.32, sill + 0.005, -0.04]} scale={0.42}>
@@ -262,10 +279,10 @@ export default function RoomShell({ dimsRef }: { dimsRef: RoomDimsRef }) {
       {/* ---- Round two-tone rug catching the sun patch */}
       <group position={[0, 0, -0.9]}>
         <mesh geometry={res.rugGeo} position-y={0.008}>
-          <meshStandardMaterial color="#EACFB8" roughness={1} />
+          <meshStandardMaterial color={look.rug[0]} roughness={1} />
         </mesh>
         <mesh geometry={res.rugInnerGeo} position-y={0.0085}>
-          <meshStandardMaterial color="#F3E3D2" roughness={1} />
+          <meshStandardMaterial color={look.rug[1]} roughness={1} />
         </mesh>
       </group>
 

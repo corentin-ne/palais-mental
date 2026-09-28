@@ -1,6 +1,6 @@
 {
   "name": "palais-mental",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -13,6 +13,7 @@
   "dependencies": {
     "@expo-google-fonts/instrument-sans": "^0.4.2",
     "@expo-google-fonts/instrument-serif": "^0.4.1",
+    "@expo-google-fonts/open-sans": "^0.4.2",
     "@expo/metro-runtime": "~57.0.16",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-three/drei": "^10.7.9",

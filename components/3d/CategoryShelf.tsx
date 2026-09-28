@@ -32,10 +32,10 @@ import {
   nicheOuterWidth,
 } from '@/lib/palaceLayout';
 import { safeDelta } from '@/lib/easing';
+import { useSceneLook } from '@/lib/sceneLook';
 import { usePalaceStore } from '@/store/usePalaceStore';
 
 const CAPACITY_CHUNK = 64;
-const LACQUER = '#FFFCF7';
 const OAK = '#E6CCAA';
 const INNER_BOTTOM_RADIUS = 0.05;
 
@@ -135,16 +135,21 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
     return { ring, lining, plank };
   }, [layout.length, layout.innerHeight, layout.archSpace, layout.depth]);
 
+  const look = useSceneLook();
   const mats = useMemo(
     () => ({
-      lacquer: new MeshStandardMaterial({ color: LACQUER, roughness: 0.3, envMapIntensity: 0.9 }),
-      lining: new MeshStandardMaterial({ color: spec.tint, roughness: 0.95, envMapIntensity: 0.3 }),
+      lacquer: new MeshStandardMaterial({ color: look.lacquer, roughness: look.lacquerRoughness, envMapIntensity: 1.1 }),
+      lining: new MeshStandardMaterial({
+        color: new Color(spec.accent).lerp(_white, 1 - look.liningAccent),
+        roughness: 0.95,
+        envMapIntensity: 0.3,
+      }),
       oak: new MeshStandardMaterial({ color: OAK, roughness: 0.55 }),
       glow: new MeshBasicMaterial({ color: new Color(spec.accent).lerp(_white, 0.45), toneMapped: false }),
       body: new MeshStandardMaterial({ color: '#FFFFFF', roughness: BODY_ROUGHNESS[category] }),
       detail: new MeshStandardMaterial({ vertexColors: true, roughness: 0.38 }),
     }),
-    [spec.tint, spec.accent, category],
+    [spec.accent, category, look],
   );
 
   // Start the swell from the previous size whenever the target changes.

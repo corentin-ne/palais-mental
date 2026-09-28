@@ -7,6 +7,7 @@ import type { RoomDimsRef } from '../MentalPalace';
 import { dustFragment, dustVertex } from '@/shaders/dust';
 import { SUN_LIGHT_DIR, WINDOW, windowPlaneZ } from '@/lib/palaceLayout';
 import { sceneSignals } from '@/lib/sceneSignals';
+import { useSceneLook } from '@/lib/sceneLook';
 
 const COUNT = Platform.OS === 'web' ? 520 : 360;
 
@@ -16,6 +17,7 @@ const COUNT = Platform.OS === 'web' ? 520 : 360;
  */
 export default function DustMotes({ dimsRef }: { dimsRef: RoomDimsRef }) {
   const dpr = useThree((s) => s.viewport.dpr);
+  const look = useSceneLook();
 
   const { geo, mat } = useMemo(() => {
     const seeds = new Float32Array(COUNT * 4);
@@ -59,6 +61,8 @@ export default function DustMotes({ dimsRef }: { dimsRef: RoomDimsRef }) {
     const u = mat.uniforms;
     u.uTime.value = sceneSignals.ambientTime;
     u.uPixelRatio.value = dpr;
+    u.uSize.value = look.dustSize;
+    (u.uColor.value as Color).set(look.dust);
     u.uWindowZ.value = zw;
     // A volume hugging the sunbeams plus some slack, so motes drift in and out of the light.
     (u.uBoxMin.value as Vector3).set(-WINDOW.halfWidth - 1.2, 0.15, zw + 0.2);
