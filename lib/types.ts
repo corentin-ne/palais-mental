@@ -44,4 +44,5 @@ export type HeroEvent =
       completesSeason: boolean;
     };
 
-export type CameraFocus = 'overview' | CategoryId;
+/** 'window' is the idle home view: eye level, facing the sunlit window. */
+export type CameraFocus = 'window' | CategoryId;

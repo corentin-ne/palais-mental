@@ -2,11 +2,11 @@
   "expo": {
     "name": "Palais Mental",
     "slug": "palais-mental",
-    "version": "0.0.1",
+    "version": "0.0.3",
     "scheme": "palaismental",
     "orientation": "portrait",
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#07080B",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FBEEDD",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.palaismental.app",

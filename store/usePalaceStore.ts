@@ -76,7 +76,7 @@ export const usePalaceStore = create<PalaceState>()(
       items: {},
       order: emptyOrder(),
       language: 'system',
-      focus: 'overview',
+      focus: 'window',
       heroQueue: [],
 
       logItem: (category, title, opts) => {
@@ -143,7 +143,7 @@ export const usePalaceStore = create<PalaceState>()(
 
       setFocus: (focus) => set({ focus }),
       setLanguage: (language) => set({ language }),
-      resetPalace: () => set({ items: {}, order: emptyOrder(), heroQueue: [], focus: 'overview' }),
+      resetPalace: () => set({ items: {}, order: emptyOrder(), heroQueue: [], focus: 'window' }),
     }),
     {
       name: 'palais-mental/v1',

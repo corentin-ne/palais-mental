@@ -2,8 +2,8 @@
   "app": {
     "title": "Palais Mental",
     "subtitle": "Votre vie, meublée.",
-    "hint": "Touchez une zone pour l'explorer",
-    "back": "Pièce",
+    "hint": "Touchez Ajouter pour mettre un souvenir en lumière",
+    "back": "Fenêtre",
     "items_one": "{{count}} souvenir",
     "items_other": "{{count}} souvenirs",
     "level": "Pièce niveau {{level}}"

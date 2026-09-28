@@ -15,7 +15,9 @@ import { selectActiveHero, selectRoomLevel, selectTotalItems, usePalaceStore } f
 const LANGUAGE_CYCLE: LanguagePreference[] = ['system', 'en', 'fr'];
 
 /**
- * Single screen: the R3F room fills the viewport and IS the navigation.
+ * Single screen: the R3F room fills the viewport and IS the navigation. At rest the
+ * camera stands in the room gazing at the sunlit window; picking a category sweeps it
+ * to that collection's furniture.
  * Native UI floats above it with `pointerEvents="box-none"` so taps fall through to 3D.
  */
 export default function PalaceScreen() {
@@ -60,7 +62,7 @@ export default function PalaceScreen() {
       <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 12 }]}>
         {/* ---- Top bar */}
         <View style={styles.topBar}>
-          {focus === 'overview' ? (
+          {focus === 'window' ? (
             <View>
               <Text style={styles.title}>{t('app.title')}</Text>
               <Text style={styles.meta}>
@@ -71,7 +73,7 @@ export default function PalaceScreen() {
             <View style={styles.focusHead}>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setFocus('overview')}
+                onPress={() => setFocus('window')}
                 hitSlop={12}
                 style={({ pressed }) => [styles.pill, pressed && styles.pressed]}
               >
@@ -102,7 +104,7 @@ export default function PalaceScreen() {
         {/* ---- Bottom */}
         <View pointerEvents="box-none" style={styles.bottom}>
           {focus === 'series' && <SeriesPanel />}
-          {focus === 'overview' && <Text style={styles.hint}>{t('app.hint')}</Text>}
+          {focus === 'window' && <Text style={styles.hint}>{t('app.hint')}</Text>}
           <Pressable
             accessibilityRole="button"
             onPress={() => setSheetOpen(true)}
@@ -127,7 +129,7 @@ export default function PalaceScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 20 },
-  title: { color: theme.text, fontSize: 26, fontWeight: '700', letterSpacing: 0.3 },
+  title: { color: theme.text, fontSize: 26, fontWeight: '700', letterSpacing: 0.3, textShadowColor: 'rgba(255,248,238,0.9)', textShadowRadius: 12 },
   meta: { color: theme.textDim, fontSize: 13, marginTop: 4, fontVariant: ['tabular-nums'] },
   focusHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   focusTitle: { color: theme.text, fontSize: 20, fontWeight: '600' },
@@ -148,11 +150,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     letterSpacing: 0.3,
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowRadius: 12,
+    textShadowColor: 'rgba(255,244,228,0.95)',
+    textShadowRadius: 14,
   },
   bottom: { paddingHorizontal: 16, gap: 12 },
-  hint: { color: theme.textFaint, fontSize: 13, textAlign: 'center', letterSpacing: 0.3 },
+  hint: { color: theme.textDim, fontSize: 13, textAlign: 'center', letterSpacing: 0.3 },
   logButton: {
     alignSelf: 'center',
     flexDirection: 'row',
@@ -162,8 +164,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 28,
     paddingVertical: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
+    shadowColor: theme.shadow,
+    shadowOpacity: 0.35,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,

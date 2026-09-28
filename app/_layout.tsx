@@ -10,7 +10,7 @@ export default function RootLayout() {
   useLanguageSync();
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.bg } }} />
     </>
   );

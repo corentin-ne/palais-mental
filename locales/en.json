@@ -2,8 +2,8 @@
   "app": {
     "title": "Mental Palace",
     "subtitle": "Your life, furnished.",
-    "hint": "Tap a zone to explore",
-    "back": "Room",
+    "hint": "Tap Log to bring a memory into the light",
+    "back": "Window",
     "items_one": "{{count}} memory",
     "items_other": "{{count}} memories",
     "level": "Room level {{level}}"

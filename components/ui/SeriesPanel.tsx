@@ -72,7 +72,7 @@ export default function SeriesPanel() {
         {Array.from({ length: progress.total }, (_, i) => (
           <View
             key={i}
-            style={[styles.segment, { backgroundColor: i < progress.watched ? ACCENT : 'rgba(255,255,255,0.1)' }]}
+            style={[styles.segment, { backgroundColor: i < progress.watched ? ACCENT : theme.glassBorder }]}
           />
         ))}
       </View>
@@ -112,6 +112,10 @@ const styles = StyleSheet.create({
     borderColor: theme.glassBorder,
     padding: 14,
     gap: 10,
+    shadowColor: theme.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
   },
   empty: { color: theme.textDim, fontSize: 14, lineHeight: 20 },
   chips: { gap: 8 },
@@ -123,7 +127,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme.glassBorder,
   },
-  chipActive: { backgroundColor: 'rgba(192,132,252,0.16)', borderColor: ACCENT },
+  chipActive: { backgroundColor: 'rgba(167,139,218,0.16)', borderColor: ACCENT },
   chipText: { color: theme.textDim, fontSize: 13 },
   chipTextActive: { color: theme.text },
   progressRow: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -133,7 +137,7 @@ const styles = StyleSheet.create({
   seasonRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
   label: { color: theme.textDim, fontSize: 12, marginBottom: 6 },
   primary: { backgroundColor: ACCENT, borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
-  primaryText: { color: '#140A1F', fontSize: 15, fontWeight: '600' },
+  primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   secondary: { borderWidth: 1, borderColor: ACCENT, borderRadius: 14, paddingVertical: 11, paddingHorizontal: 16 },
   secondaryText: { color: theme.text, fontSize: 14, fontWeight: '600' },
   pressed: { opacity: 0.7 },

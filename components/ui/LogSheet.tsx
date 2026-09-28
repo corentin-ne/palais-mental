@@ -112,7 +112,7 @@ export default function LogSheet({ visible, onClose, onCategory, onSubmit }: Pro
 }
 
 const styles = StyleSheet.create({
-  scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.25)' },
+  scrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,236,214,0.35)' },
   anchor: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: theme.glass,
@@ -143,10 +143,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme.glassBorder,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: theme.glassFill,
   },
   tileText: { color: theme.text, fontSize: 15, fontWeight: '500' },
-  dot: { width: 8, height: 8, borderRadius: 4 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
   label: { color: theme.textDim, fontSize: 13, marginBottom: 8, letterSpacing: 0.3 },
   input: {
     color: theme.text,
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme.glassBorder,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: theme.glassFill,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 16,

@@ -1,19 +1,20 @@
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { ThreeEvent, useFrame, useThree } from '@react-three/fiber';
-import { RoundedBox } from '@react-three/drei';
-import { Color, Group, InstancedMesh, MathUtils, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
+import { Color, Group, InstancedMesh, MathUtils, Matrix4, Mesh, MeshStandardMaterial, Quaternion, Vector3 } from 'three';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { RoomDimsRef } from './MentalPalace';
 import { CategoryId, PalaceItem } from '@/lib/types';
 import { CATEGORY_SPECS, getItemColor, getItemHeightScale } from '@/lib/itemVisuals';
-import { getItemGeometry } from '@/lib/itemGeometry';
+import { getItemGeometry, softBox } from '@/lib/itemGeometry';
 import { PLANK_THICKNESS, SHELF_BASE_Y, getShelfLayout, getSlotLocalPosition, getZoneTransform } from '@/lib/palaceLayout';
 import { safeDelta } from '@/lib/easing';
 import { usePalaceStore } from '@/store/usePalaceStore';
 
 const CAPACITY_CHUNK = 64;
-const WOOD = '#2B2520';
+const OAK = '#F3E2C8';
+const CREAM = new Color('#FFF6EA');
+const SIDE_T = 0.045;
 
 const _m = new Matrix4();
 const _p = new Vector3();
@@ -26,7 +27,7 @@ const _white = new Color('#FFFFFF');
 function instanceColor(item: PalaceItem, out: Color) {
   out.set(getItemColor(item));
   if (item.category === 'series' && item.seasons.every((s) => s.watched === s.episodeCount)) {
-    out.lerp(_white, 0.18);
+    out.lerp(_white, 0.25);
   }
   return out;
 }
@@ -37,9 +38,12 @@ interface Props {
 }
 
 /**
- * Static storage for one category. Every settled item is ONE instance of a single
- * InstancedMesh (1 draw call for hundreds of items). Items still owned by the
- * HeroItemSpawner are skipped until `completeHero` flips them to settled.
+ * The category's rounded container + all of its items. Every settled item is ONE
+ * instance of a single InstancedMesh (1 draw call for hundreds of items). Items still
+ * owned by the HeroItemSpawner are skipped until `completeHero` flips them to settled.
+ *
+ * Growth: frame geometry is rebuilt at the NEW size (rounded corners stay true), then
+ * scaled from old/new → 1 so the container visibly swells to make room.
  */
 export default function CategoryShelf({ category, dimsRef }: Props) {
   const spec = CATEGORY_SPECS[category];
@@ -62,13 +66,51 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
 
   const zoneRef = useRef<Group>(null);
   const meshRef = useRef<InstancedMesh>(null);
-  const frame = useRef({ length: layout.length, height: layout.height });
   const sideL = useRef<Mesh>(null);
   const sideR = useRef<Mesh>(null);
+  const back = useRef<Mesh>(null);
+  const base = useRef<Mesh>(null);
   const planks = useRef<(Mesh | null)[]>([]);
+  const grow = useRef({ x: 1, y: 1, length: layout.length, height: layout.height });
 
   const geometry = getItemGeometry(category);
   const colorArray = useMemo(() => new Float32Array(capacity * 3), [capacity]);
+
+  // ---- Soft, rounded container geometry at the current target size.
+  const frame = useMemo(() => {
+    const innerH = layout.height - SHELF_BASE_Y + PLANK_THICKNESS;
+    const side = softBox(SIDE_T, innerH, layout.depth, 0.45);
+    side.translate(0, innerH / 2, 0); // anchored at the base plank: grows upward
+    const backPanel = softBox(layout.length + SIDE_T, innerH, 0.03, 0.45);
+    backPanel.translate(0, innerH / 2, 0);
+    const cabinet = softBox(layout.length + SIDE_T * 2, SHELF_BASE_Y, layout.depth + 0.04, 0.3);
+    cabinet.translate(0, SHELF_BASE_Y / 2, 0);
+    const plank = softBox(layout.length, PLANK_THICKNESS, layout.depth, 0.45);
+    return { side, backPanel, cabinet, plank };
+  }, [layout.length, layout.height, layout.depth]);
+
+  const mats = useMemo(
+    () => ({
+      oak: new MeshStandardMaterial({ color: OAK, roughness: 0.65 }),
+      // A pastel wash of the category accent lines the back of each container.
+      back: new MeshStandardMaterial({ color: new Color(spec.accent).lerp(CREAM, 0.72), roughness: 0.9 }),
+      items: new MeshStandardMaterial({ color: '#FFFFFF', roughness: 0.5, metalness: 0 }),
+    }),
+    [spec.accent],
+  );
+
+  // Start the swell from the previous size whenever the target changes.
+  useLayoutEffect(() => {
+    const g = grow.current;
+    g.x = g.length / layout.length;
+    g.y = (g.height - SHELF_BASE_Y) / (layout.height - SHELF_BASE_Y);
+    g.length = layout.length;
+    g.height = layout.height;
+    invalidate();
+    return () => Object.values(frame).forEach((geo) => geo.dispose());
+  }, [frame, layout.length, layout.height, invalidate]);
+
+  useEffect(() => () => Object.values(mats).forEach((m) => m.dispose()), [mats]);
 
   // ---- Hero Swap receiver: write every visible instance matrix in one pass.
   useLayoutEffect(() => {
@@ -94,26 +136,33 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
     invalidate();
   }, [visibleIds, items, order, layout, category, capacity, invalidate]);
 
-  useLayoutEffect(() => invalidate(), [layout, invalidate]);
-
-  // ---- Follow the (animated) room + grow the frame smoothly.
+  // ---- Follow the (animated) room + swell the container smoothly.
   useFrame((_, rawDelta) => {
     const dt = safeDelta(rawDelta);
     const zone = getZoneTransform(category, dimsRef.current);
-    zoneRef.current?.position.set(...zone.position);
-    if (zoneRef.current) zoneRef.current.rotation.y = zone.rotationY;
+    if (zoneRef.current) {
+      zoneRef.current.position.set(...zone.position);
+      zoneRef.current.rotation.y = zone.rotationY;
+    }
 
-    const f = frame.current;
-    f.length = MathUtils.damp(f.length, layout.length, 5, dt);
-    f.height = MathUtils.damp(f.height, layout.height, 5, dt);
-    const half = f.length / 2;
-    sideL.current?.position.set(-half, f.height / 2, layout.depth / 2);
-    sideR.current?.position.set(half, f.height / 2, layout.depth / 2);
-    sideL.current?.scale.set(1, f.height, 1);
-    sideR.current?.scale.set(1, f.height, 1);
-    planks.current.forEach((p) => p?.scale.set(f.length, 1, 1));
+    const g = grow.current;
+    g.x = MathUtils.damp(g.x, 1, 5, dt);
+    g.y = MathUtils.damp(g.y, 1, 5, dt);
+    const half = (layout.length * g.x) / 2 + SIDE_T / 2;
+    const zMid = layout.depth / 2;
+    sideL.current?.position.set(-half, SHELF_BASE_Y - PLANK_THICKNESS / 2, zMid);
+    sideR.current?.position.set(half, SHELF_BASE_Y - PLANK_THICKNESS / 2, zMid);
+    sideL.current?.scale.set(1, g.y, 1);
+    sideR.current?.scale.set(1, g.y, 1);
+    back.current?.scale.set(g.x, g.y, 1);
+    base.current?.scale.set(g.x, 1, 1);
+    planks.current.forEach((p, i) => {
+      if (!p) return;
+      p.scale.set(g.x, 1, 1);
+      p.position.y = SHELF_BASE_Y + i * layout.tierHeight * g.y;
+    });
 
-    if (Math.abs(f.length - layout.length) > 1e-3 || Math.abs(f.height - layout.height) > 1e-3) invalidate();
+    if (Math.abs(g.x - 1) > 1e-3 || Math.abs(g.y - 1) > 1e-3) invalidate();
   });
 
   const onTap = (e: ThreeEvent<MouseEvent>) => {
@@ -121,45 +170,33 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
     setFocus(category);
   };
 
-  const plankYs = Array.from({ length: layout.tiers + 1 }, (_, i) => SHELF_BASE_Y + i * layout.tierHeight);
-
   return (
     <group ref={zoneRef}>
-      {/* Frame: unit-length planks scaled on X so the shelf can stretch without new geometry. */}
-      {plankYs.map((y, i) => (
+      {/* Pillowy cabinet the shelf stands on */}
+      <mesh ref={base} geometry={frame.cabinet} material={mats.oak} position={[0, 0, layout.depth / 2]} />
+      <mesh ref={back} geometry={frame.backPanel} material={mats.back} position={[0, SHELF_BASE_Y - PLANK_THICKNESS / 2, 0.015]} />
+      <mesh ref={sideL} geometry={frame.side} material={mats.oak} />
+      <mesh ref={sideR} geometry={frame.side} material={mats.oak} />
+      {Array.from({ length: layout.tiers + 1 }, (_, i) => (
         <mesh
           key={i}
           ref={(m) => {
             planks.current[i] = m;
           }}
-          position={[0, y, layout.depth / 2]}
-          scale={[frame.current.length, 1, 1]}
-        >
-          <boxGeometry args={[1, PLANK_THICKNESS, layout.depth]} />
-          <meshStandardMaterial color={WOOD} roughness={0.7} />
-        </mesh>
+          geometry={frame.plank}
+          material={mats.oak}
+          position={[0, SHELF_BASE_Y + i * layout.tierHeight, layout.depth / 2]}
+        />
       ))}
-      <mesh ref={sideL}>
-        <boxGeometry args={[0.03, 1, layout.depth]} />
-        <meshStandardMaterial color={WOOD} roughness={0.7} />
-      </mesh>
-      <mesh ref={sideR}>
-        <boxGeometry args={[0.03, 1, layout.depth]} />
-        <meshStandardMaterial color={WOOD} roughness={0.7} />
-      </mesh>
 
-      {/* Accent LED strip under the base plank: cheap cinematic light, zero light cost. */}
-      <RoundedBox
-        args={[layout.length * 0.96, 0.012, 0.012]}
-        radius={0.005}
-        position={[0, SHELF_BASE_Y - PLANK_THICKNESS, layout.depth - 0.01]}
-      >
+      {/* Soft accent glow under the top plank: a bloom-friendly line, zero light cost. */}
+      <mesh position={[0, layout.height - PLANK_THICKNESS, layout.depth - 0.02]} rotation-z={Math.PI / 2} scale={[1, layout.length * 0.9, 1]}>
+        <capsuleGeometry args={[0.006, 1, 4, 8]} />
         <meshBasicMaterial color={spec.accent} toneMapped={false} />
-      </RoundedBox>
+      </mesh>
 
       {/* All items of this category: a single draw call. */}
-      <instancedMesh key={capacity} ref={meshRef} args={[geometry, undefined, capacity]} frustumCulled>
-        <meshStandardMaterial color="#FFFFFF" roughness={0.45} metalness={0.05} />
+      <instancedMesh key={capacity} ref={meshRef} args={[geometry, mats.items, capacity]} frustumCulled>
         <instancedBufferAttribute attach="instanceColor" args={[colorArray, 3]} />
       </instancedMesh>
 
