@@ -120,8 +120,7 @@ function Row({ u, lng, onPress }: { u: Upcoming; lng: string; onPress: () => voi
   const styles = useStyles();
   const d = new Date(u.date);
   const days = Math.round((startOfDay(u.date) - startOfDay(Date.now())) / DAY);
-  const when =
-    days <= 0 ? t('soon.today') : days === 1 ? t('soon.tomorrow') : new Intl.RelativeTimeFormat(lng, { numeric: 'auto' }).format(days, 'day');
+  const when = days <= 0 ? t('soon.today') : days === 1 ? t('soon.tomorrow') : relativeDays(days, lng, t('soon.inDays', { count: days }));
   const accent = CATEGORY_SPECS[u.item.category].accent;
   return (
     <PressableScale onPress={onPress} style={styles.row} depth={0.98}>
@@ -141,6 +140,15 @@ function Row({ u, lng, onPress }: { u: Upcoming; lng: string; onPress: () => voi
       <Text style={[styles.when, days <= 0 && { color: accent }]}>{when}</Text>
     </PressableScale>
   );
+}
+
+/** Intl.RelativeTimeFormat is not available on every JS engine; fall back to our own string. */
+function relativeDays(days: number, lng: string, fallback: string) {
+  try {
+    return new Intl.RelativeTimeFormat(lng, { numeric: 'auto' }).format(days, 'day');
+  } catch {
+    return fallback;
+  }
 }
 
 const startOfDay = (ts: number) => {

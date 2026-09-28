@@ -187,7 +187,9 @@
     "emptyCta": "Trouver une série",
     "channel": "Sorties",
     "outToday": "Sort aujourd'hui",
-    "newEpisode": "Nouvel épisode"
+    "newEpisode": "Nouvel épisode",
+    "inDays_one": "dans {{count}} jour",
+    "inDays_other": "dans {{count}} jours"
   },
   "you": {
     "title": "Vous",

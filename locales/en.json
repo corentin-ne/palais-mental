@@ -187,7 +187,9 @@
     "emptyCta": "Find a series",
     "channel": "Releases",
     "outToday": "Out today",
-    "newEpisode": "New episode"
+    "newEpisode": "New episode",
+    "inDays_one": "in {{count}} day",
+    "inDays_other": "in {{count}} days"
   },
   "you": {
     "title": "You",

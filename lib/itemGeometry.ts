@@ -24,6 +24,8 @@ const TRIM = '#FFFBF4';
 const PAGES = '#F6EEDD';
 const GILT = '#E2C48E';
 const VINYL = '#2B2630';
+const LABEL = '#F3ECDD';
+const CASE = '#DAD7D2';
 
 /** Bake a flat vertex colour so trims of different colours share one draw call. */
 function paint<T extends BufferGeometry>(geo: T, hex: string): T {
@@ -60,20 +62,22 @@ function buildParts(category: CategoryId, halfSeries = false): ItemParts {
   switch (category) {
     case 'movies':
       return {
-        body: softBox(t, h, d, 0.45, 2),
+        body: softBox(t, h, d, 0.14, 2),
         detail: mergeGeometries([
-          paint(at(softBox(t * 1.04, 0.036, 0.006, 0.4, 2), 0, h * 0.3, d / 2), TRIM),
-          paint(at(softBox(t * 1.04, 0.008, 0.006, 0.4, 2), 0, -h * 0.38, d / 2), TRIM),
+          paint(at(softBox(t * 1.04, 0.036, 0.006, 0.12, 2), 0, h * 0.3, d / 2), TRIM),
+          paint(at(softBox(t * 1.04, 0.008, 0.006, 0.12, 2), 0, -h * 0.38, d / 2), TRIM),
+          paint(at(softBox(t * 1.02, 0.004, d * 1.004, 0.12, 1), 0, h / 2 - 0.002, 0), CASE),
+          paint(at(softBox(t * 1.02, 0.004, d * 1.004, 0.12, 1), 0, -h / 2 + 0.002, 0), CASE),
         ])!,
       };
     case 'series': {
       const w = halfSeries ? t / 2 : t;
       return {
-        body: softBox(w, h, d, 0.45, 2),
+        body: softBox(w, h, d, 0.14, 2),
         detail: mergeGeometries([
-          paint(at(softBox(w * 1.02, 0.012, 0.006, 0.4, 2), 0, h * 0.4, d / 2), TRIM),
-          paint(at(softBox(w * 1.02, 0.012, 0.006, 0.4, 2), 0, -h * 0.4, d / 2), TRIM),
-          paint(at(softBox(w * 1.02, 0.05, 0.006, 0.4, 2), 0, h * 0.12, d / 2), TRIM),
+          paint(at(softBox(w * 1.02, 0.012, 0.006, 0.12, 2), 0, h * 0.4, d / 2), TRIM),
+          paint(at(softBox(w * 1.02, 0.012, 0.006, 0.12, 2), 0, -h * 0.4, d / 2), TRIM),
+          paint(at(softBox(w * 1.02, 0.05, 0.006, 0.12, 2), 0, h * 0.12, d / 2), TRIM),
         ])!,
       };
     }
@@ -83,7 +87,7 @@ function buildParts(category: CategoryId, halfSeries = false): ItemParts {
       const disc = at(new CylinderGeometry(r, r, 0.0035, 72).rotateZ(Math.PI / 2), 0, y, 0);
       const label = at(new CylinderGeometry(0.048, 0.048, 0.0042, 48).rotateZ(Math.PI / 2), 0, y, 0);
       return {
-        body: softBox(t, h, d, 0.45, 2),
+        body: softBox(t, h, d, 0.14, 2),
         detail: mergeGeometries([paint(disc, VINYL), paint(label, '#F3E3C8')])!,
       };
     }
@@ -91,29 +95,30 @@ function buildParts(category: CategoryId, halfSeries = false): ItemParts {
       const board = 0.0045;
       return {
         body: mergeGeometries([
-          at(softBox(board, h, d, 0.45, 2), -t / 2 + board / 2, 0, 0),
-          at(softBox(board, h, d, 0.45, 2), t / 2 - board / 2, 0, 0),
-          at(softBox(t, h, 0.006, 0.45, 2), 0, 0, d / 2 - 0.003),
+          at(softBox(board, h, d, 0.14, 2), -t / 2 + board / 2, 0, 0),
+          at(softBox(board, h, d, 0.14, 2), t / 2 - board / 2, 0, 0),
+          at(softBox(t, h, 0.006, 0.14, 2), 0, 0, d / 2 - 0.003),
         ])!,
         detail: mergeGeometries([
           paint(at(softBox(t - board * 2, h - 0.012, d - 0.01, 0.2, 1), 0, 0, -0.004), PAGES),
-          paint(at(softBox(t * 1.01, 0.007, 0.004, 0.4, 1), 0, h * 0.36, d / 2), GILT),
-          paint(at(softBox(t * 1.01, 0.007, 0.004, 0.4, 1), 0, -h * 0.36, d / 2), GILT),
+          paint(at(softBox(t * 1.01, 0.007, 0.004, 0.12, 1), 0, h * 0.36, d / 2), GILT),
+          paint(at(softBox(t * 1.01, 0.007, 0.004, 0.12, 1), 0, -h * 0.36, d / 2), GILT),
+          paint(at(softBox(t * 0.62, h * 0.16, 0.003, 0.12, 1), 0, h * 0.14, d / 2 + 0.001), LABEL),
         ])!,
       };
     }
     case 'boardgames':
       return {
-        body: softBox(t, h, d, 0.22, 3),
+        body: softBox(t, h, d, 0.07, 2),
         detail: mergeGeometries([
-          paint(at(softBox(t * 1.025, 0.014, d * 1.012, 0.4, 2), 0, h / 2 - 0.07, 0), TRIM),
-          paint(at(softBox(t * 0.62, h * 0.4, 0.006, 0.4, 2), 0, -0.03, d / 2), TRIM),
+          paint(at(softBox(t * 1.025, 0.014, d * 1.012, 0.12, 2), 0, h / 2 - 0.07, 0), TRIM),
+          paint(at(softBox(t * 0.62, h * 0.4, 0.006, 0.12, 2), 0, -0.03, d / 2), TRIM),
         ])!,
       };
     case 'videogames':
       return {
-        body: softBox(t, h, d, 0.45, 2),
-        detail: mergeGeometries([paint(at(softBox(t * 1.03, 0.028, d * 1.008, 0.4, 2), 0, h / 2 - 0.016, 0), TRIM)])!,
+        body: softBox(t, h, d, 0.14, 2),
+        detail: mergeGeometries([paint(at(softBox(t * 1.03, 0.028, d * 1.008, 0.12, 2), 0, h / 2 - 0.016, 0), TRIM)])!,
       };
   }
 }

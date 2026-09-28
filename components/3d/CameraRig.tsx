@@ -11,7 +11,8 @@ import {
   WINDOW_CENTER_Y,
   WINDOW_TOP,
   getRoomDims,
-  getShelfLayout,
+  ShelfLayout,
+  getNicheLayout,
   getZoneTransform,
   nicheOuterWidth,
   zoneToWorld,
@@ -72,7 +73,7 @@ function lookAngles(from: Vector3, to: Vector3) {
 
 const wrapAngle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 
-function computeShot(focus: CameraFocus, dims: RoomDims, count: number, aspect: number): Shot {
+function computeShot(focus: CameraFocus, dims: RoomDims, layout: ShelfLayout | null, aspect: number): Shot {
   const R = dims.radius;
   if (focus === 'window') {
     // Home: standing in the room, gazing slightly up at the arch and the sky beyond.
@@ -85,15 +86,15 @@ function computeShot(focus: CameraFocus, dims: RoomDims, count: number, aspect: 
     };
   }
 
-  // Direct, front-facing, eye-level view of the category's niche.
-  const layout = getShelfLayout(focus, count);
+  // Direct, front-facing, eye-level view of the category's niche and the ledge of objects below it.
+  if (!layout) throw new Error('niche layout required');
   const zone = getZoneTransform(focus, dims, nicheOuterWidth(layout));
   const centerY = NICHE_BASE_Y + layout.innerHeight / 2;
   // Aim a little low so the niche sits in the upper frame, clear of the dock.
-  const target = new Vector3(...zoneToWorld(zone, [0, centerY - 0.14, layout.depth / 2]));
+  const target = new Vector3(...zoneToWorld(zone, [0, centerY - 0.3, layout.depth / 2]));
   const normal = new Vector3(...zone.normal);
   const dist = MathUtils.clamp(
-    fitDistance(FOCUS_FOV, aspect, Math.max(0.95, nicheOuterWidth(layout) * 1.3), layout.innerHeight + 0.75),
+    fitDistance(FOCUS_FOV, aspect, Math.max(1.1, nicheOuterWidth(layout) * 1.3), layout.innerHeight + 1.1),
     1.15,
     R * 2 - WALL_MARGIN * 2,
   );
@@ -126,7 +127,7 @@ export default function CameraRig({ dimsRef }: { dimsRef: RoomDimsRef }) {
   // Re-frame only when the focused shelf's footprint actually changes.
   const shelfKey = usePalaceStore((s) => {
     if (s.focus === 'window') return '';
-    const l = getShelfLayout(s.focus, s.order[s.focus].length);
+    const l = getNicheLayout(s.focus, s.order[s.focus], s.items);
     return `${l.tiers}:${l.slotsPerTier}`;
   });
 
@@ -144,10 +145,10 @@ export default function CameraRig({ dimsRef }: { dimsRef: RoomDimsRef }) {
     camera.rotation.order = 'YXZ';
     const aspect = size.width / Math.max(1, size.height);
     const s = usePalaceStore.getState();
-    const count = s.focus === 'window' ? 0 : s.order[s.focus].length;
+    const layout = focus === 'window' ? null : getNicheLayout(focus, s.order[focus], s.items);
     // Frame against the room size we are growing TO, not the damped in-between.
     const dims = getRoomDims(level);
-    const shot = computeShot(focus, dims, count, aspect);
+    const shot = computeShot(focus, dims, layout, aspect);
     const angles = lookAngles(shot.position, shot.target);
 
     if (!initialized.current) {

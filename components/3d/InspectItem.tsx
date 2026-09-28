@@ -4,7 +4,7 @@ import { Color, Group, MathUtils, MeshStandardMaterial, PerspectiveCamera, Quate
 
 import ItemModel from './ItemModel';
 import { PalaceItem } from '@/lib/types';
-import { CATEGORY_SPECS, getItemColor, getItemHeightScale } from '@/lib/itemVisuals';
+import { CATEGORY_SPECS, getItemColor, getItemScale } from '@/lib/itemVisuals';
 import { BODY_ROUGHNESS } from '@/lib/itemGeometry';
 import { getRoomDims, getRoomLevel, getSlotWorld } from '@/lib/palaceLayout';
 import { clamp01, easeInOutCubic, lerp, safeDelta } from '@/lib/easing';
@@ -76,9 +76,10 @@ function Inspected({ item }: { item: PalaceItem }) {
 
     // Slot pose, from the same pure layout the shelf uses.
     const order = s.order[item.category];
-    const hs = getItemHeightScale(item);
+    const scale = getItemScale(item);
+    const hs = scale[1];
     const dims = getRoomDims(getRoomLevel(Object.keys(s.items).length));
-    const { zone, position } = getSlotWorld(item.category, Math.max(0, order.indexOf(item.id)), order.length, dims, hs);
+    const { zone, position } = getSlotWorld(item.category, item.id, order, s.items, dims);
     _slot.set(...position);
     _qSlot.setFromAxisAngle(Y_AXIS, zone.rotationY);
 
@@ -97,7 +98,7 @@ function Inspected({ item }: { item: PalaceItem }) {
     g.position.addScaledVector(new Vector3(...zone.normal), Math.sin(Math.PI * e) * 0.18);
     g.quaternion.slerpQuaternions(_qSlot, _qPresent, e);
     g.scale.setScalar(lerp(1, presentScale, e));
-    c.scale.y = hs;
+    c.scale.set(scale[0], scale[1], scale[2]);
 
     if (a.p > 0.01) sceneSignals.focusPoint.copy(g.position);
 

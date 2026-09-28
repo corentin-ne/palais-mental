@@ -1,10 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import {
+  BufferGeometry,
   Color,
   ExtrudeGeometry,
   Group,
   InstancedMesh,
+  Material,
   MathUtils,
   Matrix4,
   MeshBasicMaterial,
@@ -19,14 +21,16 @@ import { useShallow } from 'zustand/react/shallow';
 
 import type { RoomDimsRef } from './MentalPalace';
 import FeaturedCover from './FeaturedCover';
+import NicheDecor from './NicheDecor';
+import { unlockedDecorCount } from '@/lib/milestones';
 import { CategoryId, PalaceItem } from '@/lib/types';
-import { CATEGORY_SPECS, getItemColor, getItemHeightScale } from '@/lib/itemVisuals';
+import { CATEGORY_SPECS, getItemColor, getItemScale } from '@/lib/itemVisuals';
 import { BODY_ROUGHNESS, getItemParts, nicheOutline, softBox } from '@/lib/itemGeometry';
 import {
   NICHE_BASE_Y,
   NICHE_BORDER,
   PLANK_THICKNESS,
-  getShelfLayout,
+  getNicheLayout,
   getSlotLocalPosition,
   getZoneTransform,
   nicheOuterWidth,
@@ -99,7 +103,7 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
   });
 
   const count = order.length; // includes reserved (in-flight) slots
-  const layout = useMemo(() => getShelfLayout(category, count), [category, count]);
+  const layout = useMemo(() => getNicheLayout(category, order, items), [category, order, items]);
   const capacity = Math.ceil((count + 1) / CAPACITY_CHUNK) * CAPACITY_CHUNK;
 
   const zoneRef = useRef<Group>(null);
@@ -109,7 +113,7 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
   const grow = useRef({ x: 1, y: 1, length: layout.length, innerHeight: layout.innerHeight });
   /** Animated slot positions, keyed by item id (reflow after deletions). */
   const current = useRef(new Map<string, Vector3>());
-  const targets = useRef(new Map<string, { p: Vector3; hs: number }>());
+  const targets = useRef(new Map<string, { p: Vector3; s: Vector3 }>());
 
   const parts = getItemParts(category);
   const colorArray = useMemo(() => new Float32Array(capacity * 3), [capacity]);
@@ -131,8 +135,16 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
       curveSegments: 28,
     });
     const lining = new ShapeGeometry(nicheOutline(new Shape(), w, h, INNER_BOTTOM_RADIUS, rt, b), 28);
-    const plank = softBox(w - 0.004, PLANK_THICKNESS, layout.depth - 0.02, 0.45, 2);
-    return { ring, lining, plank };
+    const plank = softBox(w - 0.004, PLANK_THICKNESS, layout.depth - 0.02, 0.2, 2);
+    // Brass bead running around the opening.
+    const trimShape = nicheOutline(new Shape(), w + 0.014, h + 0.014, INNER_BOTTOM_RADIUS + 0.007, rt + 0.007, b - 0.007);
+    trimShape.holes.push(nicheOutline(new Path(), w, h, INNER_BOTTOM_RADIUS, rt, b));
+    const trim = new ExtrudeGeometry(trimShape, { depth: 0.006, bevelEnabled: false, curveSegments: 28 });
+    // Fluted back panel below the arch: vertical reeds catch the light.
+    const reedCount = Math.max(4, Math.floor((w - 0.04) / 0.034));
+    const reedH = Math.max(0.05, layout.tiers * layout.tierHeight - 0.02);
+    const reed = softBox(0.024, reedH, 0.01, 0.45, 2);
+    return { ring, lining, plank, trim, reed, reedCount, reedH };
   }, [layout.length, layout.innerHeight, layout.archSpace, layout.depth]);
 
   const look = useSceneLook();
@@ -148,6 +160,7 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
       glow: new MeshBasicMaterial({ color: new Color(spec.accent).lerp(_white, 0.45), toneMapped: false }),
       body: new MeshStandardMaterial({ color: '#FFFFFF', roughness: BODY_ROUGHNESS[category] }),
       detail: new MeshStandardMaterial({ vertexColors: true, roughness: 0.38 }),
+      brass: new MeshStandardMaterial({ color: '#C29B5A', metalness: 0.9, roughness: 0.3 }),
     }),
     [spec.accent, category, look],
   );
@@ -160,7 +173,7 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
     g.length = layout.length;
     g.innerHeight = layout.innerHeight;
     invalidate();
-    return () => Object.values(niche).forEach((geo) => geo.dispose());
+    return () => [niche.ring, niche.lining, niche.plank, niche.trim, niche.reed].forEach((geo) => geo.dispose());
   }, [niche, layout.length, layout.innerHeight, invalidate]);
 
   useEffect(() => () => Object.values(mats).forEach((m) => m.dispose()), [mats]);
@@ -175,8 +188,7 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
       const t = targets.current.get(id);
       const p = current.current.get(id);
       if (!t || !p) return;
-      _s.set(1, t.hs, 1);
-      _m.compose(p, _q, _s);
+      _m.compose(p, _q, t.s);
       body.setMatrixAt(i, _m);
       detail.setMatrixAt(i, _m);
     });
@@ -191,12 +203,12 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
     const detail = detailRef.current;
     if (!body || !detail) return;
     const slotOf = new Map(order.map((id, i) => [id, i]));
-    const nextTargets = new Map<string, { p: Vector3; hs: number }>();
+    const nextTargets = new Map<string, { p: Vector3; s: Vector3 }>();
     visibleIds.forEach((id, i) => {
       const item = items[id];
-      const hs = getItemHeightScale(item);
-      const p = new Vector3(...getSlotLocalPosition(category, slotOf.get(id)!, layout, hs));
-      nextTargets.set(id, { p, hs });
+      const [sx, sy, sz] = getItemScale(item);
+      const p = new Vector3(...getSlotLocalPosition(category, slotOf.get(id)!, layout, sy, sz));
+      nextTargets.set(id, { p, s: new Vector3(sx, sy, sz) });
       if (!current.current.has(id)) current.current.set(id, p.clone());
       body.setColorAt(i, instanceColor(item, _c));
     });
@@ -261,6 +273,8 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
       <group ref={frameRef} position-y={NICHE_BASE_Y - b}>
         <mesh geometry={niche.ring} material={mats.lacquer} />
         <mesh geometry={niche.lining} material={mats.lining} position-z={0.004} />
+        <Reeds geometry={niche.reed} material={mats.lining} count={niche.reedCount} width={layout.length} y={b + niche.reedH / 2 + 0.01} />
+        <mesh geometry={niche.trim} material={mats.brass} position-z={layout.depth + 0.02} />
         {Array.from({ length: layout.tiers }, (_, i) => (
           <mesh
             key={i}
@@ -276,6 +290,8 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
           </mesh>
         ))}
       </group>
+
+      <NicheDecor category={category} unlocked={unlockedDecorCount(count)} width={nicheOuterWidth(layout)} />
 
       {featuredUrl && (
         <FeaturedCover
@@ -310,4 +326,21 @@ export default function CategoryShelf({ category, dimsRef }: Props) {
       )}
     </group>
   );
+}
+
+/** Instanced vertical reeds across the niche lining. */
+function Reeds({ geometry, material, count, width, y }: { geometry: BufferGeometry; material: Material; count: number; width: number; y: number }) {
+  const ref = useRef<InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const step = (width - 0.04) / count;
+    for (let i = 0; i < count; i++) {
+      _m.makeTranslation(-width / 2 + 0.02 + step * (i + 0.5), y, 0.012);
+      mesh.setMatrixAt(i, _m);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [count, width, y]);
+  return <instancedMesh key={count} ref={ref} args={[geometry, material, count]} />;
 }

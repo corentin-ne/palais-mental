@@ -1,79 +1,78 @@
 # Palais Mental
 
-A cinematic 3D life-logger. Every movie, series, album, book, board game and video game you log becomes a physical object in your own room, and the room grows as you do.
+A mental palace for the films, series, albums, books, board games and video games that stayed with you. Each one becomes an object in a quiet 3D room. Each collection has its own niche, and the niche fills, grows and earns small decorative objects over time.
 
-Universal Expo app (iOS, Android, Web) · Expo Router · React Three Fiber · Zustand · i18next (EN/FR) · expo-blur · react-native-svg
+Universal Expo app (iOS, Android, Web) · Expo Router · React Three Fiber · Zustand · i18next (EN/FR)
 
 ## Getting started
 
 ```bash
 npm install
-npm run ios       # or: npm run android / npm run web
+npm run android   # or: npm run ios / npm run web
 npm run typecheck
 ```
 
+**Test on a phone without a dev setup:** download the APK from the latest [GitHub release](../../releases). Every `v*` tag is built by `.github/workflows/android-release.yml`.
+
 ## What you can do
 
-Palais Mental is a **log app first**. The 3D palace is where your log turns into a place.
+- **Palace (home).** The room itself is the menu. The window is home; a chip, a swipe or a tap on a niche turns your head toward a collection. Tap an object to lift it out, drag to turn it, and edit it in place.
+- **Add in a few taps.** Tap **+**, type a few letters, tap the right cover. Metadata and artwork come from free, keyless catalogs, queried in parallel and merged:
+  - films: iTunes and Wikipedia
+  - series: TVmaze (seasons, episode counts, next episodes) and iTunes
+  - albums: iTunes, Deezer, and MusicBrainz with the Cover Art Archive
+  - books: Google Books and Open Library
+  - video games: Steam and Wikipedia
+  - board games: Wikipedia
 
-- **Log in three taps**: tap **+**, type a few letters, then tap the right cover. Titles, creators, years and artwork come from public catalogs: Open Library for books, iTunes for films, series seasons (with episode counts) and albums, and Wikipedia for board and video games. Manual entry is always one row away. Pick when it happened (today, yesterday or any earlier day), add a rating in half stars and a note.
-- **Journal**: your diary, day by day, with cover thumbnails, ratings, notes, "again" badges and episode entries. A *Continue watching* row logs the next episode of a series in one tap. A search with nothing typed offers your recent logs for a quick re-log.
-- **Library**: every memory as a wall of covers. Search by title, person, year or note, filter by collection with counts, and sort by recent, rating or A–Z.
-- **Palace**: the collection as a round, cornerless, sunlit room. Each collection has an arched niche that shows its latest cover face-out and grows as it fills. Swipe or tap a chip to turn toward a collection; tap an object to lift it out and open it.
-- **You**: logs this year, streak, average rating, a split by collection, month-by-month bars, favourites, and settings (language, ambient effects, haptics, reset).
+  Manual entry is always one row away.
+- **Library.** The whole collection as a wall of covers, with search, filters and sorting.
+- **Soon.** The only place where time appears: new episodes of your series (followed through TVmaze) and release days of things you added before they came out, with optional quiet local notifications.
+- **You.** How big your palace is, how close the next room is, what each niche earns next, your favourites, and settings.
 
-## Two experiences
+## Design principles
 
-Choose one under **You → Experience**. The switch is instant.
+- **Timeless.** No journal, dates, streaks or "log again". You arrange a place; you don't fill in a diary.
+- **Editorial look.** Near-white paper and near-black ink, with the cover art as the colour. Instrument Sans for the interface, Instrument Serif for accents.
+- **Motion with purpose.** Lists enter with a staggered rise. The tab indicator slides. Counters count up and progress bars spring. Ratings pop. Earned decor grows in with a little bounce. Sheets and toasts use springs, and search shows skeletons while it loads.
+- **UX psychology, used gently:**
+  - Goal gradient: "2 more to earn a turntable", "13 more objects and the room opens up".
+  - Peak moments: new decor and room growth get their own message.
+  - Undo instead of confirmation dialogs.
+  - Recognition over recall: recent searches, and series in progress offered before you type.
+  - A soft ask explains the value in context before the system notification prompt appears.
+  - The **+** gives one small bounce at launch so you know where to start.
 
-**Editorial.** Crisp paper and ink: near-white background, near-black text, and the cover art as the only colour. Instrument Sans for the interface, Instrument Serif italic for dates and notes.
+## The 3D palace
 
-**Aero.** Frutiger Aero, distilled: nostalgic but minimal. This is a different experience, not just a reskin:
-- A living sky behind every screen: a clear gradient, aurora veils, a soft light-wave, and glass bubbles drifting upward (vector shapes animated with the native driver).
-- Frosted glass everywhere, with a specular sheen. Gel buttons have a gradient body, a glossy top and a glow at the base. The log button is an aqua orb.
-- **Journal gadgets**, like the old desktop sidebar: a clock that greets you by time of day, a glossy weekly ring with your streak, and glossy category orbs.
-- **Cover Flow** in the Library: recent covers turn toward you as they reach the centre and are mirrored on a glossy floor.
-- Every log releases a **burst of bubbles** from the log button.
-- In the palace: cool noon daylight, glossy white lacquer, aqua-lined niches, a mint rug, and bubbles in place of dust.
-- Open Sans, a humanist face in the spirit of Frutiger and Segoe, with big titles set light.
+- **Room.** One cornerless lathe surface (floor, cove, round wall, dome) with an arched window cut in the shader, a window seat, plants and a rug.
+- **Niches.** Lacquered arches set into the wall, each with a fluted lining, a brass edge, oak planks and warm light lines. They widen, then add tiers, as they fill.
+- **Objects.** Two parts per object (a tinted body plus vertex-coloured trims), drawn with two instanced draw calls per collection. Every object has its own stable proportions, so a shelf never looks uniform:
+  - books: paperbacks and hardcovers of varied thickness and height
+  - music: occasional double LPs
+  - films: DVDs, Blu-rays and steelbooks
+  - board games: big, small, long and tall boxes
+  - video games: standard, slim, handheld and big-box cases
+  - series: the box gets thicker with every season
 
-Both styles share one codebase. Components read tokens through `useTheme()` and styles through `makeStyles()`, and the 3D palace reads its variant through `useSceneLook()`.
+  Niches pack objects by their real thickness.
+- **Decor.** An oak ledge under each niche holds up to five procedural objects, earned at 1, 3, 7, 12 and 20 items: a turntable, a reading lamp, meeples, a projector, a candle, and so on (23 in all).
+- **Rendering.** `frameloop="demand"`: an idle palace draws nothing. Ambient dust and cloud drift run only briefly after an interaction. Web adds ambient occlusion and bloom on true highlights.
 
 ## Structure
 
 ```
-app/_layout.tsx                 fonts, i18n, root stack
-app/(tabs)/_layout.tsx          tabs + global LogFlow, ItemSheet, Toast
-app/(tabs)/index.tsx            Journal
-app/(tabs)/library.tsx          Library
-app/(tabs)/palace.tsx           3D palace + overlay
-app/(tabs)/profile.tsx          You: stats and settings
-components/ui/                  LogFlow (search → confirm), ItemSheet, CoverArt, TabBar, Toast, Glass, Sheet, Controls, Icon…
-components/3d/                  MentalPalace, CameraRig, CategoryShelf, FeaturedCover, HeroItemSpawner, InspectItem, environment/…
-lib/catalog.ts                  keyless catalog search + pure, tested parsers
-lib/stats.ts                    journal grouping, streaks, yearly stats
-store/usePalaceStore.ts         items, journal events, settings (persisted, schema v3)
-store/useUiStore.ts             log flow and toast state (transient)
+app/(tabs)/              index (palace) · library · soon · profile (You) · _layout (tabs, sheets, release sync)
+components/3d/           MentalPalace, CameraRig, CategoryShelf, NicheDecor, FeaturedCover, HeroItemSpawner, InspectItem, environment/…
+components/ui/           LogFlow (search → confirm), ItemSheet, TabBar, Toast, Motion, CoverArt, Glass, Sheet, Controls, Icon…
+lib/catalog.ts           free catalog providers + pure, tested parsers + merge
+lib/releases.ts          next episodes, awaited releases, local notifications
+lib/milestones.ts        decor unlocks and room growth
+lib/decorGeometry.ts     procedural decor objects
+lib/palaceLayout.ts      round room, zones, niche packing
+store/usePalaceStore.ts  collection + settings (persisted, schema v4)
 ```
-
-## Architecture notes
-
-**Rendering budget.** `frameloop="demand"`: nothing renders while the room is still. Flights, niche growth, shelf reflow, heroes and the inspector call `invalidate()` only while they move. Ambient life runs on an *ambient clock* that only advances for a few seconds after an interaction; it can be switched off. Each collection costs two draw calls, and each VFX is one analytic single-pass shader. The light count is fixed, so no shaders recompile mid-animation.
-
-**Additive effects** end in `ADDITIVE_OUTPUT_CHUNK`, which applies tone mapping but no colour-space conversion. That way glows sum in linear space both through the web composer and when drawing straight to the sRGB canvas on native.
-
-**Journal model.** Items are the collection. `events` is the diary: `log`, `relog` and `episode` entries with their own dates. Logging a title that is already in the collection (same catalog id, or same category and title) adds a `relog` event instead of a duplicate. Schema v3 migrates older saves by giving every item one `log` event at its creation date.
-
-**Heroes only where they are seen.** Logging from the Journal or the Library commits instantly. The center-screen hero plays only when you log from the Palace tab, so a hidden canvas never animates.
-
-**Hero Swap.** Logging commits data and reserves the slot immediately, then queues a `HeroEvent`. The hero plays in the center of the screen and flies to the slot computed from the same pure layout the shelf uses. `completeHero` settles the item in the same commit that unmounts the hero. Both sides share cached geometry, so the swap is invisible. The inspector uses the same trick in reverse: `inspectId` hides the instance until the object has glided back.
-
-**TV series.** Each season is `{ episodeCount, watched }`. Episode `i` of `n` is a bevelled annular sector spanning `[2πi/n, 2π(i+1)/n)`.
-
-**Growth.** Niches start at 8 slots and widen 4 at a time up to 20; after that a new tier spawns and the arch rises. The room grows at 20 / 50 / 100 / 200 / 400 / 800 items.
-
-**Localization.** All strings live in `locales/*.json` with identical key sets. `'system'` follows the device locale live and falls back to English.
 
 ## Versioning
 
-Commits follow `vX.Y.Z - <description>`.
+Commits follow `vX.Y.Z - <description>`. Tags `vX.Y.Z[-alpha]` produce a GitHub release with an Android APK.

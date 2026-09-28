@@ -7,8 +7,8 @@
  * a cylindrical wall and closes in a soft dome. The window is cut into the wall at
  * the front (-z); the six collections stand around the circle, all facing the center.
  */
-import { CategoryId } from './types';
-import { CATEGORY_SPECS } from './itemVisuals';
+import { CategoryId, PalaceItem } from './types';
+import { CATEGORY_SPECS, getItemScale } from './itemVisuals';
 
 // ---------------------------------------------------------------- Global expansion
 /** Total-item thresholds; reaching index N unlocks room level N. */
@@ -139,20 +139,59 @@ export interface ShelfLayout {
   /** World height of the niche's outer top. */
   height: number;
   depth: number;
+  /** Packed slot centres (x) and tiers, when real item thicknesses are known. */
+  xs?: number[];
+  tierOf?: number[];
+}
+
+/** Natural gap between two neighbouring objects. */
+const gapOf = (category: CategoryId) => {
+  const spec = CATEGORY_SPECS[category];
+  return Math.max(0.005, spec.pitch - spec.size[0]);
+};
+
+/** Shelf footprint (thickness + gap) of each item, in slot order. */
+export function itemWidths(category: CategoryId, ids: string[], items: Record<string, PalaceItem>) {
+  const spec = CATEGORY_SPECS[category];
+  const gap = gapOf(category);
+  return ids.map((id) => (items[id] ? spec.size[0] * getItemScale(items[id])[0] + gap : spec.pitch));
 }
 
 /**
- * The niche first grows wider in GROWTH_STEP increments; once a tier holds
- * MAX_SLOTS_PER_TIER items a new tier spawns and the arch rises.
+ * The niche first grows wider in GROWTH_STEP increments; once a tier is full a new
+ * tier spawns and the arch rises. With `widths`, objects are packed by their real
+ * thickness (a fat hardcover takes more room than a paperback).
  */
-export function getShelfLayout(category: CategoryId, count: number): ShelfLayout {
+export function getShelfLayout(category: CategoryId, count: number, widths?: number[]): ShelfLayout {
   const spec = CATEGORY_SPECS[category];
-  const tiers = Math.max(1, Math.ceil(count / MAX_SLOTS_PER_TIER));
+  const countTiers = Math.max(1, Math.ceil(count / MAX_SLOTS_PER_TIER));
   const slotsPerTier =
-    tiers > 1
+    countTiers > 1
       ? MAX_SLOTS_PER_TIER
       : Math.min(MAX_SLOTS_PER_TIER, Math.max(BASE_SLOTS, Math.ceil((count + 1) / GROWTH_STEP) * GROWTH_STEP));
-  const length = slotsPerTier * spec.pitch + SIDE_PADDING * 2;
+  const tierWidth = slotsPerTier * spec.pitch;
+  const length = tierWidth + SIDE_PADDING * 2;
+
+  let tiers = countTiers;
+  let xs: number[] | undefined;
+  let tierOf: number[] | undefined;
+  if (widths) {
+    xs = [];
+    tierOf = [];
+    let tier = 0;
+    let cursor = 0;
+    for (const w of widths) {
+      if (cursor > 0 && cursor + w > tierWidth + 1e-6) {
+        tier += 1;
+        cursor = 0;
+      }
+      xs.push(-length / 2 + SIDE_PADDING + cursor + w / 2);
+      tierOf.push(tier);
+      cursor += w;
+    }
+    tiers = Math.max(1, tier + 1, countTiers);
+  }
+
   const tierHeight = spec.size[1] * spec.maxHeightScale + spec.peek + PLANK_THICKNESS + 0.06;
   const archSpace = Math.min(length / 2, 0.36);
   const innerHeight = tiers * tierHeight + archSpace;
@@ -164,31 +203,42 @@ export function getShelfLayout(category: CategoryId, count: number): ShelfLayout
     archSpace,
     innerHeight,
     height: NICHE_BASE_Y + innerHeight + NICHE_BORDER,
-    depth: spec.size[2] + 0.1,
+    depth: spec.size[2] * spec.maxDepthScale + 0.1,
+    xs,
+    tierOf,
   };
 }
 
 export const nicheOuterWidth = (layout: Pick<ShelfLayout, 'length'>) => layout.length + NICHE_BORDER * 2;
 
-/** Local (zone-space) position of slot `index`. Items rest on their tier plank. */
+/** Local (zone-space) position of slot `index`. Items rest on their tier plank, against the back. */
 export function getSlotLocalPosition(
   category: CategoryId,
   index: number,
   layout: ShelfLayout,
   heightScale: number,
+  depthScale = 1,
 ): [number, number, number] {
   const spec = CATEGORY_SPECS[category];
-  const tier = Math.floor(index / layout.slotsPerTier);
+  const tier = layout.tierOf?.[index] ?? Math.floor(index / layout.slotsPerTier);
   const col = index % layout.slotsPerTier;
-  const x = -layout.length / 2 + SIDE_PADDING + spec.pitch * (col + 0.5);
+  const x = layout.xs?.[index] ?? -layout.length / 2 + SIDE_PADDING + spec.pitch * (col + 0.5);
   const y = NICHE_BASE_Y + tier * layout.tierHeight + PLANK_THICKNESS + (spec.size[1] * heightScale) / 2;
-  const z = 0.035 + spec.size[2] / 2;
+  const z = 0.035 + (spec.size[2] * depthScale) / 2;
   return [x, y, z];
 }
 
+/** Layout of a niche from the live collection (what the shelf, camera, hero and inspector all use). */
+export function getNicheLayout(category: CategoryId, ids: string[], items: Record<string, PalaceItem>) {
+  return getShelfLayout(category, ids.length, itemWidths(category, ids, items));
+}
+
 /** Zone transform + slot for an item, as the hero and the inspector need it. */
-export function getSlotWorld(category: CategoryId, index: number, count: number, dims: RoomDims, heightScale: number) {
-  const layout = getShelfLayout(category, count);
+export function getSlotWorld(category: CategoryId, id: string, ids: string[], items: Record<string, PalaceItem>, dims: RoomDims) {
+  const layout = getNicheLayout(category, ids, items);
   const zone = getZoneTransform(category, dims, nicheOuterWidth(layout));
-  return { zone, layout, position: zoneToWorld(zone, getSlotLocalPosition(category, index, layout, heightScale)) };
+  const index = Math.max(0, ids.indexOf(id));
+  const item = items[id];
+  const [, sy, sz] = item ? getItemScale(item) : [1, 1, 1];
+  return { zone, layout, position: zoneToWorld(zone, getSlotLocalPosition(category, index, layout, sy, sz)) };
 }

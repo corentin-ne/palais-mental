@@ -23,7 +23,7 @@ import {
 } from 'three';
 
 import { HeroEvent, PalaceItem } from '@/lib/types';
-import { CATEGORY_SPECS, getItemColor, getItemHeightScale } from '@/lib/itemVisuals';
+import { CATEGORY_SPECS, getItemColor, getItemScale } from '@/lib/itemVisuals';
 import { BODY_ROUGHNESS, DISC, getDiscSliceGeometry } from '@/lib/itemGeometry';
 import { getRoomDims, getRoomLevel, getSlotWorld } from '@/lib/palaceLayout';
 import ItemModel from './ItemModel';
@@ -115,7 +115,7 @@ interface FlightPlan {
   p3: Vector3;
   q0: Quaternion;
   q1: Quaternion;
-  heightScale: number;
+  scale: [number, number, number];
 }
 
 function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<PointLight | null> }) {
@@ -226,10 +226,9 @@ function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<Poin
   const planFlight = (from: Group): FlightPlan => {
     const s = usePalaceStore.getState();
     const order = s.order[category];
-    const slot = Math.max(0, order.indexOf(item!.id));
-    const hs = getItemHeightScale(item!);
+    const scale = getItemScale(s.items[item!.id] ?? item!);
     const dims = getRoomDims(getRoomLevel(Object.keys(s.items).length));
-    const { zone, position } = getSlotWorld(category, slot, order.length, dims, hs);
+    const { zone, position } = getSlotWorld(category, item!.id, order, s.items, dims);
     const p3 = new Vector3(...position);
     const p0 = from.position.clone();
     const normal = new Vector3(...zone.normal);
@@ -242,7 +241,7 @@ function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<Poin
       p3,
       q0: from.quaternion.clone(),
       q1: new Quaternion().setFromAxisAngle(UP, zone.rotationY),
-      heightScale: hs,
+      scale,
     };
   };
 
@@ -290,7 +289,7 @@ function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<Poin
       cubicBezier(g.position, f.p0, f.p1, f.p2, f.p3, eFly);
       g.quaternion.slerpQuaternions(f.q0, f.q1, eFly);
       g.scale.setScalar(lerp(heroScale, 1, eFly));
-      c.scale.y = lerp(1, f.heightScale, eFly);
+      c.scale.set(lerp(1, f.scale[0], eFly), lerp(1, f.scale[1], eFly), lerp(1, f.scale[2], eFly));
     }
     // Cover faces the camera (-π/2), with a slow reveal turn; unwinds to spine-out (0) in flight.
     const facing = -Math.PI / 2 - 0.8 * (1 - easeOutCubic(pMat)) + Math.sin(el * 1.3) * 0.06 * (1 - eFly);
