@@ -41,10 +41,10 @@ export default function SkyAndLandscape() {
         depthWrite: false,
         fog: false,
         uniforms: {
-          uZenith: { value: new Color('#4FA6E6') },
-          uHorizon: { value: new Color('#BFE0F5') },
+          uZenith: { value: new Color('#4D9EDD') },
+          uHorizon: { value: new Color('#C6E3F4') },
           uGround: { value: new Color('#F6E3CF') },
-          uSunColor: { value: new Color('#FFD9A0') },
+          uSunColor: { value: new Color('#FFE6BD') },
           uSunDir: { value: new Vector3(...SUN_VISUAL_DIR) },
         },
       }),
@@ -95,22 +95,22 @@ export default function SkyAndLandscape() {
 
       <group ref={cloudGroup}>
         <instancedMesh ref={clouds} args={[cloudGeo, undefined, puffs.length]} frustumCulled={false}>
-          <meshStandardMaterial color="#FFFFFF" emissive="#FFF6EC" emissiveIntensity={0.75} roughness={1} />
+          <meshStandardMaterial color="#FFFFFF" emissive="#FFFFFF" emissiveIntensity={0.85} roughness={1} envMapIntensity={0.2} />
         </instancedMesh>
       </group>
 
       {/* Rolling hills on the horizon, hazed by the scene fog. */}
       <mesh position={[-9, -7.2, -46]} scale={[22, 8, 10]}>
         <sphereGeometry args={[1, 40, 20]} />
-        <meshStandardMaterial color="#BFDDB0" emissive="#DDEFD2" emissiveIntensity={0.35} roughness={1} />
+        <meshStandardMaterial color="#B5CFA8" emissive="#D6E6CC" emissiveIntensity={0.2} roughness={1} />
       </mesh>
       <mesh position={[11, -8.2, -52]} scale={[26, 9, 12]}>
         <sphereGeometry args={[1, 40, 20]} />
-        <meshStandardMaterial color="#A9D3B4" emissive="#D5ECDC" emissiveIntensity={0.35} roughness={1} />
+        <meshStandardMaterial color="#A3C4AE" emissive="#D0E3D6" emissiveIntensity={0.2} roughness={1} />
       </mesh>
       <mesh position={[0, -9.5, -38]} scale={[20, 9, 8]}>
         <sphereGeometry args={[1, 40, 20]} />
-        <meshStandardMaterial color="#CFE6B6" emissive="#E6F2D6" emissiveIntensity={0.3} roughness={1} />
+        <meshStandardMaterial color="#C4D9AE" emissive="#E0EBD2" emissiveIntensity={0.18} roughness={1} />
       </mesh>
     </group>
   );

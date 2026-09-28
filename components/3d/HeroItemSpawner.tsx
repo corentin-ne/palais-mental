@@ -24,8 +24,9 @@ import {
 
 import { HeroEvent, PalaceItem } from '@/lib/types';
 import { CATEGORY_SPECS, getItemColor, getItemHeightScale } from '@/lib/itemVisuals';
-import { DISC, getDiscSliceGeometry, getItemGeometry, getSeriesHalfGeometry } from '@/lib/itemGeometry';
-import { getRoomDims, getRoomLevel, getShelfLayout, getSlotLocalPosition, getZoneTransform, zoneToWorld } from '@/lib/palaceLayout';
+import { BODY_ROUGHNESS, DISC, getDiscSliceGeometry } from '@/lib/itemGeometry';
+import { getRoomDims, getRoomLevel, getSlotWorld } from '@/lib/palaceLayout';
+import ItemModel from './ItemModel';
 import { clamp01, cubicBezier, easeInCubic, easeInOutCubic, easeOutBack, easeOutCubic, lerp, safeDelta } from '@/lib/easing';
 import { sceneSignals, wakeAmbient } from '@/lib/sceneSignals';
 import { beamFragment, beamVertex, haloFragment, haloVertex, sparkleFragment, sparkleVertex } from '@/shaders/heroFx';
@@ -152,12 +153,13 @@ function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<Poin
     const scanPlane = new Plane(new Vector3(0, -1, 0), 1e4);
     const body = new MeshStandardMaterial({
       color,
-      roughness: 0.5,
+      roughness: BODY_ROUGHNESS[item?.category ?? 'movies'],
       metalness: 0,
       emissive: sun.clone().lerp(accent, 0.35),
       emissiveIntensity: 0,
       clippingPlanes: [scanPlane],
     });
+    const detail = new MeshStandardMaterial({ vertexColors: true, roughness: 0.38, clippingPlanes: [scanPlane] });
     const discMat = new MeshStandardMaterial({ color: '#F4F1FA', roughness: 0.2, metalness: 0.25 });
     const sliceMat = discMat.clone();
     sliceMat.emissive = accent.clone();
@@ -197,7 +199,7 @@ function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<Poin
     const ringGeo = new RingGeometry(size * 0.55, size * 0.6, 64);
     const sparkleGeo = buildSparkleGeometry();
     return {
-      accent, scanPlane, body, discMat, sliceMat, ghostMat, ringMat, haloMat, beamMat, sparkleMat,
+      accent, scanPlane, body, detail, discMat, sliceMat, ghostMat, ringMat, haloMat, beamMat, sparkleMat,
       beamGeo, haloGeo, ringGeo, sparkleGeo,
     };
   }, [item, spec.accent, h, d]);
@@ -225,10 +227,10 @@ function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<Poin
     const s = usePalaceStore.getState();
     const order = s.order[category];
     const slot = Math.max(0, order.indexOf(item!.id));
-    const layout = getShelfLayout(category, order.length);
-    const zone = getZoneTransform(category, getRoomDims(getRoomLevel(Object.keys(s.items).length)));
     const hs = getItemHeightScale(item!);
-    const p3 = new Vector3(...zoneToWorld(zone, getSlotLocalPosition(category, slot, layout, hs)));
+    const dims = getRoomDims(getRoomLevel(Object.keys(s.items).length));
+    const { zone, position } = getSlotWorld(category, slot, order.length, dims, hs);
+    const p3 = new Vector3(...position);
     const p0 = from.position.clone();
     const normal = new Vector3(...zone.normal);
     const lift = Math.min(0.6, p0.distanceTo(p3) * 0.2);
@@ -398,18 +400,7 @@ function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<Poin
       <points ref={sparkles} geometry={res.sparkleGeo} material={res.sparkleMat} frustumCulled={false} renderOrder={5} />
 
       <group ref={content}>
-        {isSeries ? (
-          <>
-            {/* Tray */}
-            <mesh geometry={getSeriesHalfGeometry()} material={res.body} position={[-t / 4, 0, 0]} dispose={null} />
-            {/* Lid, hinged on the spine edge (content +z) */}
-            <group ref={lid} position={[0, 0, d / 2]}>
-              <mesh geometry={getSeriesHalfGeometry()} material={res.body} position={[t / 4, 0, -d / 2]} dispose={null} />
-            </group>
-          </>
-        ) : (
-          <mesh geometry={getItemGeometry(category)} material={res.body} dispose={null} />
-        )}
+        <ItemModel category={category} body={res.body} detail={res.detail} lidRef={isSeries ? lid : undefined} />
       </group>
 
       {/* Season disc, built from pie slices in the camera-facing plane */}

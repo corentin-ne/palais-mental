@@ -16,6 +16,8 @@ export const sceneSignals = {
    */
   ambientUntil: 0,
   ambientTime: 0,
+  /** Extra yaw (radians) the viewer adds to an inspected object by dragging it. */
+  inspectSpin: 0,
   /** Set by the Canvas on creation so non-R3F code can wake the loop. */
   requestFrame: null as null | (() => void),
 };

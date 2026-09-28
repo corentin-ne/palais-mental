@@ -1,12 +1,17 @@
 {
   "app": {
     "title": "Mental Palace",
-    "subtitle": "Your life, furnished.",
-    "hint": "Tap Log to bring a memory into the light",
-    "back": "Window",
     "items_one": "{{count}} memory",
     "items_other": "{{count}} memories",
-    "level": "Room level {{level}}"
+    "level": "Level {{level}}",
+    "hintEmpty": "Tap + to place your first memory in the light",
+    "hint": "Swipe to look around"
+  },
+  "nav": {
+    "window": "Window",
+    "settings": "Settings",
+    "library": "Library",
+    "add": "Add a memory"
   },
   "categories": {
     "movies": "Movies",
@@ -16,29 +21,89 @@
     "boardgames": "Board Games",
     "videogames": "Video Games"
   },
+  "creator": {
+    "movies": "Director",
+    "series": "Created by",
+    "music": "Artist",
+    "books": "Author",
+    "boardgames": "Designer",
+    "videogames": "Studio"
+  },
   "log": {
-    "button": "Log",
-    "chooseCategory": "What are you logging?",
+    "title": "Add a memory",
+    "subtitle": "What stayed with you?",
+    "kept_one": "{{count}} kept",
+    "kept_other": "{{count}} kept",
+    "kept_zero": "Empty niche",
     "titleLabel": "Title",
     "titlePlaceholder": "e.g. {{example}}",
-    "episodesLabel": "Episodes in season 1",
-    "submit": "Add to the palace",
-    "cancel": "Cancel",
-    "back": "Back"
+    "year": "Year",
+    "rating": "Rating",
+    "note": "Note",
+    "notePlaceholder": "What do you want to remember?",
+    "episodes": "Episodes in season 1",
+    "submit": "Place in the palace",
+    "back": "Back",
+    "cancel": "Cancel"
+  },
+  "item": {
+    "added": "Added {{date}}",
+    "remove": "Remove from the palace",
+    "removeConfirm": "Remove “{{title}}” from your palace?",
+    "keep": "Keep",
+    "removeYes": "Remove",
+    "close": "Close",
+    "notePlaceholder": "Add a note…",
+    "yearPlaceholder": "Year"
   },
   "series": {
-    "empty": "No series yet. Log one to get your first media box.",
     "progress": "S{{season}} · {{watched}}/{{total}}",
+    "season": "Season {{season}}",
+    "episodes": "{{watched}} of {{total}} episodes",
     "completed": "All seasons complete",
-    "logEpisode": "Log Episode",
-    "newSeason": "New season",
-    "newSeasonEpisodes": "Episodes in season {{season}}",
-    "confirm": "Confirm"
+    "logEpisode": "Log episode",
+    "newSeason": "Add season {{season}}",
+    "episodesLabel": "Episodes",
+    "continue": "Continue watching",
+    "seasonComplete": "Season {{season}} complete",
+    "episode": "Episode {{episode}} of {{total}}"
+  },
+  "focus": {
+    "count_one": "{{count}} item",
+    "count_other": "{{count}} items",
+    "empty": "This niche is still empty. Tap + to add the first one.",
+    "open": "Library"
+  },
+  "library": {
+    "all": "Everything",
+    "search": "Search titles, people, notes…",
+    "sortRecent": "Recent",
+    "sortAlpha": "A–Z",
+    "sortRating": "Rating",
+    "empty": "Nothing here yet.",
+    "noResults": "No match for “{{q}}”."
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "ambient": "Ambient light & dust",
+    "ambientHint": "Dust drifts through the sunbeams after you touch the room.",
+    "haptics": "Haptics",
+    "palace": "Your palace",
+    "level": "Room level {{level}}",
+    "reset": "Reset the palace",
+    "resetConfirm": "Remove every memory? This can't be undone.",
+    "resetYes": "Reset",
+    "cancel": "Cancel",
+    "version": "Version {{version}}"
+  },
+  "hero": {
+    "placed": "Placed in {{category}}"
   },
   "language": {
     "system": "Auto",
-    "en": "EN",
-    "fr": "FR"
+    "en": "English",
+    "fr": "Français"
   },
   "examples": {
     "movies": "In the Mood for Love",
@@ -47,5 +112,13 @@
     "books": "Invisible Cities",
     "boardgames": "Azul",
     "videogames": "Outer Wilds"
+  },
+  "creatorExamples": {
+    "movies": "Wong Kar-wai",
+    "series": "Damon Lindelof",
+    "music": "Miles Davis",
+    "books": "Italo Calvino",
+    "boardgames": "Michael Kiesling",
+    "videogames": "Mobius Digital"
   }
 }

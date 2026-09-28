@@ -5,14 +5,15 @@ import { MathUtils, PerspectiveCamera, Vector3 } from 'three';
 import type { RoomDimsRef } from './MentalPalace';
 import { CameraFocus } from '@/lib/types';
 import {
+  NICHE_BASE_Y,
   RoomDims,
-  SHELF_BASE_Y,
   WINDOW,
   WINDOW_CENTER_Y,
   WINDOW_TOP,
   getRoomDims,
   getShelfLayout,
   getZoneTransform,
+  nicheOuterWidth,
   zoneToWorld,
 } from '@/lib/palaceLayout';
 import { clamp01, cubicBezier, easeInOutCubic, safeDelta } from '@/lib/easing';
@@ -24,12 +25,12 @@ import { selectRoomLevel, usePalaceStore } from '@/store/usePalaceStore';
  * It stands at human eye height and only turns its head (yaw), nods (pitch) and
  * walks (bezier dolly). No top-down, bird's-eye or isometric shot exists.
  */
-const EYE_HEIGHT = 1.45;
+const EYE_HEIGHT = 1.5;
 const MIN_EYE = 1.2;
-const MAX_EYE = 1.7;
+const MAX_EYE = 1.75;
 const WINDOW_FOV = 55;
 const FOCUS_FOV = 50;
-const WALL_MARGIN = 0.6;
+const WALL_MARGIN = 0.9;
 
 interface Shot {
   position: Vector3;
@@ -72,40 +73,43 @@ function lookAngles(from: Vector3, to: Vector3) {
 const wrapAngle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 
 function computeShot(focus: CameraFocus, dims: RoomDims, count: number, aspect: number): Shot {
-  const hd = dims.depth / 2;
+  const R = dims.radius;
   if (focus === 'window') {
     // Home: standing in the room, gazing slightly up at the arch and the sky beyond.
-    const dist = fitDistance(WINDOW_FOV, aspect, WINDOW.halfWidth * 2 * 1.45, (WINDOW_TOP - WINDOW.sill) * 1.35);
-    const z = MathUtils.clamp(-hd + dist, -hd + 2.4, hd - WALL_MARGIN);
+    const dist = fitDistance(WINDOW_FOV, aspect, WINDOW.halfWidth * 2 * 1.5, (WINDOW_TOP - WINDOW.sill) * 1.4);
+    const z = MathUtils.clamp(-R + dist, -R + 2.6, R - WALL_MARGIN);
     return {
       position: new Vector3(0, EYE_HEIGHT, z),
-      target: new Vector3(0, WINDOW_CENTER_Y + 0.05, -hd),
+      target: new Vector3(0, WINDOW_CENTER_Y + 0.05, -R),
       fov: WINDOW_FOV,
     };
   }
 
-  // Direct, front-facing, eye-level view of the category's furniture.
-  const zone = getZoneTransform(focus, dims);
+  // Direct, front-facing, eye-level view of the category's niche.
   const layout = getShelfLayout(focus, count);
-  const centerY = (SHELF_BASE_Y + layout.height) / 2;
-  // Aim a little low so the shelf sits in the upper frame, clear of the bottom UI.
-  const target = new Vector3(...zoneToWorld(zone, [0, centerY - 0.12, layout.depth / 2]));
+  const zone = getZoneTransform(focus, dims, nicheOuterWidth(layout));
+  const centerY = NICHE_BASE_Y + layout.innerHeight / 2;
+  // Aim a little low so the niche sits in the upper frame, clear of the dock.
+  const target = new Vector3(...zoneToWorld(zone, [0, centerY - 0.14, layout.depth / 2]));
   const normal = new Vector3(...zone.normal);
-  const span = Math.abs(normal.x) > 0.5 ? dims.width : dims.depth;
   const dist = MathUtils.clamp(
-    fitDistance(FOCUS_FOV, aspect, Math.max(0.8, layout.length * 1.3), layout.height - SHELF_BASE_Y + 0.9),
-    1.1,
-    span - layout.depth - WALL_MARGIN,
+    fitDistance(FOCUS_FOV, aspect, Math.max(0.95, nicheOuterWidth(layout) * 1.3), layout.innerHeight + 0.75),
+    1.15,
+    R * 2 - WALL_MARGIN * 2,
   );
-  const position = target.clone().addScaledVector(normal, dist);
-  position.y = MathUtils.clamp(centerY + 0.1, MIN_EYE, MAX_EYE);
+  const position = clampInside(target.clone().addScaledVector(normal, dist), dims);
+  position.y = MathUtils.clamp(centerY + 0.12, MIN_EYE, MAX_EYE);
   return { position, target, fov: FOCUS_FOV };
 }
 
-/** Keep bezier control points inside the room so the sweep never clips through a wall. */
+/** Keep the camera (and bezier control points) inside the round room. */
 function clampInside(v: Vector3, dims: RoomDims) {
-  v.x = MathUtils.clamp(v.x, -dims.width / 2 + WALL_MARGIN, dims.width / 2 - WALL_MARGIN);
-  v.z = MathUtils.clamp(v.z, -dims.depth / 2 + WALL_MARGIN, dims.depth / 2 - WALL_MARGIN);
+  const max = dims.radius - WALL_MARGIN;
+  const r = Math.hypot(v.x, v.z);
+  if (r > max) {
+    v.x *= max / r;
+    v.z *= max / r;
+  }
   v.y = MathUtils.clamp(v.y, MIN_EYE, MAX_EYE);
   return v;
 }

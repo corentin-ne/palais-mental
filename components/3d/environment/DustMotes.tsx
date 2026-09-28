@@ -32,7 +32,7 @@ export default function DustMotes({ dimsRef }: { dimsRef: RoomDimsRef }) {
       blending: AdditiveBlending,
       uniforms: {
         uTime: { value: 0 },
-        uSize: { value: 20 },
+        uSize: { value: 14 },
         uPixelRatio: { value: 1 },
         uBoxMin: { value: new Vector3() },
         uBoxSize: { value: new Vector3() },
@@ -62,7 +62,7 @@ export default function DustMotes({ dimsRef }: { dimsRef: RoomDimsRef }) {
     u.uWindowZ.value = zw;
     // A volume hugging the sunbeams plus some slack, so motes drift in and out of the light.
     (u.uBoxMin.value as Vector3).set(-WINDOW.halfWidth - 1.2, 0.15, zw + 0.2);
-    (u.uBoxSize.value as Vector3).set(WINDOW.halfWidth * 2 + 3.2, 3.2, Math.min(6.5, d.depth - 1));
+    (u.uBoxSize.value as Vector3).set(WINDOW.halfWidth * 2 + 3.2, 3.2, Math.min(6.5, d.radius * 2 - 1.5));
   });
 
   return <points geometry={geo} material={mat} frustumCulled={false} renderOrder={3} />;

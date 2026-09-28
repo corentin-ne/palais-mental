@@ -89,15 +89,15 @@ export default function SunShafts({ dimsRef }: { dimsRef: RoomDimsRef }) {
       outerGeo: buildShaftGeometry(1),
       coreGeo: buildShaftGeometry(0.62),
       patchGeo: buildPatchGeometry(),
-      outerMat: shaft(0.12),
-      coreMat: shaft(0.1),
+      outerMat: shaft(0.09),
+      coreMat: shaft(0.075),
       patchMat: new ShaderMaterial({
         vertexShader: patchVertex,
         fragmentShader: patchFragment,
         ...additive,
         polygonOffset: true,
         polygonOffsetFactor: -2,
-        uniforms: { uColor: { value: new Color('#FFD2A0') }, uIntensity: { value: 1.3 }, uWin: { value: WIN_UNIFORM } },
+        uniforms: { uColor: { value: new Color('#FFD2A0') }, uIntensity: { value: 0.85 }, uWin: { value: WIN_UNIFORM } },
       }),
     };
   }, []);

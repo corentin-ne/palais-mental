@@ -29,3 +29,13 @@ export const OUTPUT_CHUNK = /* glsl */ `
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 `;
+
+/**
+ * Closing chunk for ADDITIVE effects. No colour-space conversion: additive light must
+ * be summed in linear space. With the web composer the frame is linear until the final
+ * pass anyway; on native (straight to the sRGB canvas) converting per fragment would
+ * brighten faint glows ~5x before they are summed and blow the beams out to white.
+ */
+export const ADDITIVE_OUTPUT_CHUNK = /* glsl */ `
+  #include <tonemapping_fragment>
+`;

@@ -5,61 +5,79 @@ export interface CategorySpec {
   size: [number, number, number];
   /** Horizontal distance between slot centers. */
   pitch: number;
+  /** Extra height above the body (a vinyl record peeking out of its sleeve). */
+  peek: number;
   /** Per-item height variance (books are not all the same size). */
   minHeightScale: number;
   maxHeightScale: number;
+  /** Dusty pastels for the objects themselves. */
   palette: string[];
+  /** Deeper signature hue: UI chips, niche lighting, hero glow. */
   accent: string;
+  /** Pale wash of the accent: niche lining and UI tiles. */
+  tint: string;
 }
 
 export const CATEGORY_SPECS: Record<CategoryId, CategorySpec> = {
   movies: {
-    size: [0.016, 0.19, 0.135],
-    pitch: 0.03,
+    size: [0.017, 0.19, 0.135],
+    pitch: 0.029,
+    peek: 0,
     minHeightScale: 1,
     maxHeightScale: 1,
-    palette: ['#F4A6A0', '#F7C59F', '#A8D5E2', '#C3B1E1', '#F2D388'],
-    accent: '#F28C82',
+    palette: ['#E8A598', '#F2C9A0', '#9CC3D5', '#B7A6D6', '#E6CF8B', '#8FB9A8'],
+    accent: '#D9725F',
+    tint: '#F8E2DB',
   },
   series: {
-    size: [0.04, 0.19, 0.135],
-    pitch: 0.052,
+    size: [0.042, 0.19, 0.135],
+    pitch: 0.054,
+    peek: 0,
     minHeightScale: 1,
     maxHeightScale: 1,
-    palette: ['#C3B1E1', '#9FD8CB', '#F6B8C8', '#A8C5F0', '#F7D59C'],
-    accent: '#A78BDA',
+    palette: ['#B7A6D6', '#95C8BC', '#EBB1C0', '#9DB7E6', '#EDCC96'],
+    accent: '#8C74CF',
+    tint: '#EAE3F6',
   },
   music: {
     size: [0.012, 0.31, 0.31],
-    pitch: 0.026,
+    pitch: 0.027,
+    peek: 0.05,
     minHeightScale: 1,
     maxHeightScale: 1,
-    palette: ['#FFD6A5', '#FDFFB6', '#CAFFBF', '#9BF6FF', '#FFC6FF'],
-    accent: '#F5B44A',
+    palette: ['#F0BE8A', '#E9DE8E', '#A9D5A5', '#8FCFD8', '#E4B3DC', '#F2A999'],
+    accent: '#D9913A',
+    tint: '#F9EAD5',
   },
   books: {
-    size: [0.045, 0.24, 0.16],
-    pitch: 0.054,
-    minHeightScale: 0.78,
-    maxHeightScale: 1.12,
-    palette: ['#E8A87C', '#95B8D1', '#B5D99C', '#F3E1C7', '#E3A6B8', '#C9B6E4'],
-    accent: '#E39A5C',
+    size: [0.042, 0.24, 0.165],
+    pitch: 0.05,
+    peek: 0,
+    minHeightScale: 0.8,
+    maxHeightScale: 1.1,
+    palette: ['#C98E6A', '#7FA3BF', '#9DBF86', '#E4CFB0', '#D195A8', '#A895CF', '#6F8F7E'],
+    accent: '#B8744B',
+    tint: '#F3E4D6',
   },
   boardgames: {
     size: [0.075, 0.3, 0.3],
-    pitch: 0.088,
+    pitch: 0.085,
+    peek: 0,
     minHeightScale: 1,
     maxHeightScale: 1,
-    palette: ['#8FD3C8', '#F7A8A8', '#B7E4A1', '#F9D77E', '#B9A7F0'],
-    accent: '#5CC7A8',
+    palette: ['#7EC6B8', '#EE9E9E', '#A7D48F', '#F0CB6E', '#A897E6'],
+    accent: '#3FA38E',
+    tint: '#DDF1EC',
   },
   videogames: {
     size: [0.014, 0.17, 0.135],
-    pitch: 0.026,
+    pitch: 0.025,
+    peek: 0,
     minHeightScale: 1,
     maxHeightScale: 1,
-    palette: ['#9CC7F5', '#A7E3B0', '#F5A3B8', '#FFE08A', '#D6C8FF'],
-    accent: '#EE8FB6',
+    palette: ['#8DB8EE', '#97D6A2', '#EE97AE', '#F5D77A', '#C6B6F5'],
+    accent: '#D9658F',
+    tint: '#F8E0E8',
   },
 };
 

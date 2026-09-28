@@ -1,4 +1,4 @@
-import { OUTPUT_CHUNK, WINDOW_SDF } from './common';
+import { ADDITIVE_OUTPUT_CHUNK, WINDOW_SDF } from './common';
 
 /**
  * Fake volumetric god rays: the window outline swept along the sun direction into
@@ -40,7 +40,7 @@ export const shaftFragment = /* glsl */ `
     // real shaft looks densest — so facing only softens, never hides.
     float a = uIntensity * fade * streaks * mix(1.0, 0.55, vFacing);
     gl_FragColor = vec4(uColor * a, 1.0);
-    ${OUTPUT_CHUNK}
+    ${ADDITIVE_OUTPUT_CHUNK}
   }
 `;
 
@@ -62,6 +62,6 @@ export const patchFragment = /* glsl */ `
     float inside = smoothstep(0.09, -0.07, windowSdf(vWin));
     float a = uIntensity * inside * mix(0.35, 1.0, mullions(vWin));
     gl_FragColor = vec4(uColor * a, 1.0);
-    ${OUTPUT_CHUNK}
+    ${ADDITIVE_OUTPUT_CHUNK}
   }
 `;

@@ -6,6 +6,13 @@ export interface BaseItem {
   category: CategoryId;
   title: string;
   createdAt: number;
+  updatedAt?: number;
+  /** Director, showrunner, artist, author, designer or studio — label depends on category. */
+  creator?: string;
+  year?: number;
+  /** 0 (unrated) to 5, in half steps. */
+  rating?: number;
+  note?: string;
   /**
    * Hero Swap flag. `false` while the item is still owned by the HeroItemSpawner
    * (materializing / flying); the shelf InstancedMesh only renders settled items.
@@ -46,3 +53,12 @@ export type HeroEvent =
 
 /** 'window' is the idle home view: eye level, facing the sunlit window. */
 export type CameraFocus = 'window' | CategoryId;
+
+/** Editable metadata of any item. */
+export type ItemDetails = Pick<BaseItem, 'title' | 'creator' | 'year' | 'rating' | 'note'>;
+
+export interface PalaceSettings {
+  /** Dust, cloud drift and beam shimmer after interactions. */
+  ambient: boolean;
+  haptics: boolean;
+}

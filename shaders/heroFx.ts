@@ -1,4 +1,4 @@
-import { OUTPUT_CHUNK } from './common';
+import { ADDITIVE_OUTPUT_CHUNK } from './common';
 
 /** Billboard halo behind the hero: warm radial bloom with slowly turning soft rays. */
 export const haloVertex = /* glsl */ `
@@ -25,7 +25,7 @@ export const haloFragment = /* glsl */ `
     vec3 col = mix(uAccent, uColor, core) * (glow * 0.8 + rays) + uColor * core * 1.6;
     float a = uOpacity * smoothstep(1.0, 0.6, r);
     gl_FragColor = vec4(col * a, 1.0);
-    ${OUTPUT_CHUNK}
+    ${ADDITIVE_OUTPUT_CHUNK}
   }
 `;
 
@@ -54,7 +54,7 @@ export const beamFragment = /* glsl */ `
     float streaks = 0.6 + 0.4 * sin(vUv.x * 6.2831 * 9.0 + uTime * 0.8);
     float a = uOpacity * fade * streaks * vFacing * 0.55;
     gl_FragColor = vec4(uColor * a, 1.0);
-    ${OUTPUT_CHUNK}
+    ${ADDITIVE_OUTPUT_CHUNK}
   }
 `;
 
@@ -102,6 +102,6 @@ export const sparkleFragment = /* glsl */ `
     float a = star * vAlpha;
     if (a < 0.004) discard;
     gl_FragColor = vec4(mix(uAccent, uColor, exp(-d * 4.0)) * a * 2.0, 1.0);
-    ${OUTPUT_CHUNK}
+    ${ADDITIVE_OUTPUT_CHUNK}
   }
 `;

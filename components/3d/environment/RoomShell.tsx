@@ -1,0 +1,288 @@
+import { useEffect, useMemo, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import {
+  BufferGeometry,
+  Color,
+  CylinderGeometry,
+  DoubleSide,
+  ExtrudeGeometry,
+  Float32BufferAttribute,
+  Group,
+  LatheGeometry,
+  MathUtils,
+  Matrix4,
+  Mesh,
+  MeshStandardMaterial,
+  Path,
+  PlaneGeometry,
+  Quaternion,
+  ShaderMaterial,
+  Shape,
+  SphereGeometry,
+  Vector2,
+  Vector3,
+  Vector4,
+} from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+
+import type { RoomDimsRef } from '../MentalPalace';
+import { WINDOW_SDF } from '@/shaders/common';
+import { COVE_RADIUS, RoomDims, WINDOW, getRoomDims } from '@/lib/palaceLayout';
+import { softBox, windowOutline } from '@/lib/itemGeometry';
+import { safeDelta } from '@/lib/easing';
+import { selectRoomLevel, usePalaceStore } from '@/store/usePalaceStore';
+
+const BASE = getRoomDims(0);
+const WIN_UNIFORM = new Vector4(WINDOW.halfWidth, WINDOW.sill, WINDOW.springLine, 0);
+
+const COLORS = {
+  floorCenter: new Color('#EADCCB'),
+  floorEdge: new Color('#E4D4C1'),
+  wall: new Color('#F6F2EC'),
+  dome: new Color('#F8F6F3'),
+};
+
+/**
+ * The palace shell: ONE lathe surface. A flat floor rolls through a wide cove into
+ * a cylindrical wall and closes in a soft dome — there is no corner anywhere. A
+ * gentle vertex-colour gradient (sandy floor → cream wall → luminous dome) does the
+ * work of ambient occlusion for free.
+ */
+function buildShellGeometry(d: RoomDims): LatheGeometry {
+  const R = d.radius;
+  const c = COVE_RADIUS;
+  const H = d.wallHeight;
+  const D = d.domeHeight;
+  const pts: Vector2[] = [];
+  [0.001, R * 0.3, R * 0.6, R - c].forEach((r) => pts.push(new Vector2(r, 0)));
+  for (let i = 1; i <= 12; i++) {
+    const a = -Math.PI / 2 + (i / 12) * (Math.PI / 2);
+    pts.push(new Vector2(R - c + c * Math.cos(a), c + c * Math.sin(a)));
+  }
+  for (let i = 1; i <= 6; i++) pts.push(new Vector2(R, c + ((H - c) * i) / 6));
+  for (let i = 1; i <= 18; i++) {
+    const a = (i / 18) * (Math.PI / 2);
+    pts.push(new Vector2(Math.max(0.001, R * Math.cos(a)), H + D * Math.sin(a)));
+  }
+  const geo = new LatheGeometry(pts, 144);
+
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  const col = new Color();
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i);
+    const r = Math.hypot(pos.getX(i), pos.getZ(i));
+    if (y < 0.002) {
+      col.copy(COLORS.floorCenter).lerp(COLORS.floorEdge, MathUtils.smoothstep(r, 0, R - c));
+    } else if (y < c) {
+      col.copy(COLORS.floorEdge).lerp(COLORS.wall, MathUtils.smoothstep(y, 0, c));
+    } else {
+      col.copy(COLORS.wall).lerp(COLORS.dome, MathUtils.smoothstep(y, H * 0.6, H + D));
+    }
+    colors.set([col.r, col.g, col.b], i * 3);
+  }
+  geo.setAttribute('color', new Float32BufferAttribute(colors, 3));
+  return geo;
+}
+
+/** Shell material: cuts the arched window out of the wall in the fragment shader. */
+function buildShellMaterial(): MeshStandardMaterial {
+  const mat = new MeshStandardMaterial({ vertexColors: true, roughness: 0.95, side: DoubleSide, envMapIntensity: 0.45 });
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uWin = { value: WIN_UNIFORM };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vShellPos;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvShellPos = (modelMatrix * vec4(position, 1.0)).xyz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vShellPos;\n${WINDOW_SDF}`)
+      .replace('void main() {', 'void main() {\n  if (vShellPos.z < -1.0 && windowSdf(vShellPos.xy) < 0.0) discard;');
+  };
+  mat.customProgramCacheKey = () => 'palace-shell-window';
+  return mat;
+}
+
+/** Stylized potted plant: rounded lathe pot + a fan of plump leaves merged into one mesh. */
+function buildPlant(leafCount: number, height: number, spread: number, seed: number) {
+  const pot = new LatheGeometry(
+    [
+      [0.001, 0],
+      [0.13, 0],
+      [0.17, 0.03],
+      [0.19, 0.12],
+      [0.19, 0.24],
+      [0.175, 0.3],
+      [0.16, 0.3],
+      [0.16, 0.27],
+      [0.001, 0.27],
+    ].map(([x, y]) => new Vector2(x, y)),
+    48,
+  );
+  const leaves: BufferGeometry[] = [];
+  const stems: BufferGeometry[] = [];
+  const m = new Matrix4();
+  const q = new Quaternion();
+  let s = seed;
+  const rand = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < leafCount; i++) {
+    const yaw = (i / leafCount) * Math.PI * 2 + rand() * 0.6;
+    const tilt = 0.35 + rand() * 0.5;
+    const len = height * (0.55 + rand() * 0.45);
+    const dir = new Vector3(Math.sin(yaw) * Math.sin(tilt), Math.cos(tilt), Math.cos(yaw) * Math.sin(tilt));
+    const tip = dir.clone().multiplyScalar(len).add(new Vector3(0, 0.28, 0));
+    // Stem
+    const stem = new CylinderGeometry(0.006, 0.009, len, 6);
+    q.setFromUnitVectors(new Vector3(0, 1, 0), dir);
+    m.compose(dir.clone().multiplyScalar(len / 2).add(new Vector3(0, 0.28, 0)), q, new Vector3(1, 1, 1));
+    stems.push(stem.applyMatrix4(m));
+    // Leaf: a flattened, pointed ellipsoid hanging from the stem tip.
+    const leaf = new SphereGeometry(1, 18, 12);
+    const outward = new Vector3(Math.sin(yaw), -0.25 - rand() * 0.3, Math.cos(yaw)).normalize();
+    q.setFromUnitVectors(new Vector3(0, 0, 1), outward);
+    const size = spread * (0.8 + rand() * 0.4);
+    m.compose(tip.clone().addScaledVector(outward, size * 1.1), q, new Vector3(size * 0.55, 0.012 + size * 0.05, size * 1.2));
+    leaves.push(leaf.applyMatrix4(m));
+  }
+  return { pot, leaves: mergeGeometries(leaves)!, stems: mergeGeometries(stems)! };
+}
+
+const shadowMaterial = () =>
+  new ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    uniforms: { uStrength: { value: 0.22 } },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: /* glsl */ `
+      uniform float uStrength;
+      varying vec2 vUv;
+      void main() {
+        float r = length(vUv - 0.5) * 2.0;
+        float a = pow(1.0 - smoothstep(0.0, 1.0, r), 2.0) * uStrength;
+        gl_FragColor = vec4(0.35, 0.24, 0.17, a);
+      }`,
+  });
+
+export default function RoomShell({ dimsRef }: { dimsRef: RoomDimsRef }) {
+  const level = usePalaceStore(selectRoomLevel);
+  const invalidate = useThree((s) => s.invalidate);
+  const target = getRoomDims(level);
+
+  const shell = useRef<Mesh>(null);
+  const windowGroup = useRef<Group>(null);
+  const plantL = useRef<Group>(null);
+  const plantR = useRef<Group>(null);
+
+  const res = useMemo(() => {
+    const frameShape = windowOutline(new Shape(), WINDOW.frame);
+    frameShape.holes.push(windowOutline(new Path(), 0));
+    const plantA = buildPlant(9, 0.55, 0.16, 11);
+    const plantB = buildPlant(13, 0.95, 0.13, 29);
+    return {
+      shellGeo: buildShellGeometry(BASE),
+      shellMat: buildShellMaterial(),
+      frameGeo: new ExtrudeGeometry(frameShape, {
+        depth: 0.36,
+        bevelEnabled: true,
+        bevelThickness: 0.06,
+        bevelSize: 0.05,
+        bevelSegments: 6,
+        curveSegments: 56,
+      }),
+      frameMat: new MeshStandardMaterial({ color: '#FFFDF9', roughness: 0.32, envMapIntensity: 0.9 }),
+      cushionGeo: softBox(WINDOW.halfWidth * 2 - 0.16, 0.11, 0.46, 0.9, 4),
+      pillowGeo: new SphereGeometry(1, 32, 20),
+      rugGeo: new CylinderGeometry(1.9, 1.9, 0.016, 128),
+      rugInnerGeo: new CylinderGeometry(1.45, 1.45, 0.017, 128),
+      shadowGeo: new PlaneGeometry(1, 1),
+      shadowMat: shadowMaterial(),
+      plantA,
+      plantB,
+      potMat: new MeshStandardMaterial({ color: '#E7BCA6', roughness: 0.6 }),
+      leafMat: new MeshStandardMaterial({ color: '#8FBC8B', roughness: 0.55, side: DoubleSide }),
+      stemMat: new MeshStandardMaterial({ color: '#7FA36E', roughness: 0.7 }),
+    };
+  }, []);
+
+  useEffect(
+    () => () =>
+      Object.values(res).forEach((r) => {
+        if ('dispose' in r && typeof r.dispose === 'function') r.dispose();
+        else Object.values(r as object).forEach((g) => (g as BufferGeometry).dispose?.());
+      }),
+    [res],
+  );
+
+  // A level-up only needs to wake the loop; useFrame keeps it awake until converged.
+  useEffect(() => invalidate(), [level, invalidate]);
+
+  useFrame((_, rawDelta) => {
+    const d = dimsRef.current;
+    const dt = safeDelta(rawDelta);
+    d.radius = MathUtils.damp(d.radius, target.radius, 3, dt);
+    d.wallHeight = MathUtils.damp(d.wallHeight, target.wallHeight, 3, dt);
+
+    const sXZ = d.radius / BASE.radius;
+    const sY = (d.wallHeight + d.domeHeight) / (BASE.wallHeight + BASE.domeHeight);
+    shell.current?.scale.set(sXZ, sY, sXZ);
+    windowGroup.current?.position.set(0, 0, -d.radius);
+    plantL.current?.position.set(-2.05, 0, -d.radius + 1.55);
+    plantR.current?.position.set(2.1, 0, -d.radius + 1.6);
+
+    if (Math.abs(d.radius - target.radius) > 1e-3 || Math.abs(d.wallHeight - target.wallHeight) > 1e-3) invalidate();
+  });
+
+  const { halfWidth: hw, sill } = WINDOW;
+
+  return (
+    <group>
+      <mesh ref={shell} geometry={res.shellGeo} material={res.shellMat} />
+
+      {/* ---- The window: the home view and the light source of the whole palace */}
+      <group ref={windowGroup}>
+        <mesh geometry={res.frameGeo} material={res.frameMat} position-z={-0.24} />
+        {/* Window seat: a long cushion and two pillows tucked into the deep sill */}
+        <mesh geometry={res.cushionGeo} position={[0, sill + 0.055, 0.02]}>
+          <meshStandardMaterial color="#F1DECB" roughness={0.9} />
+        </mesh>
+        <mesh geometry={res.pillowGeo} position={[-hw + 0.3, sill + 0.2, -0.02]} rotation={[0.2, 0.35, 0.1]} scale={[0.17, 0.14, 0.07]}>
+          <meshStandardMaterial color="#E9B7A2" roughness={0.9} />
+        </mesh>
+        <mesh geometry={res.pillowGeo} position={[-hw + 0.58, sill + 0.18, 0.02]} rotation={[0.1, -0.2, -0.12]} scale={[0.15, 0.12, 0.065]}>
+          <meshStandardMaterial color="#CADAC1" roughness={0.9} />
+        </mesh>
+        {/* A small plant on the seat, the first thing framed at home */}
+        <group position={[hw - 0.32, sill + 0.005, -0.04]} scale={0.42}>
+          <mesh geometry={res.plantA.pot} material={res.potMat} />
+          <mesh geometry={res.plantA.stems} material={res.stemMat} />
+          <mesh geometry={res.plantA.leaves} material={res.leafMat} />
+        </group>
+      </group>
+
+      {/* ---- Round two-tone rug catching the sun patch */}
+      <group position={[0, 0, -0.9]}>
+        <mesh geometry={res.rugGeo} position-y={0.008}>
+          <meshStandardMaterial color="#EACFB8" roughness={1} />
+        </mesh>
+        <mesh geometry={res.rugInnerGeo} position-y={0.0085}>
+          <meshStandardMaterial color="#F3E3D2" roughness={1} />
+        </mesh>
+      </group>
+
+      {/* ---- Plants flanking the window, each grounded by a soft contact shadow */}
+      {(
+        [
+          [plantL, res.plantA, 1],
+          [plantR, res.plantB, 1.15],
+        ] as const
+      ).map(([ref, plant, scale], i) => (
+        <group key={i} ref={ref} scale={scale}>
+          <mesh geometry={res.shadowGeo} material={res.shadowMat} rotation-x={-Math.PI / 2} position-y={0.004} scale={0.95} />
+          <mesh geometry={plant.pot} material={res.potMat} />
+          <mesh geometry={plant.stems} material={res.stemMat} />
+          <mesh geometry={plant.leaves} material={res.leafMat} />
+        </group>
+      ))}
+    </group>
+  );
+}

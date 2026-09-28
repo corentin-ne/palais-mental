@@ -1,4 +1,4 @@
-import { OUTPUT_CHUNK, WINDOW_SDF } from './common';
+import { ADDITIVE_OUTPUT_CHUNK, WINDOW_SDF } from './common';
 
 /**
  * Floating dust motes. All motion is computed on the GPU from a per-particle seed and
@@ -50,7 +50,7 @@ export const dustFragment = /* glsl */ `
     float d = dot(c, c) * 4.0;
     float a = exp(-d * 3.5) * vGlow * vTwinkle;
     if (a < 0.004) discard;
-    gl_FragColor = vec4(uColor * a * 1.6, 1.0);
-    ${OUTPUT_CHUNK}
+    gl_FragColor = vec4(uColor * a * 0.9, 1.0);
+    ${ADDITIVE_OUTPUT_CHUNK}
   }
 `;

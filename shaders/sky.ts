@@ -32,7 +32,7 @@ export const skyFragment = /* glsl */ `
     col += uSunColor * (halo + core);
     col = mix(col, uSunColor, pow(d, 3.0) * (1.0 - smoothstep(0.0, 0.35, h)) * 0.35);
     // Warm cream band hugging the horizon.
-    col = mix(col, vec3(1.0, 0.86, 0.68), (1.0 - smoothstep(0.0, 0.12, abs(h))) * 0.45);
+    col = mix(col, vec3(1.0, 0.86, 0.68), (1.0 - smoothstep(0.0, 0.12, abs(h))) * 0.22);
 
     gl_FragColor = vec4(col, 1.0);
     ${OUTPUT_CHUNK}
