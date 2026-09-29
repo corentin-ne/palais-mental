@@ -10,13 +10,13 @@ export interface CategorySpec {
   /** Per-item height variance (books are not all the same size). */
   minHeightScale: number;
   maxHeightScale: number;
-  /** Largest depth any variant reaches (sizes the niche). */
+  /** Largest depth any variant reaches (sizes the furniture depth). */
   maxDepthScale: number;
   /** Dusty pastels for the objects themselves. */
   palette: string[];
-  /** Deeper signature hue: UI chips, niche lighting, hero glow. */
+  /** Deeper signature hue: UI chips, furniture light lines, hero glow. */
   accent: string;
-  /** Pale wash of the accent: niche lining and UI tiles. */
+  /** Pale wash of the accent: furniture back panels and UI tiles. */
   tint: string;
 }
 

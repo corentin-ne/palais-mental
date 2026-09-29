@@ -16,7 +16,7 @@ const UP = new Vector3(0, 1, 0);
 const Y_AXIS = new Vector3(0, 1, 0);
 
 /**
- * Tap an object on its shelf and it slides out of the niche and floats up in front of
+ * Tap an object on its shelf and it slides off the furniture and floats up in front of
  * you, cover turned toward the camera, while its detail sheet is open. Dragging spins
  * it. Closing the sheet sends it gliding back into its slot, and only then does the
  * shelf instance reappear (store.endInspect).
@@ -93,7 +93,7 @@ function Inspected({ item }: { item: PalaceItem }) {
     _qPresent.copy(camera.quaternion).multiply(_qTurn);
     const presentScale = Math.min(visH * 0.3, visH * camera.aspect * 0.55) / Math.max(h * hs, d);
 
-    // Slide straight out of the niche first, then arc up to the viewer.
+    // Slide straight out of the furniture first, then arc up to the viewer.
     g.position.lerpVectors(_slot, _present, e);
     g.position.addScaledVector(new Vector3(...zone.normal), Math.sin(Math.PI * e) * 0.18);
     g.quaternion.slerpQuaternions(_qSlot, _qPresent, e);

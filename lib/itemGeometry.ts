@@ -201,23 +201,3 @@ export function windowOutline<T extends Path>(target: T, offset = 0): T {
   target.absarc(-hw + r, y0 + r, r, Math.PI, Math.PI * 1.5, false);
   return target;
 }
-
-/**
- * Soft niche outline: centered on x, from y=0 to y=h, with small bottom corners and
- * generous top corners (a flattened arch). Counter-clockwise.
- */
-export function nicheOutline<T extends Path>(target: T, w: number, h: number, rBottom: number, rTop: number, y0 = 0): T {
-  const hw = w / 2;
-  const rb = Math.min(rBottom, hw, h / 2);
-  const rt = Math.min(rTop, hw, h - rb);
-  target.moveTo(-hw + rb, y0);
-  target.lineTo(hw - rb, y0);
-  target.absarc(hw - rb, y0 + rb, rb, -Math.PI / 2, 0, false);
-  target.lineTo(hw, y0 + h - rt);
-  target.absarc(hw - rt, y0 + h - rt, rt, 0, Math.PI / 2, false);
-  target.lineTo(-hw + rt, y0 + h);
-  target.absarc(-hw + rt, y0 + h - rt, rt, Math.PI / 2, Math.PI, false);
-  target.lineTo(-hw, y0 + rb);
-  target.absarc(-hw + rb, y0 + rb, rb, Math.PI, Math.PI * 1.5, false);
-  return target;
-}

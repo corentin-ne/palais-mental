@@ -16,7 +16,7 @@ interface Props {
 /**
  * A single high-fidelity item built from the SAME cached geometries the shelf
  * instances use (see lib/itemGeometry), so a hero or an inspected object is
- * pixel-identical to its instanced twin.
+ * identical to its instanced twin.
  */
 export default function ItemModel({ category, body, detail, lidRef }: Props) {
   if (category === 'series' && lidRef) {

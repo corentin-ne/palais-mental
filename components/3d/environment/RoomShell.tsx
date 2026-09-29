@@ -47,7 +47,7 @@ const DEFAULT_COLORS = {
  * The palace shell: ONE lathe surface. A flat floor rolls through a wide cove into
  * a cylindrical wall and closes in a soft dome — there is no corner anywhere. A
  * gentle vertex-colour gradient (sandy floor → cream wall → luminous dome) does the
- * work of ambient occlusion for free.
+ * work of ambient occlusion without an extra pass.
  */
 function buildShellGeometry(d: RoomDims, COLORS: typeof DEFAULT_COLORS = DEFAULT_COLORS): LatheGeometry {
   const R = d.radius;

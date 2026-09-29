@@ -26,3 +26,32 @@ export function cubicBezier(out: Vector3, p0: Vector3, p1: Vector3, p2: Vector3,
     a * p0.z + b * p1.z + c * p2.z + d * p3.z,
   );
 }
+export const easeInOutQuint = (t: number) => (t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2);
+export const easeOutQuint = (t: number) => 1 - Math.pow(1 - t, 5);
+export const easeInQuad = (t: number) => t * t;
+/** Damped sine overshoot that settles on 1: a quick, lively pop. */
+export const easeOutElastic = (t: number) =>
+  t <= 0 ? 0 : t >= 1 ? 1 : Math.pow(2, -9 * t) * Math.sin((t * 10 - 0.75) * ((2 * Math.PI) / 3.2)) + 1;
+
+/** Position and velocity of a one-dimensional spring. */
+export interface Spring {
+  x: number;
+  v: number;
+}
+
+export const spring = (x: number): Spring => ({ x, v: 0 });
+
+/**
+ * Semi-implicit spring step toward `target`. Slightly underdamped by default, so motion
+ * overshoots a touch and settles fast. Sub-stepped to stay stable at low frame rates.
+ */
+export function stepSpring(s: Spring, target: number, dt: number, stiffness = 260, damping = 18): void {
+  const steps = Math.max(1, Math.ceil(dt / (1 / 120)));
+  const h = dt / steps;
+  for (let i = 0; i < steps; i++) {
+    s.v += (stiffness * (target - s.x) - damping * s.v) * h;
+    s.x += s.v * h;
+  }
+}
+
+export const springSettled = (s: Spring, target: number, eps = 1e-4) => Math.abs(s.x - target) < eps && Math.abs(s.v) < eps * 10;

@@ -1,7 +1,7 @@
 /**
  * The only time-aware part of the palace: knowing when something you care about comes
  * out. Series are followed through TVmaze (next episode air time); anything added with
- * a future release date is awaited. Both become quiet local notifications — no server,
+ * a future release date is awaited. Both become local notifications — no server,
  * no account.
  */
 import { AppState, Platform } from 'react-native';

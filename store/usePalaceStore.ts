@@ -41,7 +41,7 @@ export interface PalaceState {
   order: CategoryOrder;
   language: LanguagePreference;
   settings: PalaceSettings;
-  /** Last few catalog searches, most recent first (recognition over recall). */
+  /** Last few catalog searches, most recent first. */
   recentSearches: string[];
 
   // ---- transient (not persisted)
@@ -51,7 +51,7 @@ export interface PalaceState {
   /** Item whose detail sheet is open. */
   selectedId: string | null;
   /**
-   * Item currently lifted out of its niche by the 3D inspector. Outlives `selectedId`
+   * Item currently lifted off its furniture by the 3D inspector. Outlives `selectedId`
    * while the object glides back to its slot, then the inspector clears it.
    */
   inspectId: string | null;
@@ -269,7 +269,7 @@ export const usePalaceStore = create<PalaceState>()(
         set((s) => ({
           items: { ...s.items, [seriesId]: { ...item, seasons, updatedAt: Date.now() } },
           heroQueue: opts.animate ? [...s.heroQueue, hero] : s.heroQueue,
-          // The hero takes the box out of the niche itself.
+          // The hero takes the box off the furniture itself.
           selectedId: opts.animate && s.selectedId === seriesId ? null : s.selectedId,
         }));
         return hero;
@@ -325,7 +325,7 @@ export const usePalaceStore = create<PalaceState>()(
         settings: s.settings,
         recentSearches: s.recentSearches,
       }),
-      // v4 drops the journal (the palace is timeless); extra fields in older saves are ignored.
+      // v4 drops the journal; extra fields in older saves are ignored.
       migrate: (persisted) => {
         const p = (persisted ?? {}) as Partial<PalaceState> & { events?: unknown };
         delete p.events;

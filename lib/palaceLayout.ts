@@ -1,5 +1,5 @@
 /**
- * Pure layout math shared by the store, the niches, the camera and the hero.
+ * Pure layout math shared by the store, the furniture, the camera and the hero.
  * Everything here is deterministic from item counts, so the hero can compute its
  * landing slot without touching scene-graph refs.
  *
@@ -91,17 +91,18 @@ export const ZONE_SEQUENCE = ['window', 'movies', 'series', 'music', 'videogames
 export interface ZoneTransform {
   position: [number, number, number];
   rotationY: number;
-  /** World-space direction the niche faces (toward the center of the room). */
+  /** World-space direction the furniture faces (toward the center of the room). */
   normal: [number, number, number];
 }
 
 /**
- * A niche's back sits against the curved wall. Its outer corners are kept just
- * inside the cylinder, so wider niches step slightly toward the center.
+ * Furniture stands on the flat floor, just in front of the cove where the floor curves
+ * up into the wall. Its back corners stay on that circle, so wider pieces step slightly
+ * toward the center.
  */
 export function getZoneTransform(category: CategoryId, dims: RoomDims, outerWidth = 0): ZoneTransform {
   const theta = (ZONE_ANGLES[category] * Math.PI) / 180;
-  const r = dims.radius - 0.04;
+  const r = dims.radius - COVE_RADIUS - 0.02;
   const d = Math.sqrt(Math.max(1, r * r - (outerWidth / 2) ** 2)) - 0.03;
   const sin = Math.sin(theta);
   const cos = Math.cos(theta);
@@ -116,28 +117,70 @@ export function zoneToWorld(zone: ZoneTransform, local: [number, number, number]
   return [zone.position[0] + lx * c + lz * s, zone.position[1] + ly, zone.position[2] - lx * s + lz * c];
 }
 
-// ---------------------------------------------------------------- Niches ("Fill" mechanic)
-/** Inner floor of every niche: contents meet the eye-level camera. */
-export const NICHE_BASE_Y = 0.82;
-export const NICHE_BORDER = 0.075;
-export const PLANK_THICKNESS = 0.028;
-const SIDE_PADDING = 0.07;
-const BASE_SLOTS = 8;
-const GROWTH_STEP = 4;
-const MAX_SLOTS_PER_TIER = 20;
+// ---------------------------------------------------------------- Furniture
+/**
+ * Each collection owns one piece of furniture that changes shape as it fills:
+ *   0 pedestal → 1 console → 2 bookcase → 3 arched cabinet → 4 wall unit.
+ * Everything below is pure math on the collection, so the furniture, the camera, the
+ * hero and the inspector all agree on slot positions without sharing scene-graph state.
+ */
+export type FurnitureStage = 0 | 1 | 2 | 3 | 4;
+export const STAGE_THRESHOLDS = [0, 6, 16, 36, 72] as const;
 
-export interface ShelfLayout {
+interface StageSpec {
+  /** Slots per tier (in category pitch units). */
+  slots: number;
+  minTiers: number;
+  maxTiers: number;
+  /** Height of the first plank's top surface. */
+  baseY: number;
+  /** Slots per bay (vertical divider); 0 = one open run. */
+  bay: number;
+}
+
+const STAGES: StageSpec[] = [
+  { slots: 8, minTiers: 1, maxTiers: 1, baseY: 0.52, bay: 0 },
+  { slots: 12, minTiers: 1, maxTiers: 2, baseY: 0.46, bay: 0 },
+  { slots: 14, minTiers: 2, maxTiers: 3, baseY: 0.16, bay: 7 },
+  { slots: 18, minTiers: 2, maxTiers: 4, baseY: 0.18, bay: 6 },
+  { slots: 24, minTiers: 3, maxTiers: 6, baseY: 0.2, bay: 6 },
+];
+
+export const PLANK_THICKNESS = 0.032;
+export const SIDE_THICKNESS = 0.036;
+const SIDE_PADDING = 0.03;
+export const BAY_GAP = 0.03;
+/** Height of the arched crown on cabinets and wall units. */
+export const CROWN_HEIGHT = 0.42;
+/** Width of each side tower on a wall unit. */
+export const TOWER_WIDTH = 0.16;
+
+export function getFurnitureStage(count: number): FurnitureStage {
+  let stage = 0;
+  STAGE_THRESHOLDS.forEach((threshold, i) => {
+    if (count >= threshold) stage = i;
+  });
+  return stage as FurnitureStage;
+}
+
+export interface FurnitureLayout {
+  stage: FurnitureStage;
   tiers: number;
   slotsPerTier: number;
-  /** Inner width of the niche. */
-  length: number;
+  /** Bays per tier and the usable width of one bay. */
+  bays: number;
+  runWidth: number;
+  /** Top surface of the first plank. */
+  baseY: number;
   tierHeight: number;
-  /** Clear space under the arch above the top tier. */
-  archSpace: number;
-  /** Inner height of the niche (tiers + arch). */
-  innerHeight: number;
-  /** World height of the niche's outer top. */
+  /** Inner width between the side panels. */
+  length: number;
+  /** Top surface of the carcass (excluding crown and towers). */
   height: number;
+  /** Highest point of the whole piece. */
+  top: number;
+  /** Full footprint along the wall, towers included. */
+  outerWidth: number;
   depth: number;
   /** Packed slot centres (x) and tiers, when real item thicknesses are known. */
   xs?: number[];
@@ -158,87 +201,185 @@ export function itemWidths(category: CategoryId, ids: string[], items: Record<st
 }
 
 /**
- * The niche first grows wider in GROWTH_STEP increments; once a tier is full a new
- * tier spawns and the arch rises. With `widths`, objects are packed by their real
- * thickness (a fat hardcover takes more room than a paperback).
+ * Stage and tier count follow the item count. With `widths`, objects are packed by their
+ * real thickness, bay by bay, tier by tier (a fat hardcover takes more room than a paperback).
  */
-export function getShelfLayout(category: CategoryId, count: number, widths?: number[]): ShelfLayout {
+export function getFurnitureLayout(category: CategoryId, count: number, widths?: number[]): FurnitureLayout {
   const spec = CATEGORY_SPECS[category];
-  const countTiers = Math.max(1, Math.ceil(count / MAX_SLOTS_PER_TIER));
-  const slotsPerTier =
-    countTiers > 1
-      ? MAX_SLOTS_PER_TIER
-      : Math.min(MAX_SLOTS_PER_TIER, Math.max(BASE_SLOTS, Math.ceil((count + 1) / GROWTH_STEP) * GROWTH_STEP));
-  const tierWidth = slotsPerTier * spec.pitch;
-  const length = tierWidth + SIDE_PADDING * 2;
+  const stage = getFurnitureStage(count);
+  const st = STAGES[stage];
+  const need = Math.max(1, count);
 
-  let tiers = countTiers;
+  let tiers = Math.min(st.maxTiers, Math.max(st.minTiers, Math.ceil(need / st.slots)));
+  let slotsPerTier = st.slots;
+  if (tiers * slotsPerTier < need) slotsPerTier = Math.ceil(need / tiers / (st.bay || 4)) * (st.bay || 4);
+  const bays = st.bay ? Math.ceil(slotsPerTier / st.bay) : 1;
+  const runWidth = (st.bay || slotsPerTier) * spec.pitch;
+
   let xs: number[] | undefined;
   let tierOf: number[] | undefined;
+  const length = bays * runWidth + (bays - 1) * BAY_GAP + SIDE_PADDING * 2;
   if (widths) {
     xs = [];
     tierOf = [];
     let tier = 0;
+    let bay = 0;
     let cursor = 0;
     for (const w of widths) {
-      if (cursor > 0 && cursor + w > tierWidth + 1e-6) {
-        tier += 1;
+      if (cursor > 0 && cursor + w > runWidth + 1e-6) {
         cursor = 0;
+        bay += 1;
+        if (bay >= bays) {
+          bay = 0;
+          tier += 1;
+        }
       }
-      xs.push(-length / 2 + SIDE_PADDING + cursor + w / 2);
+      xs.push(-length / 2 + SIDE_PADDING + bay * (runWidth + BAY_GAP) + cursor + w / 2);
       tierOf.push(tier);
       cursor += w;
     }
-    tiers = Math.max(1, tier + 1, countTiers);
+    tiers = Math.max(tiers, tier + 1);
+    // A pedestal shows its few objects centred rather than packed to one side.
+    if (stage === 0 && widths.length) {
+      const used = widths.reduce((sum, w) => sum + w, 0);
+      const shift = Math.max(0, (runWidth - used) / 2);
+      xs = xs.map((x) => x + shift);
+    }
   }
 
-  const tierHeight = spec.size[1] * spec.maxHeightScale + spec.peek + PLANK_THICKNESS + 0.06;
-  const archSpace = Math.min(length / 2, 0.36);
-  const innerHeight = tiers * tierHeight + archSpace;
+  const tierHeight = spec.size[1] * spec.maxHeightScale + spec.peek + PLANK_THICKNESS + 0.07;
+  const height = st.baseY + tiers * tierHeight;
+  const crown = stage >= 3 ? CROWN_HEIGHT : 0;
+  const towers = stage >= 4 ? TOWER_WIDTH * 2 + 0.02 : 0;
   return {
+    stage,
     tiers,
     slotsPerTier,
-    length,
+    bays,
+    runWidth,
+    baseY: st.baseY,
     tierHeight,
-    archSpace,
-    innerHeight,
-    height: NICHE_BASE_Y + innerHeight + NICHE_BORDER,
+    length,
+    height,
+    top: height + crown + (stage >= 4 ? 0.14 : 0),
+    outerWidth: length + SIDE_THICKNESS * 2 + towers,
     depth: spec.size[2] * spec.maxDepthScale + 0.1,
     xs,
     tierOf,
   };
 }
 
-export const nicheOuterWidth = (layout: Pick<ShelfLayout, 'length'>) => layout.length + NICHE_BORDER * 2;
-
 /** Local (zone-space) position of slot `index`. Items rest on their tier plank, against the back. */
 export function getSlotLocalPosition(
   category: CategoryId,
   index: number,
-  layout: ShelfLayout,
+  layout: FurnitureLayout,
   heightScale: number,
   depthScale = 1,
 ): [number, number, number] {
   const spec = CATEGORY_SPECS[category];
   const tier = layout.tierOf?.[index] ?? Math.floor(index / layout.slotsPerTier);
-  const col = index % layout.slotsPerTier;
-  const x = layout.xs?.[index] ?? -layout.length / 2 + SIDE_PADDING + spec.pitch * (col + 0.5);
-  const y = NICHE_BASE_Y + tier * layout.tierHeight + PLANK_THICKNESS + (spec.size[1] * heightScale) / 2;
-  const z = 0.035 + (spec.size[2] * depthScale) / 2;
+  const x = layout.xs?.[index] ?? -layout.length / 2 + SIDE_PADDING + spec.pitch * ((index % layout.slotsPerTier) + 0.5);
+  const y = layout.baseY + tier * layout.tierHeight + (spec.size[1] * heightScale) / 2;
+  const z = 0.04 + (spec.size[2] * depthScale) / 2;
   return [x, y, z];
 }
 
-/** Layout of a niche from the live collection (what the shelf, camera, hero and inspector all use). */
-export function getNicheLayout(category: CategoryId, ids: string[], items: Record<string, PalaceItem>) {
-  return getShelfLayout(category, ids.length, itemWidths(category, ids, items));
+/** Layout from the live collection (what the furniture, camera, hero and inspector all use). */
+export function getCollectionLayout(category: CategoryId, ids: string[], items: Record<string, PalaceItem>) {
+  return getFurnitureLayout(category, ids.length, itemWidths(category, ids, items));
 }
 
 /** Zone transform + slot for an item, as the hero and the inspector need it. */
 export function getSlotWorld(category: CategoryId, id: string, ids: string[], items: Record<string, PalaceItem>, dims: RoomDims) {
-  const layout = getNicheLayout(category, ids, items);
-  const zone = getZoneTransform(category, dims, nicheOuterWidth(layout));
+  const layout = getCollectionLayout(category, ids, items);
+  const zone = getZoneTransform(category, dims, layout.outerWidth);
   const index = Math.max(0, ids.indexOf(id));
   const item = items[id];
   const [, sy, sz] = item ? getItemScale(item) : [1, 1, 1];
   return { zone, layout, position: zoneToWorld(zone, getSlotLocalPosition(category, index, layout, sy, sz)) };
+}
+
+// ---------------------------------------------------------------- Furniture pieces
+export type PieceMaterial = 'lacquer' | 'lining' | 'oak' | 'brass' | 'glow';
+/** box: rounded block · plinth: very soft block · leg: capsule · arch: panel with a round top · archRing: arched frame. */
+export type PieceShape = 'box' | 'plinth' | 'leg' | 'arch' | 'archRing';
+
+export interface FurniturePiece {
+  /** Stable across stages, so a piece morphs instead of popping when the furniture evolves. */
+  id: string;
+  shape: PieceShape;
+  mat: PieceMaterial;
+  center: [number, number, number];
+  size: [number, number, number];
+}
+
+/** Every part of the furniture for a layout, in zone space (back at z = 0, front at z = depth). */
+export function getFurniturePieces(layout: FurnitureLayout): FurniturePiece[] {
+  const { stage, tiers, baseY, tierHeight, length: L, depth: D, height: H } = layout;
+  const T = PLANK_THICKNESS;
+  const S = SIDE_THICKNESS;
+  const W = L + S * 2;
+  const out: FurniturePiece[] = [];
+  const add = (id: string, shape: PieceShape, mat: PieceMaterial, center: [number, number, number], size: [number, number, number]) =>
+    out.push({ id, shape, mat, center, size });
+
+  // Planks: tier i's items stand on plank i; the top plank closes the carcass.
+  const plankY = (i: number) => baseY + i * tierHeight - T / 2;
+  const lastPlank = stage === 0 ? 0 : tiers;
+  for (let i = 0; i <= lastPlank; i++) add(`plank-${i}`, 'box', 'oak', [0, plankY(i), D / 2], [i === lastPlank && stage > 0 ? W + 0.02 : W, T, D + 0.01]);
+
+  // Warm light lines under every upper plank.
+  for (let i = 1; i <= lastPlank; i++) add(`glow-${i}`, 'leg', 'glow', [0, plankY(i) - T / 2 - 0.006, D - 0.03], [L * 0.9, 0.007, 0.007]);
+
+  if (stage === 0) {
+    // Pedestal: a soft plinth and an arched backdrop behind the objects.
+    const h = baseY - T;
+    add('base', 'plinth', 'lacquer', [0, h / 2, D / 2], [W - 0.03, h, D - 0.02]);
+    add('back', 'arch', 'lining', [0, baseY + tierHeight * 0.55, 0.015], [W * 0.9, tierHeight * 1.1, 0.02]);
+    return out;
+  }
+
+  // Back panel of the carcass.
+  add('back', 'box', 'lining', [0, (baseY + H) / 2 - T / 2, 0.012], [L, H - baseY + T, 0.018]);
+
+  if (stage === 1) {
+    // Console: carcass floating on four slim brass legs.
+    const legH = baseY - T;
+    for (const [sx, sz] of [[-1, 0], [1, 0], [-1, 1], [1, 1]] as const) {
+      add(`leg-${sx}-${sz}`, 'leg', 'brass', [sx * (W / 2 - 0.06), legH / 2, sz ? D - 0.06 : 0.06], [0.028, legH, 0.028]);
+    }
+    const sideH = H - baseY + T;
+    add('side-L', 'box', 'lacquer', [-L / 2 - S / 2, baseY - T + sideH / 2, D / 2], [S, sideH, D]);
+    add('side-R', 'box', 'lacquer', [L / 2 + S / 2, baseY - T + sideH / 2, D / 2], [S, sideH, D]);
+    return out;
+  }
+
+  // Stage 2+: full-height carcass on a recessed plinth.
+  add('side-L', 'box', 'lacquer', [-L / 2 - S / 2, H / 2, D / 2], [S, H, D]);
+  add('side-R', 'box', 'lacquer', [L / 2 + S / 2, H / 2, D / 2], [S, H, D]);
+  add('base', 'box', 'lacquer', [0, (baseY - T) / 2, D / 2 - 0.02], [L, baseY - T, D - 0.04]);
+
+  for (let b = 1; b < layout.bays; b++) {
+    const x = -L / 2 + SIDE_PADDING + b * (layout.runWidth + BAY_GAP) - BAY_GAP / 2;
+    add(`div-${b}`, 'box', 'lacquer', [x, (baseY + H) / 2, D / 2], [0.022, H - baseY, D - 0.02]);
+  }
+
+  if (stage >= 3) {
+    // Cabinet: an arch rises from the top plank, lined like the back, framed in lacquer.
+    add('crown-back', 'arch', 'lining', [0, H + CROWN_HEIGHT / 2, 0.012], [W - 0.06, CROWN_HEIGHT, 0.018]);
+    add('crown', 'archRing', 'lacquer', [0, H + CROWN_HEIGHT / 2, D / 2], [W + 0.02, CROWN_HEIGHT, D * 0.6]);
+  }
+
+  if (stage >= 4) {
+    // Wall unit: arched towers on both sides with a vertical light line each.
+    const towerH = H + CROWN_HEIGHT * 0.6;
+    for (const sx of [-1, 1]) {
+      const x = sx * (W / 2 + TOWER_WIDTH / 2 + 0.01);
+      add(`tower-${sx}`, 'arch', 'lacquer', [x, towerH / 2, D / 2], [TOWER_WIDTH, towerH, D + 0.02]);
+      add(`tower-glow-${sx}`, 'leg', 'glow', [x, towerH * 0.45, D + 0.016], [0.007, towerH * 0.62, 0.007]);
+      add(`tower-cap-${sx}`, 'leg', 'brass', [x, towerH + 0.08, D / 2], [0.05, 0.05, 0.05]);
+    }
+  }
+  return out;
 }

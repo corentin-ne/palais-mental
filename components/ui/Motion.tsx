@@ -18,8 +18,7 @@ export function animateLayout(duration = 260) {
 }
 
 /**
- * Enters with a short rise and fade, staggered by `index`. Staggering tells the eye
- * where to start reading and makes lists feel assembled rather than dumped.
+ * Enters with a short rise and fade, staggered by `index`.
  */
 export function FadeIn({
   children,
@@ -55,7 +54,7 @@ export function FadeIn({
   );
 }
 
-/** Number that counts up to its value: small rewards feel earned when you watch them grow. */
+/** Animated number that counts up to its value. */
 export function useCountUp(value: number, duration = 700) {
   const [shown, setShown] = useState(value);
   const from = useRef(value);

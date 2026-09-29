@@ -5,7 +5,7 @@ import { NeutralToneMapping } from 'three';
 
 import { Canvas } from './Canvas';
 import CameraRig from './CameraRig';
-import CategoryShelf from './CategoryShelf';
+import CategoryFurniture from './CategoryFurniture';
 import Effects from './Effects';
 import HeroItemSpawner from './HeroItemSpawner';
 import InspectItem from './InspectItem';
@@ -34,7 +34,7 @@ export default function MentalPalace() {
   const look = useSceneLook();
   const level = usePalaceStore(selectRoomLevel);
   const ambient = usePalaceStore((s) => s.settings.ambient);
-  // Animated (damped) room dimensions, shared by the shell and every niche.
+  // Animated (damped) room dimensions, shared by the shell and every piece of furniture.
   const dimsRef = useRef<RoomDims>(getRoomDims(level));
 
   return (
@@ -45,7 +45,6 @@ export default function MentalPalace() {
       camera={{ fov: 55, near: 0.05, far: 200, position: [0, 1.5, 1] }}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       onCreated={({ gl, invalidate }) => {
-        gl.localClippingEnabled = true; // Hero materialization scan
         gl.toneMapping = NeutralToneMapping; // web: superseded by the composer's ToneMapping pass
         sceneSignals.requestFrame = () => invalidate();
         wakeAmbient(8); // let the room come alive on first open
@@ -60,7 +59,7 @@ export default function MentalPalace() {
       <SunShafts dimsRef={dimsRef} />
       {ambient && <DustMotes dimsRef={dimsRef} />}
       {CATEGORIES.map((category) => (
-        <CategoryShelf key={category} category={category} dimsRef={dimsRef} />
+        <CategoryFurniture key={category} category={category} dimsRef={dimsRef} />
       ))}
       <HeroItemSpawner />
       <InspectItem />

@@ -13,8 +13,8 @@ import { Toast as ToastModel, useUiStore } from '@/store/useUiStore';
 import { usePalaceStore } from '@/store/usePalaceStore';
 
 /**
- * Quiet confirmation with at most one follow-up: "See it" (jump to the object in the
- * palace) or "Undo" (reversible actions need no confirmation dialogs).
+ * Short confirmation with at most one follow-up: "See it" (jump to the object in the
+ * palace) or "Undo" (removal is undone here rather than confirmed up front).
  */
 export default function Toast() {
   const { t } = useTranslation();

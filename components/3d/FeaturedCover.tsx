@@ -6,14 +6,14 @@ import { softBox } from '@/lib/itemGeometry';
 
 interface Props {
   url: string;
-  /** Available box in niche-local space. */
+  /** Available box in furniture-local space. */
   maxWidth: number;
   maxHeight: number;
   position: [number, number, number];
 }
 
 /**
- * The latest cover of a collection, displayed face-out under the niche's arch like a
+ * The latest cover of a collection, displayed face-out on top of its furniture like a
  * record-shop pick. Textures load asynchronously; nothing renders until the image
  * arrives, and a failed load (offline, CORS) simply leaves the arch empty.
  */

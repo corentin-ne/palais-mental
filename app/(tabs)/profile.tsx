@@ -11,12 +11,11 @@ import { Button, Segmented, Toggle } from '@/components/ui/Controls';
 import { FadeIn, useCountUp } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
-import { DECOR_THRESHOLDS, nextDecor, roomProgress, unlockedDecorCount } from '@/lib/milestones';
 import { CATEGORIES, CategoryId } from '@/lib/types';
 import type { LanguagePreference } from '@/locales/i18n';
 import { usePalaceStore } from '@/store/usePalaceStore';
 
-/** Your palace as a whole: how far it has grown, what each niche earns next, what you love most. */
+/** Your palace as a whole: its collections, what you love most, and settings. */
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const { type } = useTheme();
@@ -26,7 +25,6 @@ export default function ProfileScreen() {
   const order = usePalaceStore((s) => s.order);
   const selectItem = usePalaceStore((s) => s.selectItem);
   const total = Object.keys(items).length;
-  const room = roomProgress(total);
 
   const favourites = useMemo(
     () =>
@@ -53,20 +51,15 @@ export default function ProfileScreen() {
             <Text style={styles.big}>{shownTotal}</Text>
             <Text style={type.small}>{t('you.objects', { count: total })}</Text>
           </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.level}>{t('you.room', { level: room.level + 1 })}</Text>
-            <Text style={type.small}>{avg ? t('you.avg', { avg: avg.toFixed(1) }) : ' '}</Text>
-          </View>
+          {avg > 0 && <Text style={type.small}>{t('you.avg', { avg: avg.toFixed(1) })}</Text>}
         </View>
-        <Progress fraction={room.fraction} />
-        <Text style={type.small}>{room.to === null ? t('you.roomMax') : t('you.roomNext', { count: room.remaining })}</Text>
       </FadeIn>
 
       <View style={{ gap: 10 }}>
-        <Text style={type.label}>{t('you.niches')}</Text>
+        <Text style={type.label}>{t('you.collections')}</Text>
         {CATEGORIES.map((c, i) => (
           <FadeIn key={c} index={i + 1}>
-            <NicheRow category={c} count={order[c].length} />
+            <CollectionRow category={c} count={order[c].length} />
           </FadeIn>
         ))}
       </View>
@@ -91,50 +84,19 @@ export default function ProfileScreen() {
   );
 }
 
-function Progress({ fraction, color }: { fraction: number; color?: string }) {
-  const { palette } = useTheme();
-  const styles = useStyles();
-  const w = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.spring(w, { toValue: Math.max(0.02, Math.min(1, fraction)), useNativeDriver: false, damping: 20, stiffness: 120 }).start();
-  }, [fraction, w]);
-  return (
-    <View style={styles.track}>
-      <Animated.View
-        style={[styles.fill, { backgroundColor: color ?? palette.ink, width: w.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }]}
-      />
-    </View>
-  );
-}
-
-function NicheRow({ category, count }: { category: CategoryId; count: number }) {
+function CollectionRow({ category, count }: { category: CategoryId; count: number }) {
   const { t } = useTranslation();
   const { type } = useTheme();
   const styles = useStyles();
   const spec = CATEGORY_SPECS[category];
-  const next = nextDecor(category, count);
-  const unlocked = unlockedDecorCount(count);
-  const prev = unlocked ? DECOR_THRESHOLDS[unlocked - 1] : 0;
   const shown = Math.round(useCountUp(count));
   return (
-    <View style={styles.niche}>
-      <View style={[styles.nicheIcon, { backgroundColor: spec.tint }]}>
+    <View style={styles.row}>
+      <View style={[styles.rowIcon, { backgroundColor: spec.tint }]}>
         <Icon name={category} size={20} color={spec.accent} strokeWidth={2} />
       </View>
-      <View style={{ flex: 1, gap: 6 }}>
-        <View style={styles.rowBetween}>
-          <Text style={type.bodyMedium}>{t(`categories.${category}`)}</Text>
-          <Text style={styles.nicheCount}>{shown}</Text>
-        </View>
-        <Progress fraction={next ? (count - prev) / (next.at - prev) : 1} color={spec.accent} />
-        <Text style={type.small} numberOfLines={1}>
-          {next
-            ? count === 0
-              ? t('you.startNiche')
-              : t('you.nextDecor', { count: next.remaining, object: t(`decor.${next.id}`) })
-            : t('you.nicheComplete')}
-        </Text>
-      </View>
+      <Text style={[type.bodyMedium, { flex: 1 }]}>{t(`categories.${category}`)}</Text>
+      <Text style={styles.rowCount}>{shown}</Text>
     </View>
   );
 }
@@ -201,12 +163,9 @@ const useStyles = makeStyles(({ palette, fonts, radii }) => ({
   card: { backgroundColor: palette.surface, borderRadius: radii.lg, padding: 16, gap: 12, borderWidth: 1, borderColor: palette.hairline },
   rowBetween: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   big: { fontFamily: fonts.bold, fontSize: 44, letterSpacing: -1.8, color: palette.ink, fontVariant: ['tabular-nums'] },
-  level: { fontFamily: fonts.semibold, fontSize: 15, color: palette.ink },
-  track: { height: 6, borderRadius: 3, backgroundColor: palette.field, overflow: 'hidden' },
-  fill: { height: 6, borderRadius: 3 },
-  niche: { flexDirection: 'row', gap: 14, alignItems: 'center', backgroundColor: palette.surface, borderRadius: radii.lg, padding: 14, borderWidth: 1, borderColor: palette.hairline },
-  nicheIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  nicheCount: { fontFamily: fonts.bold, fontSize: 17, color: palette.ink, fontVariant: ['tabular-nums'] },
+  row: { flexDirection: 'row', gap: 14, alignItems: 'center', backgroundColor: palette.surface, borderRadius: radii.lg, padding: 14, borderWidth: 1, borderColor: palette.hairline },
+  rowIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  rowCount: { fontFamily: fonts.bold, fontSize: 17, color: palette.ink, fontVariant: ['tabular-nums'] },
   divider: { height: 1, backgroundColor: palette.hairline },
   confirm: { gap: 12, backgroundColor: palette.dangerTint, borderRadius: radii.md, padding: 14 },
   confirmActions: { flexDirection: 'row', gap: 8, justifyContent: 'flex-end' },

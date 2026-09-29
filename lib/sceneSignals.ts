@@ -5,8 +5,12 @@ import { Vector3 } from 'three';
  * these change every frame and must never trigger React renders.
  */
 export const sceneSignals = {
-  /** True while CameraRig is flying; the hero waits for the camera to land. */
+  /** True while CameraRig is flying. */
   cameraTransitioning: false,
+  /** 0..1 progress of the current camera flight; the hero starts before the camera fully lands. */
+  cameraProgress: 1,
+  /** Items the hero just delivered: the furniture shows them in place and gives a small bounce. */
+  justLanded: new Set<string>(),
   /** World point the depth-of-field keeps sharp (window, shelf, or the live hero). */
   focusPoint: new Vector3(0, 2, -4),
   /**

@@ -14,7 +14,6 @@ import { useHaptics } from '@/hooks/useHaptics';
 import { CatalogResult, TvmazeSeason, fetchSeasons, searchAll, searchCategory } from '@/lib/catalog';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
 import { itemMeta } from '@/lib/format';
-import { decorUnlockedAt, roomProgress } from '@/lib/milestones';
 import { CATEGORIES, CategoryId } from '@/lib/types';
 import { DEFAULT_EPISODES, getSeriesProgress, usePalaceStore } from '@/store/usePalaceStore';
 import { LogDraft, useUiStore } from '@/store/useUiStore';
@@ -225,7 +224,7 @@ function ResultRow({ result, inPalace, onPress }: { result: CatalogResult; inPal
   );
 }
 
-/** Empty query: recent searches and series in progress, so the next addition starts from recognition, not recall. */
+/** Empty query: recent searches and series in progress. */
 function Suggestions({ recent, onPick }: { recent: string[]; onPick: (q: string) => void }) {
   const { t } = useTranslation();
   const { type, palette } = useTheme();
@@ -338,8 +337,6 @@ function ConfirmPane({ draft }: { draft: LogDraft }) {
     if (!title.trim()) return;
     const s = usePalaceStore.getState();
     const onPalace = pathname === '/';
-    const countBefore = s.order[category].length;
-    const totalBefore = Object.keys(s.items).length;
     const { id } = s.addItem(
       category,
       { title, creator, year: year ? Number(year) : undefined, rating, note, coverUrl: draft.coverUrl },
@@ -357,19 +354,8 @@ function ConfirmPane({ draft }: { draft: LogDraft }) {
     haptics.success();
     closeLog();
 
-    // Peak moments: a new decor object or a bigger room beats a plain confirmation.
-    const decor = decorUnlockedAt(category, countBefore + 1);
-    const before = roomProgress(totalBefore);
-    const after = roomProgress(totalBefore + 1);
-    const message =
-      after.level > before.level
-        ? t('toast.roomGrew')
-        : decor && countBefore > 0
-          ? t('toast.decor', { object: t(`decor.${decor}`), category: t(`categories.${category}`) })
-          : awaited
-            ? t('toast.awaited', { title: title.trim() })
-            : t('toast.placed', { title: title.trim() });
-    showToast(message, onPalace ? undefined : { kind: 'see', itemId: id });
+    // In the palace the object's arrival is the confirmation; elsewhere a toast links to it.
+    if (!onPalace) showToast(t(awaited ? 'toast.awaited' : 'toast.placed', { title: title.trim() }), { kind: 'see', itemId: id });
   };
 
   if (existing) {

@@ -4,7 +4,7 @@ import { ToneMappingMode } from 'postprocessing';
 import { useSceneLook } from '@/lib/sceneLook';
 
 /**
- * Web post stack, deliberately crisp: ambient occlusion to seat objects in their niches,
+ * Web post stack: ambient occlusion to seat objects on their furniture,
  * bloom on true highlights only (sun core, light lines, sparkles), Khronos PBR Neutral
  * tone mapping so cover art keeps its real colours, then SMAA. No depth-of-field or
  * vignette haze. Passes only run on rendered frames, so an idle palace costs nothing.

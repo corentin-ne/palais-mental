@@ -12,7 +12,7 @@ export interface SceneLook {
   frame: string;
   lacquer: string;
   lacquerRoughness: number;
-  /** How much of the category accent survives in the niche lining (0–1). */
+  /** How much of the category accent survives in the furniture back panels (0–1). */
   liningAccent: number;
   zenith: string;
   horizon: string;

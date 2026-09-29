@@ -83,9 +83,7 @@
     "logEpisode": "Log episode",
     "newSeason": "Add season {{season}}",
     "episodesLabel": "Episodes",
-    "continue": "Continue watching",
-    "seasonComplete": "Season {{season}} complete",
-    "episode": "Episode {{episode}} of {{total}}"
+    "continue": "Continue watching"
   },
   "focus": {
     "count_one": "{{count}} item",
@@ -152,16 +150,8 @@
     "see": "See it",
     "placed": "“{{title}}” has its place",
     "awaited": "Waiting for “{{title}}”",
-    "decor": "Your {{category}} niche earned {{object}}",
-    "roomGrew": "Your palace just grew a little",
     "removed": "“{{title}}” removed",
     "undo": "Undo"
-  },
-  "palace": {
-    "objects_one": "{{count}} object",
-    "objects_other": "{{count}} objects",
-    "emptyTitle": "Your palace is waiting",
-    "emptyBody": "Tap + and add the first film, book or album that stayed with you."
   },
   "soon": {
     "title": "Soon",
@@ -196,44 +186,8 @@
     "subtitle": "Your mental palace",
     "objects_one": "object in your palace",
     "objects_other": "objects in your palace",
-    "room": "Room {{level}}",
     "avg": "{{avg}} ★ average",
-    "roomNext_one": "{{count}} more object and the room opens up",
-    "roomNext_other": "{{count}} more objects and the room opens up",
-    "roomMax": "Your palace has reached its full size",
-    "niches": "Niches",
-    "nextDecor_one": "{{count}} more to earn {{object}}",
-    "nextDecor_other": "{{count}} more to earn {{object}}",
-    "startNiche": "Add one to furnish this niche",
-    "nicheComplete": "Fully furnished",
+    "collections": "Collections",
     "favourites": "Most loved"
-  },
-  "decor": {
-    "plant": "a plant",
-    "clapper": "a clapperboard",
-    "popcorn": "a popcorn box",
-    "reel": "a film reel",
-    "projector": "a projector",
-    "remote": "a remote",
-    "tv": "a little TV",
-    "mug": "a mug",
-    "headphones": "headphones",
-    "speaker": "a speaker",
-    "turntable": "a turntable",
-    "cassette": "a cassette",
-    "bookends": "bookends",
-    "lamp": "a reading lamp",
-    "glasses": "reading glasses",
-    "candle": "a candle",
-    "dice": "dice",
-    "meeples": "meeples",
-    "hourglass": "an hourglass",
-    "trophy": "a trophy",
-    "controller": "a controller",
-    "cartridge": "a cartridge",
-    "console": "a console"
-  },
-  "hero": {
-    "placed": "Placed in {{category}}"
   }
 }

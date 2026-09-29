@@ -83,9 +83,7 @@
     "logEpisode": "Ajouter un épisode",
     "newSeason": "Ajouter la saison {{season}}",
     "episodesLabel": "Épisodes",
-    "continue": "Reprendre",
-    "seasonComplete": "Saison {{season}} terminée",
-    "episode": "Épisode {{episode}} sur {{total}}"
+    "continue": "Reprendre"
   },
   "focus": {
     "count_one": "{{count}} objet",
@@ -152,16 +150,8 @@
     "see": "Voir",
     "placed": "« {{title}} » a trouvé sa place",
     "awaited": "En attente de « {{title}} »",
-    "decor": "Votre niche {{category}} a gagné {{object}}",
-    "roomGrew": "Votre palais vient de s'agrandir",
     "removed": "« {{title}} » retiré",
     "undo": "Annuler"
-  },
-  "palace": {
-    "objects_one": "{{count}} objet",
-    "objects_other": "{{count}} objets",
-    "emptyTitle": "Votre palais vous attend",
-    "emptyBody": "Touchez + et ajoutez le premier film, livre ou album qui vous a marqué."
   },
   "soon": {
     "title": "Bientôt",
@@ -196,44 +186,8 @@
     "subtitle": "Votre palais mental",
     "objects_one": "objet dans votre palais",
     "objects_other": "objets dans votre palais",
-    "room": "Pièce {{level}}",
     "avg": "{{avg}} ★ en moyenne",
-    "roomNext_one": "Encore {{count}} objet et la pièce s'agrandit",
-    "roomNext_other": "Encore {{count}} objets et la pièce s'agrandit",
-    "roomMax": "Votre palais a atteint sa taille maximale",
-    "niches": "Niches",
-    "nextDecor_one": "Encore {{count}} pour gagner {{object}}",
-    "nextDecor_other": "Encore {{count}} pour gagner {{object}}",
-    "startNiche": "Ajoutez-en un pour meubler cette niche",
-    "nicheComplete": "Entièrement meublée",
+    "collections": "Collections",
     "favourites": "Coups de cœur"
-  },
-  "decor": {
-    "plant": "une plante",
-    "clapper": "un clap",
-    "popcorn": "un pot de pop-corn",
-    "reel": "une bobine",
-    "projector": "un projecteur",
-    "remote": "une télécommande",
-    "tv": "une petite télé",
-    "mug": "un mug",
-    "headphones": "un casque",
-    "speaker": "une enceinte",
-    "turntable": "une platine",
-    "cassette": "une cassette",
-    "bookends": "des serre-livres",
-    "lamp": "une lampe de lecture",
-    "glasses": "des lunettes",
-    "candle": "une bougie",
-    "dice": "des dés",
-    "meeples": "des meeples",
-    "hourglass": "un sablier",
-    "trophy": "un trophée",
-    "controller": "une manette",
-    "cartridge": "une cartouche",
-    "console": "une console"
-  },
-  "hero": {
-    "placed": "Placé dans {{category}}"
   }
 }

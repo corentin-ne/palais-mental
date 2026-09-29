@@ -8,10 +8,6 @@ import MentalPalace from '@/components/3d/MentalPalace';
 import SafeBoundary from '@/components/ui/SafeBoundary';
 import FocusCard from '@/components/ui/FocusCard';
 import Glass from '@/components/ui/Glass';
-import HeroCaption from '@/components/ui/HeroCaption';
-import { FadeIn } from '@/components/ui/Motion';
-import { roomProgress } from '@/lib/milestones';
-import { useUiStore } from '@/store/useUiStore';
 import Icon, { IconName } from '@/components/ui/Icon';
 import PressableScale from '@/components/ui/PressableScale';
 import { makeStyles, useTheme } from '@/constants/theme';
@@ -26,7 +22,7 @@ const SWIPE_DISTANCE = 56;
 
 /**
  * Your collection as a place. The camera stands in the room at eye level; the chips,
- * a swipe, or a tap on a niche turns it toward a collection. Tap an object to lift it
+ * a swipe, or a tap on a piece of furniture turns it toward a collection. Tap an object to lift it
  * out and open it.
  */
 export default function PalaceScreen() {
@@ -97,12 +93,7 @@ export default function PalaceScreen() {
           })}
         </ScrollView>
 
-        <View pointerEvents="none" style={styles.caption}>
-          <HeroCaption />
-        </View>
-
         <View pointerEvents="box-none" style={styles.bottom}>
-          {focus === 'window' && !selectedId && <WindowCard />}
           {focus !== 'window' && !selectedId && (
             <FocusCard
               category={focus}
@@ -119,51 +110,10 @@ export default function PalaceScreen() {
   );
 }
 
-/** At the window: how big the palace is and how close the next room is (goal gradient). */
-function WindowCard() {
-  const { t } = useTranslation();
-  const { palette, type } = useTheme();
-  const styles = useStyles();
-  const total = usePalaceStore((s) => Object.keys(s.items).length);
-  const openSearch = useUiStore((s) => s.openSearch);
-  const room = roomProgress(total);
-  return (
-    <FadeIn delay={400}>
-      <Glass radius={22} contentStyle={styles.windowCard}>
-        {total === 0 ? (
-          <PressableScale onPress={() => openSearch('all')} style={styles.windowRow} depth={0.98}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={type.heading}>{t('palace.emptyTitle')}</Text>
-              <Text style={type.small}>{t('palace.emptyBody')}</Text>
-            </View>
-            <Icon name="chevronRight" size={20} color={palette.inkSoft} />
-          </PressableScale>
-        ) : (
-          <View style={{ gap: 8 }}>
-            <View style={styles.windowRow}>
-              <Text style={type.heading}>{t('palace.objects', { count: total })}</Text>
-              <Text style={type.small}>{t('you.room', { level: room.level + 1 })}</Text>
-            </View>
-            <View style={styles.track}>
-              <View style={[styles.fill, { width: `${Math.max(3, room.fraction * 100)}%` }]} />
-            </View>
-            <Text style={type.small}>{room.to === null ? t('you.roomMax') : t('you.roomNext', { count: room.remaining })}</Text>
-          </View>
-        )}
-      </Glass>
-    </FadeIn>
-  );
-}
-
 const useStyles = makeStyles(({ palette, fonts }) => ({
-  windowCard: { padding: 14 },
-  windowRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  track: { height: 5, borderRadius: 3, backgroundColor: palette.field, overflow: 'hidden' },
-  fill: { height: 5, borderRadius: 3, backgroundColor: palette.ink },
   root: { flex: 1, backgroundColor: palette.bg },
   chips: { paddingHorizontal: 16, gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14 },
   chipText: { fontFamily: fonts.semibold, fontSize: 13.5, color: palette.inkSoft },
-  caption: { paddingTop: 16, alignItems: 'center' },
   bottom: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: 16, width: '100%', maxWidth: 560, alignSelf: 'center' },
 }));
