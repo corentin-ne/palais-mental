@@ -70,7 +70,7 @@ jobs:
           path: palais-mental-*.apk
 
       - name: Publish release
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.name }}
