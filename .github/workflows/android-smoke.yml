@@ -48,7 +48,7 @@ jobs:
       - name: Keep the APK, drop build files
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk smoke.apk
-          rm -rf android node_modules ~/.gradle ~/.npm
+          rm -rf android node_modules ~/.gradle
           df -h /
 
       - name: Enable KVM
