@@ -20,6 +20,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import type { RoomDimsRef } from './MentalPalace';
 import FeaturedCover from './FeaturedCover';
+import FurnitureTop from './FurnitureTop';
 import { CategoryId, PalaceItem } from '@/lib/types';
 import { CATEGORY_SPECS, getItemColor, getItemScale } from '@/lib/itemVisuals';
 import { BODY_ROUGHNESS, getItemParts } from '@/lib/itemGeometry';
@@ -401,6 +402,8 @@ export default function CategoryFurniture({ category, dimsRef }: Props) {
             visible={false}
           />
         ))}
+
+        <FurnitureTop layout={layout} />
 
         {featuredUrl && coverBox && (
           <FeaturedCover url={featuredUrl} maxWidth={coverBox.w} maxHeight={coverBox.h} position={[0, layout.height + 0.004, layout.depth * 0.42]} />

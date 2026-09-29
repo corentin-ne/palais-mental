@@ -5,8 +5,12 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "outDir": ".test-build"
   },
-  "files": ["tests/catalog.test.ts"]
+  "include": [
+    "tests/*.ts"
+  ]
 }

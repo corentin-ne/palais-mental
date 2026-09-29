@@ -61,7 +61,7 @@ export default function FeaturedCover({ url, maxWidth, maxHeight, position }: Pr
     () => ({
       board: softBox(size.w + 0.008, size.h + 0.008, 0.01, 0.4, 2),
       boardMat: new MeshStandardMaterial({ color: '#FFFFFF', roughness: 0.5 }),
-      artMat: new MeshBasicMaterial({ map: texture ?? undefined, toneMapped: false }),
+      artMat: new MeshBasicMaterial(texture ? { map: texture, toneMapped: false } : { visible: false }),
     }),
     [size.w, size.h, texture],
   );

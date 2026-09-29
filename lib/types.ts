@@ -15,6 +15,8 @@ export interface BaseItem {
   note?: string;
   /** Artwork from the catalog (poster, book cover, album art, box art). */
   coverUrl?: string;
+  /** Dominant colour of the artwork (#rrggbb), used to tint the object in the palace. */
+  coverColor?: string;
   /** Where the metadata came from, so a second log of the same title is recognized. */
   source?: ItemSource;
   /** Release date of the work (ms). In the future → the item is awaited, and you get notified. */

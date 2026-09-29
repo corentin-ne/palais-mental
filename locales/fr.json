@@ -73,7 +73,8 @@
     "yearPlaceholder": "Année",
     "outOn": "Sortie {{date}}",
     "nextEpisode": "Prochain : {{code}}",
-    "willNotify": "Vous serez prévenu ce jour-là"
+    "willNotify": "Vous serez prévenu ce jour-là",
+    "changeArtwork": "Changer l’illustration"
   },
   "series": {
     "progress": "S{{season}} · {{watched}}/{{total}}",

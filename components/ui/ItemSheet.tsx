@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { usePathname } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
@@ -10,6 +10,7 @@ import PressableScale from './PressableScale';
 import { Button, RatingStars, Ring, Stepper } from './Controls';
 import { noOutline, makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
+import { findCoverCandidates } from '@/lib/catalog';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
 import { isAwaited } from '@/lib/releases';
 import { FadeIn, Pop } from './Motion';
@@ -59,6 +60,7 @@ function ItemBody({ item, compact }: { item: PalaceItem; compact: boolean }) {
   const [creator, setCreator] = useState(item.creator ?? '');
   const [year, setYear] = useState(item.year ? String(item.year) : '');
   const [note, setNote] = useState(item.note ?? '');
+  const [picking, setPicking] = useState(false);
 
   const commit = () => updateItem(item.id, { title, creator, year: year ? Number(year) : undefined, note });
   const awaited = isAwaited(item);
@@ -77,7 +79,11 @@ function ItemBody({ item, compact }: { item: PalaceItem; compact: boolean }) {
       </View>
 
       <View style={styles.hero}>
-        {!compact && <CoverArt uri={item.coverUrl} title={item.title} category={item.category} width={112} />}
+        {!compact && (
+          <PressableScale onPress={() => setPicking((p) => !p)} depth={0.96} accessibilityLabel={t('item.changeArtwork')}>
+            <CoverArt uri={item.coverUrl} title={item.title} category={item.category} width={112} />
+          </PressableScale>
+        )}
         <View style={{ flex: 1, gap: 4 }}>
           <TextInput
             value={title}
@@ -123,6 +129,17 @@ function ItemBody({ item, compact }: { item: PalaceItem; compact: boolean }) {
         </View>
       </View>
 
+      {picking && !compact && (
+        <ArtworkPicker
+          item={item}
+          onPick={(coverUrl) => {
+            haptics.select();
+            updateItem(item.id, { coverUrl });
+            setPicking(false);
+          }}
+        />
+      )}
+
       {(awaited || item.nextEpisode) && (
         <FadeIn style={styles.release}>
           <Icon name="bell" size={18} />
@@ -163,6 +180,38 @@ function ItemBody({ item, compact }: { item: PalaceItem; compact: boolean }) {
         <Text style={styles.removeText}>{t('item.remove')}</Text>
       </PressableScale>
     </>
+  );
+}
+
+/** Every cover the catalog knows for this title, in one scrolling row; tap one to use it. */
+function ArtworkPicker({ item, onPick }: { item: PalaceItem; onPick: (url: string) => void }) {
+  const { palette } = useTheme();
+  const styles = useStyles();
+  const { i18n } = useTranslation();
+  const [urls, setUrls] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    findCoverCandidates(item.category, item.title, { lang: i18n.language }).then((list) => alive && setUrls(list));
+    return () => {
+      alive = false;
+    };
+  }, [item.category, item.title, i18n.language]);
+
+  if (!urls) return <ActivityIndicator color={palette.inkSoft} style={{ alignSelf: 'flex-start' }} />;
+  if (!urls.length) return null;
+  return (
+    <FadeIn>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.artwork} style={{ marginHorizontal: -20 }}>
+        {urls.map((url, i) => (
+          <FadeIn key={url} index={i}>
+            <PressableScale onPress={() => onPick(url)} depth={0.94} style={url === item.coverUrl ? styles.artworkActive : undefined}>
+              <CoverArt uri={url} title={item.title} category={item.category} width={72} radius={8} />
+            </PressableScale>
+          </FadeIn>
+        ))}
+      </ScrollView>
+    </FadeIn>
   );
 }
 
@@ -253,6 +302,8 @@ const useStyles = makeStyles(({ palette, fonts, radii }) => ({
     minHeight: 76,
     textAlignVertical: 'top',
   },
+  artwork: { paddingHorizontal: 20, gap: 10, alignItems: 'flex-end' },
+  artworkActive: { borderRadius: 10, borderWidth: 2, borderColor: palette.ink, padding: 2 },
   remove: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 12 },
   removeText: { fontFamily: fonts.semibold, fontSize: 14, color: palette.danger },
   confirm: { gap: 12, backgroundColor: palette.dangerTint, borderRadius: radii.md, padding: 14 },

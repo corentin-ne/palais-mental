@@ -10,6 +10,7 @@ Universal Expo app (iOS, Android, Web) · Expo Router · React Three Fiber · Zu
 npm install
 npm run android   # or: npm run ios / npm run web
 npm run typecheck
+npm test          # catalog parsers and cover colours, with fixtures
 ```
 
 **Test on a phone without a dev setup:** download the APK from the latest [GitHub release](../../releases). Every `v*` tag is built by `.github/workflows/android-release.yml`.
@@ -17,15 +18,16 @@ npm run typecheck
 ## What you can do
 
 - **Palace (home).** The room itself is the menu. The window is home; a chip, a swipe or a tap on a piece of furniture turns your head toward a collection. Tap an object to lift it out, drag to turn it, and edit it in place.
-- **Add in a few taps.** Tap **+**, type a few letters, tap the right cover. Metadata and artwork come from free, keyless catalogs, queried in parallel and merged:
-  - films: iTunes and Wikipedia
-  - series: TVmaze (seasons, episode counts, next episodes) and iTunes
-  - albums: iTunes, Deezer, and MusicBrainz with the Cover Art Archive
-  - books: Google Books and Open Library
-  - video games: Steam and Wikipedia
-  - board games: Wikipedia
+- **Add in a few taps.** Tap **+**, type a few letters, tap the right cover. Metadata and artwork come from free, keyless catalogs, queried in parallel and merged (a later source fills a missing cover or year):
+  - films: iTunes, IMDb suggestions, MyAnimeList (Jikan), Wikidata and Wikipedia
+  - series: TVmaze (seasons, episode counts, next episodes), IMDb suggestions, iTunes, MyAnimeList and Wikidata
+  - albums: iTunes, Deezer, MusicBrainz with the Cover Art Archive, and Wikipedia
+  - books: Google Books, Open Library, Apple Books, MyAnimeList (manga), Gutendex and Wikidata
+  - video games: Steam, GOG, IMDb suggestions, Wikipedia and Wikidata
+  - board games: BoardGameGeek, Wikipedia and Wikidata
 
-  Manual entry is always one row away.
+  Manual entry is always one row away. The same request made by several collections (the "Everything" search) goes out once.
+- **Artwork everywhere.** Objects without a cover are looked up in the background. Tap the cover in an object's sheet to choose among every artwork the catalogs know. On the web, each object takes the dominant colour of its cover on the shelf.
 - **Library.** The whole collection as a wall of covers, with search, filters and sorting.
 - **Soon.** The only place where time appears: new episodes of your series (followed through TVmaze) and release days of things you added before they came out, with optional local notifications.
 - **You.** Your collections, your favourites, and settings.
@@ -39,7 +41,7 @@ npm run typecheck
 
 ## The 3D palace
 
-- **Room.** One cornerless lathe surface (floor, cove, round wall, dome) with an arched window cut in the shader, a window seat, plants and a rug.
+- **Room.** One cornerless lathe surface (floor, cove, round wall, dome) with an arched window cut in the shader. The floor is procedural light-oak parquet (per-plank tone, grain, knots, seams) finished with an oak skirting. Around it: sheer curtains on a brass rod, a window seat, a paper lantern, a reading corner (bouclé armchair, floor lamp, side table), a coffee table on the rug, four framed prints drawn by a shader, and plants.
 - **Furniture.** Each collection stands on the flat floor in front of the curved wall, in cream lacquer, pastel back panels, oak planks and brass. It evolves with the collection:
 
   | Objects | Shape |
@@ -50,7 +52,7 @@ npm run typecheck
   | 36–71 | cabinet crowned by an arch |
   | 72+ | wall unit flanked by arched towers |
 
-  Parts keep stable ids across stages and are driven by springs, so an evolution morphs instead of swapping models. Each part is rebuilt at its exact size, so rounded corners never stretch.
+  A vase, then a plant, then candles gather on top as it evolves. Parts keep stable ids across stages and are driven by springs, so an evolution morphs instead of swapping models. Each part is rebuilt at its exact size, so rounded corners never stretch.
 - **Objects.** Two parts per object (a tinted body plus vertex-coloured trims), drawn with two instanced draw calls per collection. Every object has its own stable proportions, so a shelf never looks uniform:
   - books: paperbacks and hardcovers of varied thickness and height
   - music: occasional double LPs
@@ -60,7 +62,7 @@ npm run typecheck
   - series: the box gets thicker with every season
 
   Furniture packs objects by their real thickness, bay by bay.
-- **Arrival.** A new object is born in the centre of the screen: light spirals into a small pearl, the pearl collapses, and the object unwinds out of it with an elastic pop and a ring of light, then flies to its slot. The furniture gives a small bounce as it lands.
+- **Arrival.** A new object is born in the centre of the screen: light spirals into a small pearl, the pearl collapses, and the object unwinds out of it with an elastic pop and a ring of light, showing its real cover, then flies to its slot. The furniture gives a small bounce as it lands.
 - **Rendering.** `frameloop="demand"`: an idle palace draws nothing. Ambient dust and cloud drift run only briefly after an interaction. Web adds ambient occlusion and bloom on true highlights.
 
 ## Structure
@@ -69,7 +71,9 @@ npm run typecheck
 app/(tabs)/              index (palace) · library · soon · profile (You) · _layout (tabs, sheets, release sync)
 components/3d/           MentalPalace, CameraRig, CategoryFurniture, FeaturedCover, HeroItemSpawner, InspectItem, environment/…
 components/ui/           LogFlow (search → confirm), ItemSheet, TabBar, Toast, Motion, CoverArt, Glass, Sheet, Controls, Icon…
-lib/catalog.ts           free catalog providers + pure, tested parsers + merge
+lib/catalog.ts           free catalog providers + pure, tested parsers + merge + cover matching
+lib/covers.ts            background artwork lookup and cover colours
+lib/coverColor.ts        dominant colour of a cover (web)
 lib/releases.ts          next episodes, awaited releases, local notifications
 lib/furnitureGeometry.ts soft furniture parts (rounded blocks, capsules, arches)
 lib/palaceLayout.ts      round room, zones, furniture stages, parts and packing

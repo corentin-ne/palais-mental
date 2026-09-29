@@ -731,6 +731,25 @@ export function pickCover(results: CatalogResult[], title: string, creator?: str
   return best?.coverUrl;
 }
 
+/** Every distinct artwork found for a title, best matches first (for choosing a cover by hand). */
+export function rankCovers(results: CatalogResult[], title: string): string[] {
+  const t = strip(title);
+  const score = (r: CatalogResult) => {
+    const rt = strip(r.title);
+    return rt === t ? 0 : rt.startsWith(t) || t.startsWith(rt) ? 1 : 2;
+  };
+  const urls = results
+    .filter((r) => r.coverUrl)
+    .map((r, i) => ({ url: r.coverUrl!, s: score(r), i }))
+    .sort((a, b) => a.s - b.s || a.i - b.i)
+    .map((r) => r.url);
+  return [...new Set(urls)];
+}
+
+export async function findCoverCandidates(category: CategoryId, title: string, opts: { lang: string; fetcher?: Fetcher } = { lang: 'en' }) {
+  return rankCovers(await searchCategory(category, title, { ...opts, limit: 30 }), title).slice(0, 16);
+}
+
 /** Look up artwork for an object that has none (added by hand, or from a source without images). */
 export async function findCover(
   category: CategoryId,

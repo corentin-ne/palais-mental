@@ -18,6 +18,7 @@ import {
   parseWikidataSearch,
   personName,
   pickCover,
+  rankCovers,
   searchCategory,
 } from '../lib/catalog';
 
@@ -138,4 +139,9 @@ test('one failing provider never breaks a search', async () => {
   const results = await searchCategory('boardgames', 'catan', { lang: 'en', fetcher });
   assert.equal(results[0].title, 'Catan');
   assert.equal(results[0].coverUrl, 'https://x/c.jpg');
+});
+
+test('rankCovers lists distinct artwork, exact titles first', () => {
+  const r = (title: string, coverUrl?: string): CatalogResult => ({ key: title + coverUrl, category: 'movies', title, coverUrl, source: { provider: 'manual', id: '' } });
+  assert.deepEqual(rankCovers([r('Dune Part Two', 'b'), r('Dune', 'a'), r('Dune', 'a'), r('Other', 'c'), r('Dune')], 'Dune'), ['a', 'b', 'c']);
 });

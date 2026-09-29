@@ -208,7 +208,9 @@ export const usePalaceStore = create<PalaceState>()(
         if (!item) return;
         const clean = cleanDetails(patch);
         if (clean.title !== undefined && !clean.title) delete clean.title; // never blank a title
-        set((s) => ({ items: { ...s.items, [id]: { ...item, ...clean, updatedAt: Date.now() } as PalaceItem } }));
+        // New artwork means a new colour, recomputed in the background (lib/covers).
+        const recolor = clean.coverUrl !== undefined && clean.coverUrl !== item.coverUrl ? { coverColor: undefined } : {};
+        set((s) => ({ items: { ...s.items, [id]: { ...item, ...clean, ...recolor, updatedAt: Date.now() } as PalaceItem } }));
       },
 
       setNextEpisode: (id, next) => {

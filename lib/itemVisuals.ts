@@ -99,7 +99,9 @@ export function hashString(str: string): number {
   return h >>> 0;
 }
 
-export function getItemColor(item: Pick<PalaceItem, 'id' | 'category'>): string {
+/** The object's colour: taken from its artwork when known, otherwise from the collection's palette. */
+export function getItemColor(item: Pick<PalaceItem, 'id' | 'category'> & { coverColor?: string }): string {
+  if (item.coverColor) return item.coverColor;
   const { palette } = CATEGORY_SPECS[item.category];
   return palette[hashString(item.id) % palette.length];
 }

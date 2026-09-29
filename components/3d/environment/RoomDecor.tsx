@@ -23,7 +23,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 import type { RoomDimsRef } from '../MentalPalace';
 import { buildPlant } from './RoomShell';
-import { COVE_RADIUS } from '@/lib/palaceLayout';
+import { COVE_RADIUS, WINDOW, WINDOW_TOP } from '@/lib/palaceLayout';
 import { softBox } from '@/lib/itemGeometry';
 import { artFragment, artVertex } from '@/shaders/art';
 
@@ -161,6 +161,23 @@ function buildPendant(drop: number) {
   return { lantern, ribs, cord };
 }
 
+/** A sheer linen panel with soft vertical pleats, hanging from y = top down to the floor. */
+function buildCurtain(width: number, top: number, pleats: number) {
+  const geo = new PlaneGeometry(width, top - 0.03, 64, 8);
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i);
+    const y = p.getY(i);
+    const u = (x / width + 0.5) * pleats * Math.PI * 2;
+    // Pleats are deeper at the bottom, where the fabric falls freely.
+    const depth = 0.018 + 0.02 * (0.5 - y / (top - 0.03));
+    p.setZ(i, Math.sin(u) * depth);
+  }
+  geo.translate(0, (top - 0.03) / 2 + 0.03, 0);
+  geo.computeVertexNormals();
+  return geo;
+}
+
 // ------------------------------------------------------------------ Placement
 /** Angles clockwise from the window, like the furniture zones (see palaceLayout ZONE_ANGLES). */
 const READING_CORNER = 180;
@@ -183,15 +200,16 @@ interface Props {
 }
 
 /**
- * The lived-in part of the room, placed in the gaps between the collections: a reading
- * corner opposite the window, a coffee table on the rug, a paper lantern, framed prints
- * on the wall and two tall plants. Everything follows the room as it grows.
+ * The lived-in part of the room, placed in the gaps between the collections: curtains at
+ * the window, a reading corner opposite it, a coffee table on the rug, a paper lantern,
+ * framed prints on the wall and two tall plants. Everything follows the room as it grows.
  */
 export default function RoomDecor({ dimsRef }: Props) {
   const corner = useRef<Group>(null);
   const coffee = useRef<Group>(null);
   const pendant = useRef<Group>(null);
   const skirting = useRef<Group>(null);
+  const windowDressing = useRef<Group>(null);
   const art = useRef<(Group | null)[]>([]);
   const plants = useRef<(Group | null)[]>([]);
   const lastRadius = useRef(0);
@@ -203,6 +221,10 @@ export default function RoomDecor({ dimsRef }: Props) {
     const table = buildCoffeeTable();
     const hanging = buildPendant(4.5);
     const plant = buildPlant(15, 1.25, 0.15, 71);
+    const rodY = WINDOW_TOP + 0.22;
+    const curtain = buildCurtain(0.62, rodY - 0.02, 7);
+    const rod = put(new CylinderGeometry(0.012, 0.012, (WINDOW.halfWidth + 0.75) * 2, 12), [0, rodY, 0], [0, 0, Math.PI / 2]);
+    const finials = merge([-1, 1].map((sx) => put(new SphereGeometry(0.026, 16, 12), [sx * (WINDOW.halfWidth + 0.76), rodY, 0])));
     // Unit-radius oak skirting ring, scaled to the edge of the parquet.
     const skirtingGeo = new CylinderGeometry(1, 1, 0.07, 160, 1, true);
     const artMats = ART.map(
@@ -220,6 +242,16 @@ export default function RoomDecor({ dimsRef }: Props) {
       painted: new MeshStandardMaterial({ vertexColors: true, roughness: 0.75 }),
       oak: new MeshStandardMaterial({ color: '#D8B88E', roughness: 0.5 }),
       // Seen from inside the ring.
+      linenSheer: new MeshStandardMaterial({
+        color: '#EFDFCB',
+        roughness: 1,
+        side: DoubleSide,
+        transparent: true,
+        opacity: 0.9,
+        emissive: '#FFE3BF',
+        emissiveIntensity: 0.12,
+        depthWrite: false,
+      }),
       skirting: new MeshStandardMaterial({ color: '#D2B088', roughness: 0.55, side: DoubleSide }),
       brass: new MeshStandardMaterial({ color: '#C9A56A', metalness: 0.9, roughness: 0.3 }),
       linen: new MeshStandardMaterial({ color: '#FBF4E8', roughness: 0.9, side: DoubleSide, emissive: '#FFD9A6', emissiveIntensity: 0.55 }),
@@ -234,7 +266,7 @@ export default function RoomDecor({ dimsRef }: Props) {
       leaf: new MeshStandardMaterial({ color: '#8FBC8B', roughness: 0.55, side: DoubleSide }),
       plantStem: new MeshStandardMaterial({ color: '#7FA36E', roughness: 0.7 }),
     };
-    return { armchair, lamp, side, table, hanging, plant, skirtingGeo, artMats, frameGeos, artGeos, mats };
+    return { armchair, lamp, side, table, hanging, plant, curtain, rod, finials, skirtingGeo, artMats, frameGeos, artGeos, mats };
   }, []);
 
   useEffect(
@@ -247,6 +279,9 @@ export default function RoomDecor({ dimsRef }: Props) {
         ...Object.values(res.hanging),
         ...Object.values(res.plant),
         res.skirtingGeo,
+        res.curtain,
+        res.rod,
+        res.finials,
         ...res.frameGeos,
         ...res.artGeos,
       ];
@@ -263,6 +298,8 @@ export default function RoomDecor({ dimsRef }: Props) {
     lastRadius.current = radius;
     const floorEdge = radius - COVE_RADIUS;
     skirting.current?.scale.set(floorEdge + 0.01, 1, floorEdge + 0.01);
+    // Just inside the wall, in front of the window frame.
+    windowDressing.current?.position.set(0, 0, -radius + 0.2);
 
     if (corner.current) {
       corner.current.position.set(...polar(READING_CORNER, floorEdge - 0.55));
@@ -293,6 +330,15 @@ export default function RoomDecor({ dimsRef }: Props) {
       {/* Oak skirting where the parquet meets the curved wall */}
       <group ref={skirting} position-y={0.035}>
         <mesh geometry={res.skirtingGeo} material={mats.skirting} />
+      </group>
+
+      {/* Sheer curtains on a brass rod, drawn to either side of the window */}
+      <group ref={windowDressing}>
+        <mesh geometry={res.rod} material={mats.brass} />
+        <mesh geometry={res.finials} material={mats.brass} />
+        {[-1, 1].map((sx) => (
+          <mesh key={sx} geometry={res.curtain} material={mats.linenSheer} position-x={sx * (WINDOW.halfWidth + 0.42)} renderOrder={3} />
+        ))}
       </group>
 
       {/* Reading corner: armchair, floor lamp, side table */}
