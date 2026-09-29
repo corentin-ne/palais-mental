@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import MentalPalace from '@/components/3d/MentalPalace';
+import SafeBoundary from '@/components/ui/SafeBoundary';
 import FocusCard from '@/components/ui/FocusCard';
 import Glass from '@/components/ui/Glass';
 import HeroCaption from '@/components/ui/HeroCaption';
@@ -73,7 +74,9 @@ export default function PalaceScreen() {
   return (
     <View style={styles.root}>
       <View style={StyleSheet.absoluteFill} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-        <MentalPalace />
+        <SafeBoundary label="palace" fallback={null}>
+          <MentalPalace />
+        </SafeBoundary>
       </View>
 
       <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 104 }]}>

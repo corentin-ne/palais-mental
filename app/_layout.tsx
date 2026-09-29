@@ -12,6 +12,7 @@ import {
 } from '@expo-google-fonts/instrument-sans';
 import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
 
+import SafeBoundary from '@/components/ui/SafeBoundary';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useLanguageSync } from '@/hooks/useLanguageSync';
 
@@ -31,9 +32,9 @@ export default function RootLayout() {
   if (!loaded && !error) return <View style={{ flex: 1, backgroundColor: palette.bg }} />;
 
   return (
-    <>
+    <SafeBoundary>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.bg } }} />
-    </>
+    </SafeBoundary>
   );
 }
