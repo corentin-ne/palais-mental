@@ -9,11 +9,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import i18n from '@/locales/i18n';
 import { findCover } from './catalog';
+import { CATALOG } from '@/config/catalog';
 import { extractCoverColor } from './coverColor';
 import { usePalaceStore } from '@/store/usePalaceStore';
 
 const MISSES_KEY = 'palais-mental/cover-misses';
-const RETRY_AFTER = 3 * 86_400_000;
+const RETRY_AFTER = CATALOG.coverRetryAfter;
 
 let running = false;
 /** Covers whose colour could not be read this session (no CORS, broken image). */

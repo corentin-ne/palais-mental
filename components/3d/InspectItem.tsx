@@ -80,7 +80,7 @@ function Inspected({ item }: { item: PalaceItem }) {
     const scale = getItemScale(item);
     const hs = scale[1];
     const dims = getRoomDims(getRoomLevel(Object.keys(s.items).length));
-    const { zone, position } = getSlotWorld(item.category, item.id, order, s.items, dims);
+    const { zone, position } = getSlotWorld(item.category, item.id, s, dims);
     _slot.set(...position);
     _qSlot.setFromAxisAngle(Y_AXIS, zone.rotationY);
 

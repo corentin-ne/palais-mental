@@ -32,16 +32,18 @@ import {
   getCollectionLayout,
   getFurniturePieces,
   getSlotLocalPosition,
-  getZoneTransform,
+  getZoneAngle,
+  getZoneWidths,
+  zoneTransformAt,
 } from '@/lib/palaceLayout';
 import { Spring, safeDelta, spring, springSettled, stepSpring } from '@/lib/easing';
+import { FURNITURE_MATERIALS } from '@/config/furniture';
+import { withSurface } from '@/lib/materialPatches';
 import { useSceneLook } from '@/lib/sceneLook';
 import { sceneSignals } from '@/lib/sceneSignals';
 import { usePalaceStore } from '@/store/usePalaceStore';
 
 const CAPACITY_CHUNK = 64;
-const OAK = '#E8D0AE';
-const BRASS = '#C9A56A';
 
 const _m = new Matrix4();
 const _q = new Quaternion();
@@ -131,6 +133,7 @@ export default function CategoryFurniture({ category, dimsRef }: Props) {
     return best?.coverUrl;
   });
 
+  const widths = usePalaceStore(useShallow((s) => getZoneWidths(s.order, s.items)));
   const count = order.length; // includes reserved (in-flight) slots
   const layout = useMemo(() => getCollectionLayout(category, order, items), [category, order, items]);
   const pieces = useMemo(() => getFurniturePieces(layout), [layout]);
@@ -138,11 +141,14 @@ export default function CategoryFurniture({ category, dimsRef }: Props) {
 
   const mats = useMemo<Record<PieceMaterial, Material> & { body: MeshStandardMaterial; detail: MeshStandardMaterial; shadow: ShaderMaterial }>(
     () => ({
-      lacquer: new MeshStandardMaterial({ color: look.lacquer, roughness: look.lacquerRoughness, envMapIntensity: 1.1 }),
-      lining: new MeshStandardMaterial({ color: new Color(spec.accent).lerp(_white, 1 - look.liningAccent), roughness: 0.92, envMapIntensity: 0.35 }),
-      oak: new MeshStandardMaterial({ color: OAK, roughness: 0.55 }),
-      brass: new MeshStandardMaterial({ color: BRASS, metalness: 0.9, roughness: 0.3 }),
-      glow: new MeshBasicMaterial({ color: new Color(spec.accent).lerp(_white, 0.55).multiplyScalar(1.6), toneMapped: false }),
+      lacquer: withSurface(new MeshStandardMaterial({ color: look.lacquer, roughness: look.lacquerRoughness, envMapIntensity: 1.1 }), 'plaster', { strength: 0.6 }),
+      lining: withSurface(new MeshStandardMaterial({ color: new Color(spec.accent).lerp(_white, 1 - look.liningAccent), roughness: 0.92, envMapIntensity: 0.35 }), 'linen'),
+      oak: withSurface(new MeshStandardMaterial({ ...FURNITURE_MATERIALS.oak }), 'wood'),
+      brass: new MeshStandardMaterial({ ...FURNITURE_MATERIALS.brass }),
+      glow: new MeshBasicMaterial({
+        color: new Color(spec.accent).lerp(_white, FURNITURE_MATERIALS.glowWhiten).multiplyScalar(FURNITURE_MATERIALS.glowIntensity),
+        toneMapped: false,
+      }),
       body: new MeshStandardMaterial({ color: '#FFFFFF', roughness: BODY_ROUGHNESS[category] }),
       detail: new MeshStandardMaterial({ vertexColors: true, roughness: 0.38 }),
       shadow: contactShadowMaterial(),
@@ -166,6 +172,7 @@ export default function CategoryFurniture({ category, dimsRef }: Props) {
     pieces: new Map<string, PieceAnim>(),
     bounce: spring(0),
     width: spring(layout.outerWidth),
+    angle: spring(NaN),
     stage: layout.stage,
     started: false,
     active: true,
@@ -283,18 +290,28 @@ export default function CategoryFurniture({ category, dimsRef }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleIds, items, order, layout, category, capacity, invalidate]);
 
+  // A neighbour changed size: wake up and slide.
+  useEffect(() => {
+    anim.current.active = true;
+    invalidate();
+  }, [widths, invalidate]);
+
   useFrame((_, rawDelta) => {
     const dt = safeDelta(rawDelta);
     const a = anim.current;
 
     stepSpring(a.width, layout.outerWidth, dt, 180, 20);
-    const zone = getZoneTransform(category, dimsRef.current, a.width.x);
+    // Slide along the wall when a neighbour grows (beside-placed zones, config/room).
+    const targetAngle = getZoneAngle(category, dimsRef.current, widths);
+    if (Number.isNaN(a.angle.x)) a.angle.x = targetAngle;
+    stepSpring(a.angle, targetAngle, dt, 120, 20);
+    const zone = zoneTransformAt(a.angle.x, dimsRef.current, a.width.x);
     if (zoneRef.current) {
       zoneRef.current.position.set(...zone.position);
       zoneRef.current.rotation.y = zone.rotationY;
     }
     if (!a.active) return;
-    let moving = !springSettled(a.width, layout.outerWidth);
+    let moving = !springSettled(a.width, layout.outerWidth) || !springSettled(a.angle, targetAngle, 1e-3);
 
     // A soft squash and stretch around the floor when an object lands or the piece evolves.
     stepSpring(a.bounce, 0, dt, 300, 16);

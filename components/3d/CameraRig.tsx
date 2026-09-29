@@ -12,9 +12,14 @@ import {
   WINDOW_TOP,
   getCollectionLayout,
   getRoomDims,
+  getRoomLevel,
+  ZoneWidths,
+  getZoneAngle,
   getZoneTransform,
+  getZoneWidths,
   zoneToWorld,
 } from '@/lib/palaceLayout';
+import { CAMERA } from '@/config/motion';
 import { clamp01, cubicBezier, easeInOutCubic, easeInOutQuint, safeDelta } from '@/lib/easing';
 import { sceneSignals, wakeAmbient } from '@/lib/sceneSignals';
 import { selectRoomLevel, usePalaceStore } from '@/store/usePalaceStore';
@@ -24,12 +29,7 @@ import { selectRoomLevel, usePalaceStore } from '@/store/usePalaceStore';
  * It stands at human eye height and only turns its head (yaw), nods (pitch) and
  * walks (bezier dolly). No top-down, bird's-eye or isometric shot exists.
  */
-const EYE_HEIGHT = 1.5;
-const MIN_EYE = 1.2;
-const MAX_EYE = 1.75;
-const WINDOW_FOV = 55;
-const FOCUS_FOV = 50;
-const WALL_MARGIN = 0.9;
+const { eyeHeight: EYE_HEIGHT, minEye: MIN_EYE, maxEye: MAX_EYE, windowFov: WINDOW_FOV, focusFov: FOCUS_FOV, wallMargin: WALL_MARGIN } = CAMERA;
 
 interface Shot {
   position: Vector3;
@@ -71,7 +71,7 @@ function lookAngles(from: Vector3, to: Vector3) {
 
 const wrapAngle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 
-function computeShot(focus: CameraFocus, dims: RoomDims, layout: FurnitureLayout | null, aspect: number): Shot {
+function computeShot(focus: CameraFocus, dims: RoomDims, layout: FurnitureLayout | null, widths: ZoneWidths, aspect: number): Shot {
   const R = dims.radius;
   if (focus === 'window') {
     // Home: standing in the room, gazing slightly up at the arch and the sky beyond.
@@ -86,13 +86,13 @@ function computeShot(focus: CameraFocus, dims: RoomDims, layout: FurnitureLayout
 
   // Direct, front-facing, eye-level view of the collection's furniture.
   if (!layout) throw new Error('furniture layout required');
-  const zone = getZoneTransform(focus, dims, layout.outerWidth);
+  const zone = getZoneTransform(focus, dims, widths);
   const centerY = layout.top / 2;
   // Aim a little low so the furniture sits in the upper frame, clear of the dock.
   const target = new Vector3(...zoneToWorld(zone, [0, centerY - 0.22, layout.depth / 2]));
   const normal = new Vector3(...zone.normal);
   const dist = MathUtils.clamp(
-    fitDistance(FOCUS_FOV, aspect, Math.max(0.9, layout.outerWidth * 1.25), layout.top + 0.9),
+    fitDistance(FOCUS_FOV, aspect, Math.max(CAMERA.focusMinWidth, layout.outerWidth * 1.25), layout.top + 0.9),
     1.1,
     R * 2 - WALL_MARGIN * 2,
   );
@@ -126,7 +126,9 @@ export default function CameraRig({ dimsRef }: { dimsRef: RoomDimsRef }) {
   const shelfKey = usePalaceStore((s) => {
     if (s.focus === 'window') return '';
     const l = getCollectionLayout(s.focus, s.order[s.focus], s.items);
-    return `${l.stage}:${l.tiers}:${l.bays}`;
+    // Beside-placed furniture moves when its neighbours grow: re-frame on that too.
+    const angle = getZoneAngle(s.focus, getRoomDims(getRoomLevel(Object.keys(s.items).length)), getZoneWidths(s.order, s.items));
+    return `${l.stage}:${l.tiers}:${l.bays}:${Math.round(angle * 4)}`;
   });
 
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
@@ -146,7 +148,7 @@ export default function CameraRig({ dimsRef }: { dimsRef: RoomDimsRef }) {
     const layout = focus === 'window' ? null : getCollectionLayout(focus, s.order[focus], s.items);
     // Frame against the room size we are growing TO, not the damped in-between.
     const dims = getRoomDims(level);
-    const shot = computeShot(focus, dims, layout, aspect);
+    const shot = computeShot(focus, dims, layout, getZoneWidths(s.order, s.items), aspect);
     const angles = lookAngles(shot.position, shot.target);
 
     if (!initialized.current) {
@@ -193,7 +195,11 @@ export default function CameraRig({ dimsRef }: { dimsRef: RoomDimsRef }) {
       fov0: camera.fov,
       fov1: shot.fov,
       t: 0,
-      duration: MathUtils.clamp(0.62 + travel * 0.07 + Math.abs(yawDelta) * 0.17, 0.7, 1.4),
+      duration: MathUtils.clamp(
+        CAMERA.flight.base + travel * CAMERA.flight.perMeter + Math.abs(yawDelta) * CAMERA.flight.perRadian,
+        CAMERA.flight.min,
+        CAMERA.flight.max,
+      ),
     };
     sceneSignals.cameraTransitioning = true;
     sceneSignals.cameraProgress = 0;

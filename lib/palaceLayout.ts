@@ -10,10 +10,13 @@
 import { CategoryId, PalaceItem } from './types';
 import { CATEGORY_SPECS, getItemScale } from './itemVisuals';
 
-// ---------------------------------------------------------------- Global expansion
-/** Total-item thresholds; reaching index N unlocks room level N. */
-export const ROOM_LEVEL_THRESHOLDS = [0, 20, 50, 100, 200, 400, 800] as const;
+import { ANCHORS, AnchorId, ROOM, ROOM_LEVEL_THRESHOLDS, SUN, WINDOW, ZONES, ZONE_GAP, ZONE_SEQUENCE } from '@/config/room';
+import { CARCASS, FurnitureStage, STAGES, STAGE_THRESHOLDS } from '@/config/furniture';
 
+export { ROOM_LEVEL_THRESHOLDS, STAGE_THRESHOLDS, WINDOW, ZONE_SEQUENCE };
+export type { FurnitureStage };
+
+// ---------------------------------------------------------------- Global expansion
 export function getRoomLevel(totalItems: number): number {
   let level = 0;
   ROOM_LEVEL_THRESHOLDS.forEach((threshold, i) => {
@@ -33,61 +36,33 @@ export interface RoomDims {
 
 /** The space breathes outward as the palace fills. */
 export function getRoomDims(level: number): RoomDims {
-  return { radius: 5.6 + level * 0.8, wallHeight: 3.9 + level * 0.15, domeHeight: 2.4 };
+  return {
+    radius: ROOM.radius + level * ROOM.radiusPerLevel,
+    wallHeight: ROOM.wallHeight + level * ROOM.wallHeightPerLevel,
+    domeHeight: ROOM.domeHeight,
+  };
 }
 
 /** Radius of the floor-to-wall cove. Nothing in the room meets at an angle. */
-export const COVE_RADIUS = 0.9;
+export const COVE_RADIUS = ROOM.coveRadius;
 
 // ---------------------------------------------------------------- Window & sun
-/**
- * The arched window, in window-plane coords (x centered, y from the floor).
- * Shape = rounded-bottom rectangle [sill, springLine] topped by a semicircular arch.
- */
-export const WINDOW = {
-  halfWidth: 1.2,
-  sill: 0.62,
-  springLine: 2.25,
-  cornerRadius: 0.26,
-  frame: 0.16,
-} as const;
 export const WINDOW_TOP = WINDOW.springLine + WINDOW.halfWidth;
 export const WINDOW_CENTER_Y = (WINDOW.sill + WINDOW_TOP) / 2;
-
-/**
- * Direction sunlight travels INTO the room (steep, from above the window).
- * Art-directed rather than physical: the visible sun sits low in the arch
- * (SUN_VISUAL_DIR) while the shafts fall steeply and pool on the floor between
- * the viewer and the window instead of washing over the camera.
- */
-export const SUN_LIGHT_DIR: [number, number, number] = normalize3([0.2, -0.58, 1]);
-export const SUN_VISUAL_DIR: [number, number, number] = normalize3([-0.06, 0.2, -1]);
 
 function normalize3([x, y, z]: [number, number, number]): [number, number, number] {
   const l = Math.hypot(x, y, z);
   return [x / l, y / l, z / l];
 }
 
+/** Direction sunlight travels into the room, and where the sun is drawn (config/room). */
+export const SUN_LIGHT_DIR = normalize3(SUN.light);
+export const SUN_VISUAL_DIR = normalize3(SUN.visual);
+
 /** World-space z of the window plane. */
 export const windowPlaneZ = (dims: RoomDims) => -dims.radius;
 
 // ---------------------------------------------------------------- Zones
-/**
- * Angle of each collection around the circle, clockwise from the window (0°) when
- * seen from above. Walking this list is also the swipe order in the UI.
- */
-export const ZONE_ANGLES: Record<CategoryId, number> = {
-  movies: 52,
-  series: 104,
-  music: 156,
-  videogames: -156,
-  boardgames: -104,
-  books: -52,
-};
-
-/** Home first, then every collection in turn-of-the-head order. */
-export const ZONE_SEQUENCE = ['window', 'movies', 'series', 'music', 'videogames', 'boardgames', 'books'] as const;
-
 export interface ZoneTransform {
   position: [number, number, number];
   rotationY: number;
@@ -95,18 +70,50 @@ export interface ZoneTransform {
   normal: [number, number, number];
 }
 
+/** Outer width of every collection's furniture along the wall (m), from the live collection. */
+export type ZoneWidths = Partial<Record<CategoryId, number>>;
+
+export function getZoneWidths(order: Record<CategoryId, string[]>, items: Record<string, PalaceItem>): ZoneWidths {
+  return Object.fromEntries(
+    (Object.keys(ZONES) as CategoryId[]).map((c) => [c, getCollectionLayout(c, order[c] ?? [], items).outerWidth]),
+  ) as ZoneWidths;
+}
+
+/** Radius of the circle along which furniture is laid out (the edge of the flat floor). */
+const zoneRadius = (dims: RoomDims) => dims.radius - COVE_RADIUS - 0.2;
+
+const widthOf = (id: AnchorId | CategoryId, widths: ZoneWidths) =>
+  id in ANCHORS ? ANCHORS[id as AnchorId].width : (widths[id as CategoryId] ?? 0.6);
+
+/**
+ * Angle (degrees) where a collection stands: fixed, or chained beside its neighbour so
+ * the two never overlap and never drift apart as either one grows.
+ */
+export function getZoneAngle(category: CategoryId, dims: RoomDims, widths: ZoneWidths, depth = 0): number {
+  const place = ZONES[category];
+  if ('angle' in place) return place.angle;
+  const neighbour = place.beside;
+  const base = neighbour in ANCHORS ? ANCHORS[neighbour as AnchorId].angle : depth > 6 ? 0 : getZoneAngle(neighbour as CategoryId, dims, widths, depth + 1);
+  const arc = widthOf(neighbour, widths) / 2 + ZONE_GAP + widthOf(category, widths) / 2;
+  return base + place.side * ((arc / zoneRadius(dims)) * 180) / Math.PI;
+}
+
 /**
  * Furniture stands on the flat floor, just in front of the cove where the floor curves
  * up into the wall. Its back corners stay on that circle, so wider pieces step slightly
  * toward the center.
  */
-export function getZoneTransform(category: CategoryId, dims: RoomDims, outerWidth = 0): ZoneTransform {
-  const theta = (ZONE_ANGLES[category] * Math.PI) / 180;
+export function zoneTransformAt(angle: number, dims: RoomDims, outerWidth = 0): ZoneTransform {
+  const theta = (angle * Math.PI) / 180;
   const r = dims.radius - COVE_RADIUS - 0.02;
   const d = Math.sqrt(Math.max(1, r * r - (outerWidth / 2) ** 2)) - 0.03;
   const sin = Math.sin(theta);
   const cos = Math.cos(theta);
   return { position: [d * sin, 0, -d * cos], rotationY: -theta, normal: [-sin, 0, cos] };
+}
+
+export function getZoneTransform(category: CategoryId, dims: RoomDims, widths: ZoneWidths): ZoneTransform {
+  return zoneTransformAt(getZoneAngle(category, dims, widths), dims, widths[category] ?? 0);
 }
 
 /** Rotate a zone-local point into world space. */
@@ -119,41 +126,17 @@ export function zoneToWorld(zone: ZoneTransform, local: [number, number, number]
 
 // ---------------------------------------------------------------- Furniture
 /**
- * Each collection owns one piece of furniture that changes shape as it fills:
- *   0 pedestal → 1 console → 2 bookcase → 3 arched cabinet → 4 wall unit.
+ * Each collection owns one piece of furniture that changes shape as it fills
+ * (stages and proportions in config/furniture).
  * Everything below is pure math on the collection, so the furniture, the camera, the
  * hero and the inspector all agree on slot positions without sharing scene-graph state.
  */
-export type FurnitureStage = 0 | 1 | 2 | 3 | 4;
-export const STAGE_THRESHOLDS = [0, 6, 16, 36, 72] as const;
-
-interface StageSpec {
-  /** Slots per tier (in category pitch units). */
-  slots: number;
-  minTiers: number;
-  maxTiers: number;
-  /** Height of the first plank's top surface. */
-  baseY: number;
-  /** Slots per bay (vertical divider); 0 = one open run. */
-  bay: number;
-}
-
-const STAGES: StageSpec[] = [
-  { slots: 8, minTiers: 1, maxTiers: 1, baseY: 0.52, bay: 0 },
-  { slots: 12, minTiers: 1, maxTiers: 2, baseY: 0.46, bay: 0 },
-  { slots: 14, minTiers: 2, maxTiers: 3, baseY: 0.16, bay: 7 },
-  { slots: 18, minTiers: 2, maxTiers: 4, baseY: 0.18, bay: 6 },
-  { slots: 24, minTiers: 3, maxTiers: 6, baseY: 0.2, bay: 6 },
-];
-
-export const PLANK_THICKNESS = 0.032;
-export const SIDE_THICKNESS = 0.036;
-const SIDE_PADDING = 0.03;
-export const BAY_GAP = 0.03;
-/** Height of the arched crown on cabinets and wall units. */
-export const CROWN_HEIGHT = 0.42;
-/** Width of each side tower on a wall unit. */
-export const TOWER_WIDTH = 0.16;
+export const PLANK_THICKNESS = CARCASS.plank;
+export const SIDE_THICKNESS = CARCASS.side;
+const SIDE_PADDING = CARCASS.sidePadding;
+export const BAY_GAP = CARCASS.bayGap;
+export const CROWN_HEIGHT = CARCASS.crownHeight;
+export const TOWER_WIDTH = CARCASS.towerWidth;
 
 export function getFurnitureStage(count: number): FurnitureStage {
   let stage = 0;
@@ -207,7 +190,9 @@ export function itemWidths(category: CategoryId, ids: string[], items: Record<st
 export function getFurnitureLayout(category: CategoryId, count: number, widths?: number[]): FurnitureLayout {
   const spec = CATEGORY_SPECS[category];
   const stage = getFurnitureStage(count);
-  const st = STAGES[stage];
+  const base = STAGES[stage];
+  const k = spec.slotScale;
+  const st = { ...base, slots: Math.round(base.slots * k), bay: Math.round(base.bay * k) };
   const need = Math.max(1, count);
 
   let tiers = Math.min(st.maxTiers, Math.max(st.minTiers, Math.ceil(need / st.slots)));
@@ -247,7 +232,7 @@ export function getFurnitureLayout(category: CategoryId, count: number, widths?:
     }
   }
 
-  const tierHeight = spec.size[1] * spec.maxHeightScale + spec.peek + PLANK_THICKNESS + 0.07;
+  const tierHeight = spec.size[1] * spec.maxHeightScale + PLANK_THICKNESS + CARCASS.headroom;
   const height = st.baseY + tiers * tierHeight;
   const crown = stage >= 3 ? CROWN_HEIGHT : 0;
   const towers = stage >= 4 ? TOWER_WIDTH * 2 + 0.02 : 0;
@@ -291,9 +276,16 @@ export function getCollectionLayout(category: CategoryId, ids: string[], items: 
 }
 
 /** Zone transform + slot for an item, as the hero and the inspector need it. */
-export function getSlotWorld(category: CategoryId, id: string, ids: string[], items: Record<string, PalaceItem>, dims: RoomDims) {
+export function getSlotWorld(
+  category: CategoryId,
+  id: string,
+  collection: { order: Record<CategoryId, string[]>; items: Record<string, PalaceItem> },
+  dims: RoomDims,
+) {
+  const { order, items } = collection;
+  const ids = order[category];
   const layout = getCollectionLayout(category, ids, items);
-  const zone = getZoneTransform(category, dims, layout.outerWidth);
+  const zone = getZoneTransform(category, dims, getZoneWidths(order, items));
   const index = Math.max(0, ids.indexOf(id));
   const item = items[id];
   const [, sy, sz] = item ? getItemScale(item) : [1, 1, 1];

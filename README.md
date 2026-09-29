@@ -41,7 +41,7 @@ npm test          # catalog parsers and cover colours, with fixtures
 
 ## The 3D palace
 
-- **Room.** One cornerless lathe surface (floor, cove, round wall, dome) with an arched window cut in the shader. The floor is procedural light-oak parquet (per-plank tone, grain, knots, seams) finished with an oak skirting. Around it: sheer curtains on a brass rod, a window seat, a paper lantern, a reading corner (bouclé armchair, floor lamp, side table), a coffee table on the rug, four framed prints drawn by a shader, and plants.
+- **Room.** One cornerless lathe surface (floor, cove, round wall, dome) with an arched window cut in the shader. The floor is procedural light-oak parquet (per-plank tone, grain, knots, seams) finished with an oak skirting; the walls are lime plaster. Around it: a lacquered TV console with fluted doors (films, series and games stand beside it), a 2000s silver mini hi-fi on an oak bench (music stands beside it), sheer curtains on a brass rod, a window seat, a paper lantern, a reading corner (bouclé armchair, floor lamp, side table), a coffee table on the rug, framed prints drawn by a shader, and plants.
 - **Furniture.** Each collection stands on the flat floor in front of the curved wall, in cream lacquer, pastel back panels, oak planks and brass. It evolves with the collection:
 
   | Objects | Shape |
@@ -55,21 +55,40 @@ npm test          # catalog parsers and cover colours, with fixtures
   A vase, then a plant, then candles gather on top as it evolves. Parts keep stable ids across stages and are driven by springs, so an evolution morphs instead of swapping models. Each part is rebuilt at its exact size, so rounded corners never stretch.
 - **Objects.** Two parts per object (a tinted body plus vertex-coloured trims), drawn with two instanced draw calls per collection. Every object has its own stable proportions, so a shelf never looks uniform:
   - books: paperbacks and hardcovers of varied thickness and height
-  - music: occasional double LPs
+  - music: CD jewel cases, with the odd double-disc fatbox
   - films: DVDs, Blu-rays and steelbooks
-  - board games: big, small, long and tall boxes
-  - video games: standard, slim, handheld and big-box cases
+  - board games: one box size (variants are configurable)
+  - video games: standard, slim and handheld cases
   - series: the box gets thicker with every season
 
   Furniture packs objects by their real thickness, bay by bay.
 - **Arrival.** A new object is born in the centre of the screen: light spirals into a small pearl, the pearl collapses, and the object unwinds out of it with an elastic pop and a ring of light, showing its real cover, then flies to its slot. The furniture gives a small bounce as it lands.
 - **Rendering.** `frameloop="demand"`: an idle palace draws nothing. Ambient dust and cloud drift run only briefly after an interaction. Web adds ambient occlusion and bloom on true highlights.
 
+## Customising
+
+Every tunable lives in `config/`; the rest of the code reads from it.
+
+| File | What you change there |
+|---|---|
+| `config/room.ts` | room size and growth, window, sun, where each collection stands (fixed angle or beside the TV, the hi-fi or another collection) |
+| `config/collections.ts` | object sizes and shape variants, palettes, finishes, how densely furniture packs them |
+| `config/furniture.ts` | stage thresholds and proportions, corner softness, oak and brass |
+| `config/decor.ts` | which room pieces exist, where they stand, their colours |
+| `config/look.ts` | light, sky, walls, floor and textile colours |
+| `config/motion.ts` | camera lens and flight timing, arrival timing |
+| `config/catalog.ts` | which sources each collection searches, in which order, and limits |
+
+Surfaces get quiet procedural textures (wood grain, linen weave, bouclé, plaster, paper) from `lib/materialPatches.ts`; call `withSurface(material, kind)` on any standard material.
+
 ## Structure
 
 ```
 app/(tabs)/              index (palace) · library · soon · profile (You) · _layout (tabs, sheets, release sync)
-components/3d/           MentalPalace, CameraRig, CategoryFurniture, FeaturedCover, HeroItemSpawner, InspectItem, environment/…
+config/                  every tunable (see Customising)
+components/3d/           MentalPalace, CameraRig, CategoryFurniture, FurnitureTop, FeaturedCover, CoverFace, HeroItemSpawner, InspectItem
+components/3d/decor/     TV console, hi-fi, reading corner, coffee table, lantern, curtains, prints, plants (+ shared materials, placement)
+components/3d/environment/ room shell, sky, sun shafts, dust, RoomDecor (composes the decor from config)
 components/ui/           LogFlow (search → confirm), ItemSheet, TabBar, Toast, Motion, CoverArt, Glass, Sheet, Controls, Icon…
 lib/catalog.ts           free catalog providers + pure, tested parsers + merge + cover matching
 lib/covers.ts            background artwork lookup and cover colours

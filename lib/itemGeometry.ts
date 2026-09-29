@@ -8,7 +8,7 @@
  *             peeking out of its sleeve, lid seams)
  * so each collection costs exactly two draw calls however large it grows.
  */
-import { BufferGeometry, Color, CylinderGeometry, ExtrudeGeometry, Float32BufferAttribute, Path, Shape } from 'three';
+import { BufferGeometry, Color, ExtrudeGeometry, Float32BufferAttribute, Path, Shape } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CategoryId } from './types';
@@ -23,9 +23,10 @@ export function softBox(x: number, y: number, z: number, roundness = 0.42, segme
 const TRIM = '#FFFBF4';
 const PAGES = '#F6EEDD';
 const GILT = '#E2C48E';
-const VINYL = '#2B2630';
 const LABEL = '#F3ECDD';
 const CASE = '#DAD7D2';
+const CASE_CLEAR = '#E9EEF0';
+const HINGE = '#2B2A2E';
 
 /** Bake a flat vertex colour so trims of different colours share one draw call. */
 function paint<T extends BufferGeometry>(geo: T, hex: string): T {
@@ -47,15 +48,10 @@ export interface ItemParts {
   detail: BufferGeometry;
 }
 
-/** Physical feel of each collection's body (cases are glossy, sleeves and covers are paper). */
-export const BODY_ROUGHNESS: Record<CategoryId, number> = {
-  movies: 0.28,
-  series: 0.3,
-  music: 0.58,
-  books: 0.62,
-  boardgames: 0.5,
-  videogames: 0.26,
-};
+/** Surface finish of each collection's body (see config/collections). */
+export const BODY_ROUGHNESS = Object.fromEntries(
+  Object.entries(CATEGORY_SPECS).map(([k, v]) => [k, v.roughness]),
+) as Record<CategoryId, number>;
 
 function buildParts(category: CategoryId, halfSeries = false): ItemParts {
   const [t, h, d] = CATEGORY_SPECS[category].size;
@@ -82,13 +78,19 @@ function buildParts(category: CategoryId, halfSeries = false): ItemParts {
       };
     }
     case 'music': {
-      const r = 0.145;
-      const y = h / 2 + CATEGORY_SPECS.music.peek - r;
-      const disc = at(new CylinderGeometry(r, r, 0.0035, 72).rotateZ(Math.PI / 2), 0, y, 0);
-      const label = at(new CylinderGeometry(0.048, 0.048, 0.0042, 48).rotateZ(Math.PI / 2), 0, y, 0);
+      // Jewel case: the tinted insert sits inside a clear shell. The detail part carries the
+      // shell's pale edges, the spine rails and the black hinge.
+      const shell = 0.0012;
       return {
-        body: softBox(t, h, d, 0.14, 2),
-        detail: mergeGeometries([paint(disc, VINYL), paint(label, '#F3E3C8')])!,
+        body: softBox(t - shell * 2, h - shell * 2, d - shell * 2, 0.1, 2),
+        detail: mergeGeometries([
+          paint(at(softBox(t, 0.0028, d, 0.2, 1), 0, h / 2 - 0.0014, 0), CASE_CLEAR),
+          paint(at(softBox(t, 0.0028, d, 0.2, 1), 0, -h / 2 + 0.0014, 0), CASE_CLEAR),
+          paint(at(softBox(t * 1.02, h * 0.96, 0.0024, 0.2, 1), 0, 0, -d / 2 + 0.0012), CASE_CLEAR),
+          paint(at(softBox(t * 1.04, 0.004, 0.0016, 0.2, 1), 0, h * 0.44, d / 2), TRIM),
+          paint(at(softBox(t * 1.04, 0.004, 0.0016, 0.2, 1), 0, -h * 0.44, d / 2), TRIM),
+          paint(at(softBox(0.0026, h * 0.98, 0.006, 0.3, 1), t / 2 - 0.0013, 0, d / 2 - 0.004), HINGE),
+        ])!,
       };
     }
     case 'books': {

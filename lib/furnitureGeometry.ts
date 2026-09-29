@@ -7,6 +7,7 @@ import { BufferGeometry, CapsuleGeometry, ExtrudeGeometry, Shape } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 import type { PieceShape } from './palaceLayout';
+import { CARCASS } from '@/config/furniture';
 
 const ARCH_BORDER = 0.05;
 
@@ -58,7 +59,7 @@ function extrudeCentered(shape: Shape, h: number, depth: number) {
 export function buildPieceGeometry(shape: PieceShape, [x, y, z]: [number, number, number]): BufferGeometry {
   switch (shape) {
     case 'box':
-      return new RoundedBoxGeometry(x, y, z, 3, Math.min(0.016, Math.min(x, y, z) * 0.45));
+      return new RoundedBoxGeometry(x, y, z, 4, Math.min(CARCASS.cornerRadius, Math.min(x, y, z) * 0.45));
     case 'plinth':
       return new RoundedBoxGeometry(x, y, z, 6, Math.min(x, y, z) * 0.28);
     case 'leg': {

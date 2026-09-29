@@ -1,20 +1,14 @@
 /**
- * Catalog search. Every source is free and keyless; each category queries several in
- * parallel, then results are merged and de-duplicated (first source wins, so the
- * order below is also a quality ranking; later sources fill missing covers and years):
- *
- *  - movies      iTunes · IMDb suggestions · MyAnimeList (Jikan) · Wikidata · Wikipedia
- *  - series      TVmaze (seasons, next episodes) · IMDb suggestions · iTunes seasons · MyAnimeList · Wikidata
- *  - music       iTunes albums · Deezer · MusicBrainz + Cover Art Archive · Wikipedia
- *  - books       Google Books · Open Library · Apple Books · MyAnimeList (manga) · Gutendex · Wikidata
- *  - videogames  Steam · GOG · IMDb suggestions · Wikipedia · Wikidata
- *  - boardgames  BoardGameGeek · Wikipedia · Wikidata
+ * Catalog search. Every source is free and keyless; each category queries the sources
+ * listed for it in config/catalog in parallel, then results are merged and de-duplicated
+ * (first source wins; later sources fill missing covers and years).
  *
  * Identical requests made by several categories at once (IMDb, Jikan, Wikidata in the
  * "All" search) share one network call. Providers never throw: a failed or offline
  * source returns nothing, and manual entry is always offered.
  */
 import { CATEGORIES, CategoryId, ItemSource } from './types';
+import { CATALOG, CATALOG_SOURCES, SourceId } from '../config/catalog';
 
 export interface CatalogResult {
   key: string;
@@ -526,7 +520,7 @@ export function parseWikidataEntities(json: unknown, hits: WikidataSearchHit[], 
 
 // ------------------------------------------------------------------ Merge
 /** Keep the first occurrence of each work (normalized title + first word of the creator). */
-export function mergeResults(lists: CatalogResult[][], limit = 14): CatalogResult[] {
+export function mergeResults(lists: CatalogResult[][], limit: number = CATALOG.perCategory): CatalogResult[] {
   const seen = new Map<string, CatalogResult>();
   const byTitle = new Map<string, CatalogResult>();
   for (const list of lists) {
@@ -554,7 +548,7 @@ export function mergeResults(lists: CatalogResult[][], limit = 14): CatalogResul
 }
 
 // ------------------------------------------------------------------ Providers
-const LIMIT = 10;
+const LIMIT = CATALOG.perSource;
 const enc = encodeURIComponent;
 
 function wikiUrl(q: string, hint: string, lang: string) {
@@ -622,57 +616,91 @@ const bgg: Provider = safe(async (q, { f, signal }) => {
   return games;
 });
 
-export const PROVIDERS: Record<CategoryId, Provider[]> = {
-  movies: [itunes('movies', 'media=movie&entity=movie'), imdb('movies'), jikan('movies'), wikidata('movies'), wiki('movies', { en: 'film', fr: 'film' })],
-  series: [
-    safe(async (q, { f, signal }) => parseTvmaze(await f(`https://api.tvmaze.com/search/shows?q=${enc(q)}`, signal))),
-    imdb('series'),
-    itunes('series', 'media=tvShow&entity=tvSeason'),
-    jikan('series'),
-    wikidata('series'),
-  ],
-  music: [
-    itunes('music', 'media=music&entity=album'),
-    safe(async (q, { f, signal }) => parseDeezer(await f(`https://api.deezer.com/search/album?q=${enc(q)}&limit=${LIMIT}`, signal))),
-    safe(async (q, { f, signal }) =>
-      parseMusicBrainz(await f(`https://musicbrainz.org/ws/2/release-group?query=${enc(q)}&fmt=json&limit=${LIMIT}`, signal)),
-    ),
-    wiki('music', { en: 'album', fr: 'album' }),
-  ],
-  books: [
-    safe(async (q, { lang, f, signal }) =>
-      parseGoogleBooks(
-        await f(`https://www.googleapis.com/books/v1/volumes?q=${enc(q)}&maxResults=${LIMIT}&printType=books&langRestrict=${lang}`, signal),
-      ),
-    ),
-    safe(async (q, { f, signal }) =>
-      parseOpenLibrary(
-        await f(`https://openlibrary.org/search.json?q=${enc(q)}&limit=${LIMIT}&fields=key,title,author_name,first_publish_year,cover_i`, signal),
-      ),
-    ),
-    safe(async (q, { country, f, signal }) =>
-      parseItunesBooks(await f(`https://itunes.apple.com/search?term=${enc(q)}&media=ebook&limit=${LIMIT}&country=${country}`, signal)),
-    ),
-    jikan('books'),
-    safe(async (q, { f, signal }) => parseGutendex(await f(`https://gutendex.com/books/?search=${enc(q)}`, signal))),
-    wikidata('books'),
-  ],
-  videogames: [
-    safe(async (q, { lang, f, signal }) =>
-      parseSteam(await f(`https://store.steampowered.com/api/storesearch/?term=${enc(q)}&l=${lang === 'fr' ? 'french' : 'english'}&cc=${lang === 'fr' ? 'FR' : 'US'}`, signal)),
-    ),
-    safe(async (q, { f, signal }) =>
-      parseGog(await f(`https://catalog.gog.com/v1/catalog?limit=${LIMIT}&query=like:${enc(q)}&order=desc:score&productType=in:game,pack`, signal)),
-    ),
-    imdb('videogames'),
-    wiki('videogames', { en: 'video game', fr: 'jeu vidéo' }),
-    wikidata('videogames'),
-  ],
-  boardgames: [bgg, wiki('boardgames', { en: 'board game', fr: 'jeu de société' }), wikidata('boardgames')],
+const tvmaze: Provider = safe(async (q, { f, signal }) => parseTvmaze(await f(`https://api.tvmaze.com/search/shows?q=${enc(q)}`, signal)));
+const deezer: Provider = safe(async (q, { f, signal }) =>
+  parseDeezer(await f(`https://api.deezer.com/search/album?q=${enc(q)}&limit=${LIMIT}`, signal)),
+);
+const musicbrainz: Provider = safe(async (q, { f, signal }) =>
+  parseMusicBrainz(await f(`https://musicbrainz.org/ws/2/release-group?query=${enc(q)}&fmt=json&limit=${LIMIT}`, signal)),
+);
+const googlebooks: Provider = safe(async (q, { lang, f, signal }) =>
+  parseGoogleBooks(await f(`https://www.googleapis.com/books/v1/volumes?q=${enc(q)}&maxResults=${LIMIT}&printType=books&langRestrict=${lang}`, signal)),
+);
+const openlibrary: Provider = safe(async (q, { f, signal }) =>
+  parseOpenLibrary(
+    await f(`https://openlibrary.org/search.json?q=${enc(q)}&limit=${LIMIT}&fields=key,title,author_name,first_publish_year,cover_i`, signal),
+  ),
+);
+const applebooks: Provider = safe(async (q, { country, f, signal }) =>
+  parseItunesBooks(await f(`https://itunes.apple.com/search?term=${enc(q)}&media=ebook&limit=${LIMIT}&country=${country}`, signal)),
+);
+const gutendex: Provider = safe(async (q, { f, signal }) => parseGutendex(await f(`https://gutendex.com/books/?search=${enc(q)}`, signal)));
+const steam: Provider = safe(async (q, { lang, f, signal }) =>
+  parseSteam(
+    await f(`https://store.steampowered.com/api/storesearch/?term=${enc(q)}&l=${lang === 'fr' ? 'french' : 'english'}&cc=${lang === 'fr' ? 'FR' : 'US'}`, signal),
+  ),
+);
+const gog: Provider = safe(async (q, { f, signal }) =>
+  parseGog(await f(`https://catalog.gog.com/v1/catalog?limit=${LIMIT}&query=like:${enc(q)}&order=desc:score&productType=in:game,pack`, signal)),
+);
+
+const WIKI_HINTS: Record<CategoryId, { en: string; fr: string }> = {
+  movies: { en: 'film', fr: 'film' },
+  series: { en: 'television series', fr: 'série télévisée' },
+  music: { en: 'album', fr: 'album' },
+  books: { en: 'novel', fr: 'roman' },
+  videogames: { en: 'video game', fr: 'jeu vidéo' },
+  boardgames: { en: 'board game', fr: 'jeu de société' },
 };
 
+/** Each source for a given collection, or undefined where a source has nothing for it. */
+function sourceFor(id: SourceId, category: CategoryId): Provider | undefined {
+  switch (id) {
+    case 'itunes':
+      return category === 'movies'
+        ? itunes('movies', 'media=movie&entity=movie')
+        : category === 'series'
+          ? itunes('series', 'media=tvShow&entity=tvSeason')
+          : category === 'music'
+            ? itunes('music', 'media=music&entity=album')
+            : undefined;
+    case 'imdb':
+      return category === 'movies' || category === 'series' || category === 'videogames' ? imdb(category) : undefined;
+    case 'jikan':
+      return category === 'movies' || category === 'series' || category === 'books' ? jikan(category) : undefined;
+    case 'wikidata':
+      return wikidata(category);
+    case 'wikipedia':
+      return wiki(category, WIKI_HINTS[category]);
+    case 'tvmaze':
+      return category === 'series' ? tvmaze : undefined;
+    case 'deezer':
+      return category === 'music' ? deezer : undefined;
+    case 'musicbrainz':
+      return category === 'music' ? musicbrainz : undefined;
+    case 'googlebooks':
+      return category === 'books' ? googlebooks : undefined;
+    case 'openlibrary':
+      return category === 'books' ? openlibrary : undefined;
+    case 'applebooks':
+      return category === 'books' ? applebooks : undefined;
+    case 'gutendex':
+      return category === 'books' ? gutendex : undefined;
+    case 'steam':
+      return category === 'videogames' ? steam : undefined;
+    case 'gog':
+      return category === 'videogames' ? gog : undefined;
+    case 'bgg':
+      return category === 'boardgames' ? bgg : undefined;
+  }
+}
+
+export const PROVIDERS = Object.fromEntries(
+  CATEGORIES.map((c) => [c, CATALOG_SOURCES[c].map((id) => sourceFor(id, c)).filter((p): p is Provider => !!p)]),
+) as Record<CategoryId, Provider[]>;
+
 // ------------------------------------------------------------------ Shared requests
-const CACHE_TTL = 5 * 60_000;
+const CACHE_TTL = CATALOG.cacheTtl;
 const responseCache = new Map<string, { at: number; value: Promise<unknown> }>();
 
 /**
@@ -715,7 +743,7 @@ export async function searchCategory(
 
 /** Every category at once, a few results each, for the "All" search. */
 export async function searchAll(query: string, opts: { lang: string; signal?: AbortSignal; fetcher?: Fetcher }) {
-  const groups = await Promise.all(CATEGORIES.map((c) => searchCategory(c, query, { ...opts, limit: 4 })));
+  const groups = await Promise.all(CATEGORIES.map((c) => searchCategory(c, query, { ...opts, limit: CATALOG.perCategoryInAll })));
   return CATEGORIES.map((c, i) => ({ category: c, results: groups[i] })).filter((g) => g.results.length);
 }
 

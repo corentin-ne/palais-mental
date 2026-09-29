@@ -40,6 +40,7 @@ import {
   lerp,
   safeDelta,
 } from '@/lib/easing';
+import { ARRIVAL } from '@/config/motion';
 import { sceneSignals, wakeAmbient } from '@/lib/sceneSignals';
 import {
   ImplodeUniforms,
@@ -56,12 +57,11 @@ import {
 import { selectActiveHero, usePalaceStore } from '@/store/usePalaceStore';
 
 // ------------------------------------------------------------------ Tuning
-const HERO_DISTANCE = 1.25; // meters in front of the camera
-const LID_OPEN_ANGLE = 1.95; // ~112°
-const SPARKLE_COUNT = 140;
-/** The hero starts while the camera is still settling instead of waiting for it to land. */
-const START_AT_CAMERA_PROGRESS = 0.72;
-const SUNLIGHT = '#FFE2B0';
+const HERO_DISTANCE = ARRIVAL.distance;
+const LID_OPEN_ANGLE = ARRIVAL.lidAngle;
+const SPARKLE_COUNT = ARRIVAL.sparkles;
+const START_AT_CAMERA_PROGRESS = ARRIVAL.startAtCameraProgress;
+const SUNLIGHT = ARRIVAL.sunlight;
 const UP = new Vector3(0, 1, 0);
 
 type PhaseName = 'gather' | 'burst' | 'open' | 'slice' | 'insert' | 'close' | 'hold' | 'fly';
@@ -76,20 +76,15 @@ type Timeline = Partial<Record<PhaseName, { start: number; dur: number }>>;
  * unwinds out of it with an elastic pop and a ring of light.
  */
 function buildTimeline(event: HeroEvent): Timeline {
-  const ep = event.kind === 'episode';
-  const seq: [PhaseName, number][] = [
-    ['gather', ep ? 0.38 : 0.5],
-    ['burst', ep ? 0.42 : 0.52],
-  ];
-  if (ep) {
-    seq.push(['open', 0.28], ['slice', 0.45]);
-    if (event.completesSeason) seq.push(['insert', 0.38], ['close', 0.18], ['hold', 0.35]);
-    else seq.push(['hold', 0.16], ['close', 0.22]);
-  } else {
-    // Long enough to read the artwork on the cover before the object flies home.
-    seq.push(['hold', 0.7]);
-  }
-  seq.push(['fly', 0.62]);
+  const d =
+    event.kind === 'item' ? ARRIVAL.item : event.completesSeason ? ARRIVAL.season : ARRIVAL.episode;
+  const order: PhaseName[] =
+    event.kind === 'item'
+      ? ['gather', 'burst', 'hold', 'fly']
+      : event.completesSeason
+        ? ['gather', 'burst', 'open', 'slice', 'insert', 'close', 'hold', 'fly']
+        : ['gather', 'burst', 'open', 'slice', 'hold', 'close', 'fly'];
+  const seq = order.map((name) => [name, (d as Partial<Record<PhaseName, number>>)[name] ?? 0] as const);
 
   const timeline: Timeline = {};
   let t = 0;
@@ -269,7 +264,7 @@ function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<Poin
     const order = s.order[category];
     const scale = getItemScale(s.items[item!.id] ?? item!);
     const dims = getRoomDims(getRoomLevel(Object.keys(s.items).length));
-    const { zone, position } = getSlotWorld(category, item!.id, order, s.items, dims);
+    const { zone, position } = getSlotWorld(category, item!.id, s, dims);
     const p3 = new Vector3(...position);
     const p0 = from.position.clone();
     const normal = new Vector3(...zone.normal);
@@ -306,7 +301,7 @@ function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<Poin
       wakeAmbient(6);
     }
     // Heroes queued behind this one play faster so rapid additions don't pile up.
-    const backlog = usePalaceStore.getState().heroQueue.length > 1 ? 1.7 : 1;
+    const backlog = usePalaceStore.getState().heroQueue.length > 1 ? ARRIVAL.backlogSpeed : 1;
     const heroScale = a.scale;
     const dt = safeDelta(rawDelta) * backlog;
     a.elapsed += dt;

@@ -30,6 +30,7 @@ import { WINDOW_SDF } from '@/shaders/common';
 import { COVE_RADIUS, RoomDims, WINDOW, getRoomDims } from '@/lib/palaceLayout';
 import { softBox, windowOutline } from '@/lib/itemGeometry';
 import { safeDelta } from '@/lib/easing';
+import { withSurface } from '@/lib/materialPatches';
 import { useSceneLook } from '@/lib/sceneLook';
 import { selectRoomLevel, usePalaceStore } from '@/store/usePalaceStore';
 
@@ -94,6 +95,20 @@ function buildShellGeometry(d: RoomDims, COLORS: typeof DEFAULT_COLORS = DEFAULT
 const PARQUET_GLSL = /* glsl */ `
   uniform float uFloorRadius;
   float pqHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float plHash(vec3 p) {
+    p = fract(p * 0.3183099 + 0.1);
+    p *= 17.0;
+    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+  }
+  float plNoise(vec3 x) {
+    vec3 i = floor(x);
+    vec3 f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(mix(plHash(i), plHash(i + vec3(1, 0, 0)), f.x), mix(plHash(i + vec3(0, 1, 0)), plHash(i + vec3(1, 1, 0)), f.x), f.y),
+      mix(mix(plHash(i + vec3(0, 0, 1)), plHash(i + vec3(1, 0, 1)), f.x), mix(plHash(i + vec3(0, 1, 1)), plHash(i + vec3(1, 1, 1)), f.x), f.y),
+      f.z);
+  }
   vec3 parquet(vec2 p, out float grain) {
     const float W = 0.17;
     const float L = 1.3;
@@ -121,7 +136,7 @@ const PARQUET_GLSL = /* glsl */ `
   }
 `;
 
-/** Shell material: parquet on the flat floor, and the arched window cut out of the wall. */
+/** Shell material: parquet on the flat floor, plaster everywhere else, and the arched window cut out of the wall. */
 function buildShellMaterial(): MeshStandardMaterial {
   const mat = new MeshStandardMaterial({ vertexColors: true, roughness: 0.95, side: DoubleSide, envMapIntensity: 0.45 });
   const floorRadius = { value: BASE.radius - COVE_RADIUS };
@@ -146,6 +161,9 @@ function buildShellMaterial(): MeshStandardMaterial {
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
+  // Lime plaster on the walls and dome: broad clouds and a fine trowel grain.
+  float plaster = 1.0 + (plNoise(vShellPos * 1.6) - 0.5) * 0.045 + (plNoise(vShellPos * 38.0) - 0.5) * 0.025;
+  diffuseColor.rgb *= mix(plaster, 1.0, pqMask);
   if (pqMask > 0.0) {
     vec3 wood = parquet(vShellPos.xz, pqGrain);
     // Soft darkening toward the walls keeps the room's ambient-occlusion gradient.
@@ -266,6 +284,18 @@ export default function RoomShell({ dimsRef }: { dimsRef: RoomDimsRef }) {
   }, []);
 
   const look = useSceneLook();
+  // Soft furnishings: linen weave on the cushion and pillows, a looser weave on the rug.
+  const textiles = useMemo(
+    () => ({
+      cushion: withSurface(new MeshStandardMaterial({ color: look.cushion, roughness: 0.9 }), 'linen'),
+      pillowA: withSurface(new MeshStandardMaterial({ color: look.pillows[0], roughness: 0.9 }), 'boucle', { strength: 0.6 }),
+      pillowB: withSurface(new MeshStandardMaterial({ color: look.pillows[1], roughness: 0.9 }), 'linen'),
+      rugOuter: withSurface(new MeshStandardMaterial({ color: look.rug[0], roughness: 1 }), 'boucle', { strength: 0.7 }),
+      rugInner: withSurface(new MeshStandardMaterial({ color: look.rug[1], roughness: 1 }), 'linen', { strength: 1.4 }),
+    }),
+    [look],
+  );
+  useEffect(() => () => Object.values(textiles).forEach((m) => m.dispose()), [textiles]);
   const shellGeo = useMemo(
     () =>
       buildShellGeometry(BASE, {
@@ -321,15 +351,9 @@ export default function RoomShell({ dimsRef }: { dimsRef: RoomDimsRef }) {
       <group ref={windowGroup}>
         <mesh geometry={res.frameGeo} material={res.frameMat} position-z={-0.24} />
         {/* Window seat: a long cushion and two pillows tucked into the deep sill */}
-        <mesh geometry={res.cushionGeo} position={[0, sill + 0.055, 0.02]}>
-          <meshStandardMaterial color={look.cushion} roughness={0.9} />
-        </mesh>
-        <mesh geometry={res.pillowGeo} position={[-hw + 0.3, sill + 0.2, -0.02]} rotation={[0.2, 0.35, 0.1]} scale={[0.17, 0.14, 0.07]}>
-          <meshStandardMaterial color={look.pillows[0]} roughness={0.9} />
-        </mesh>
-        <mesh geometry={res.pillowGeo} position={[-hw + 0.58, sill + 0.18, 0.02]} rotation={[0.1, -0.2, -0.12]} scale={[0.15, 0.12, 0.065]}>
-          <meshStandardMaterial color={look.pillows[1]} roughness={0.9} />
-        </mesh>
+        <mesh geometry={res.cushionGeo} material={textiles.cushion} position={[0, sill + 0.055, 0.02]} />
+        <mesh geometry={res.pillowGeo} material={textiles.pillowA} position={[-hw + 0.3, sill + 0.2, -0.02]} rotation={[0.2, 0.35, 0.1]} scale={[0.17, 0.14, 0.07]} />
+        <mesh geometry={res.pillowGeo} material={textiles.pillowB} position={[-hw + 0.58, sill + 0.18, 0.02]} rotation={[0.1, -0.2, -0.12]} scale={[0.15, 0.12, 0.065]} />
         {/* A small plant on the seat, the first thing framed at home */}
         <group position={[hw - 0.32, sill + 0.005, -0.04]} scale={0.42}>
           <mesh geometry={res.plantA.pot} material={res.potMat} />
@@ -340,12 +364,8 @@ export default function RoomShell({ dimsRef }: { dimsRef: RoomDimsRef }) {
 
       {/* ---- Round two-tone rug catching the sun patch */}
       <group position={[0, 0, -0.9]}>
-        <mesh geometry={res.rugGeo} position-y={0.008}>
-          <meshStandardMaterial color={look.rug[0]} roughness={1} />
-        </mesh>
-        <mesh geometry={res.rugInnerGeo} position-y={0.0085}>
-          <meshStandardMaterial color={look.rug[1]} roughness={1} />
-        </mesh>
+        <mesh geometry={res.rugGeo} material={textiles.rugOuter} position-y={0.008} />
+        <mesh geometry={res.rugInnerGeo} material={textiles.rugInner} position-y={0.0085} />
       </group>
 
       {/* ---- Plants flanking the window, each grounded by a soft contact shadow */}
