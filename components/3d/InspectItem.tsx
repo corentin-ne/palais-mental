@@ -6,7 +6,7 @@ import CoverFace from './CoverFace';
 import ItemModel from './ItemModel';
 import { PalaceItem } from '@/lib/types';
 import { CATEGORY_SPECS, getItemColor, getItemScale } from '@/lib/itemVisuals';
-import { BODY_ROUGHNESS } from '@/lib/itemGeometry';
+import { itemMaterials } from '@/lib/finishes';
 import { getRoomDims, getRoomLevel, getSlotWorld } from '@/lib/palaceLayout';
 import { clamp01, easeInOutCubic, lerp, safeDelta } from '@/lib/easing';
 import { sceneSignals } from '@/lib/sceneSignals';
@@ -40,8 +40,7 @@ function Inspected({ item }: { item: PalaceItem }) {
 
   const mats = useMemo(
     () => ({
-      body: new MeshStandardMaterial({ color: new Color(getItemColor(item)), roughness: BODY_ROUGHNESS[item.category] }),
-      detail: new MeshStandardMaterial({ vertexColors: true, roughness: 0.38 }),
+      ...itemMaterials(item.category, getItemColor(item)),
     }),
     [item],
   );

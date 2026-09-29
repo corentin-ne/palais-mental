@@ -61,7 +61,7 @@ export function buildPieceGeometry(shape: PieceShape, [x, y, z]: [number, number
     case 'box':
       return new RoundedBoxGeometry(x, y, z, 4, Math.min(CARCASS.cornerRadius, Math.min(x, y, z) * 0.45));
     case 'plinth':
-      return new RoundedBoxGeometry(x, y, z, 6, Math.min(x, y, z) * 0.28);
+      return new RoundedBoxGeometry(x, y, z, 8, Math.min(x, y, z) * 0.42);
     case 'leg': {
       // Capsule along the piece's longest axis.
       const long = Math.max(x, y, z);

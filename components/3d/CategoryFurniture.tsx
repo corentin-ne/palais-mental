@@ -23,7 +23,8 @@ import FeaturedCover from './FeaturedCover';
 import FurnitureTop from './FurnitureTop';
 import { CategoryId, PalaceItem } from '@/lib/types';
 import { CATEGORY_SPECS, getItemColor, getItemScale } from '@/lib/itemVisuals';
-import { BODY_ROUGHNESS, getItemParts } from '@/lib/itemGeometry';
+import { getItemParts } from '@/lib/itemGeometry';
+import { finish, itemMaterials } from '@/lib/finishes';
 import { buildPieceGeometry } from '@/lib/furnitureGeometry';
 import {
   CROWN_HEIGHT,
@@ -139,18 +140,19 @@ export default function CategoryFurniture({ category, dimsRef }: Props) {
   const pieces = useMemo(() => getFurniturePieces(layout), [layout]);
   const capacity = Math.ceil((count + 1) / CAPACITY_CHUNK) * CAPACITY_CHUNK;
 
-  const mats = useMemo<Record<PieceMaterial, Material> & { body: MeshStandardMaterial; detail: MeshStandardMaterial; shadow: ShaderMaterial }>(
+  const mats = useMemo<Record<PieceMaterial, Material> & { body: Material; detail: Material; shadow: ShaderMaterial }>(
     () => ({
-      lacquer: withSurface(new MeshStandardMaterial({ color: look.lacquer, roughness: look.lacquerRoughness, envMapIntensity: 1.1 }), 'plaster', { strength: 0.6 }),
-      lining: withSurface(new MeshStandardMaterial({ color: new Color(spec.accent).lerp(_white, 1 - look.liningAccent), roughness: 0.92, envMapIntensity: 0.35 }), 'linen'),
-      oak: withSurface(new MeshStandardMaterial({ ...FURNITURE_MATERIALS.oak }), 'wood'),
-      brass: new MeshStandardMaterial({ ...FURNITURE_MATERIALS.brass }),
+      lacquer: withSurface(finish(FURNITURE_MATERIALS.carcass, look.lacquer), 'plaster', { strength: 0.5 }),
+      // Tinted panels you half see through, like coloured resin.
+      lining: finish(FURNITURE_MATERIALS.panels, new Color(spec.accent).lerp(_white, FURNITURE_MATERIALS.panelWhiten)),
+      oak: withSurface(finish(FURNITURE_MATERIALS.shelves, FURNITURE_MATERIALS.oak.color), 'wood', { strength: 0.8 }),
+      brass: finish('metal', FURNITURE_MATERIALS.brass.color),
+      jelly: finish(FURNITURE_MATERIALS.pedestal, new Color(spec.accent).lerp(_white, 0.45)),
       glow: new MeshBasicMaterial({
         color: new Color(spec.accent).lerp(_white, FURNITURE_MATERIALS.glowWhiten).multiplyScalar(FURNITURE_MATERIALS.glowIntensity),
         toneMapped: false,
       }),
-      body: new MeshStandardMaterial({ color: '#FFFFFF', roughness: BODY_ROUGHNESS[category] }),
-      detail: new MeshStandardMaterial({ vertexColors: true, roughness: 0.38 }),
+      ...itemMaterials(category),
       shadow: contactShadowMaterial(),
     }),
     [spec.accent, category, look],

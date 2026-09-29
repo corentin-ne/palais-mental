@@ -4,6 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { NeutralToneMapping } from 'three';
 
 import { Canvas } from './Canvas';
+import { FINISH_OPTIONS } from '@/config/finishes';
 import CameraRig from './CameraRig';
 import CategoryFurniture from './CategoryFurniture';
 import Effects from './Effects';
@@ -47,6 +48,8 @@ export default function MentalPalace() {
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       onCreated={({ gl, invalidate }) => {
         gl.toneMapping = NeutralToneMapping; // web: superseded by the composer's ToneMapping pass
+        // Glass and jelly refract a half-resolution copy of the room: soft and cheap.
+        gl.transmissionResolutionScale = FINISH_OPTIONS.transmissionResolution;
         sceneSignals.requestFrame = () => invalidate();
         wakeAmbient(8); // let the room come alive on first open
       }}

@@ -73,13 +73,16 @@ Every tunable lives in `config/`; the rest of the code reads from it.
 |---|---|
 | `config/room.ts` | room size and growth, window, sun, where each collection stands (fixed angle or beside the TV, the hi-fi or another collection) |
 | `config/collections.ts` | object sizes and shape variants, palettes, finishes, how densely furniture packs them |
-| `config/furniture.ts` | stage thresholds and proportions, corner softness, oak and brass |
+| `config/furniture.ts` | stage thresholds and proportions, corner softness, the finish of each part |
+| `config/finishes.ts` | clay, satin, glossy, glass, frosted, jelly and metal: roughness, clearcoat, sheen, transmission, tint depth |
 | `config/decor.ts` | which room pieces exist, where they stand, their colours |
 | `config/look.ts` | light, sky, walls, floor and textile colours |
 | `config/motion.ts` | camera lens and flight timing, arrival timing |
 | `config/catalog.ts` | which sources each collection searches, in which order, and limits |
 
-Surfaces get quiet procedural textures (wood grain, linen weave, bouclé, plaster, paper) from `lib/materialPatches.ts`; call `withSurface(material, kind)` on any standard material.
+Every material is built from a finish in `config/finishes.ts` (clay, satin, glossy, glass, frosted, jelly, metal) by `lib/finishes.ts`: soft sculpted-toy shading with clearcoat and sheen, and real transmission for glass, frosted resin and jelly on the web (alpha transparency on native unless `nativeTransmission` is on). Collections pick their finishes in `config/collections.ts`, furniture parts in `config/furniture.ts`.
+
+Surfaces also get quiet procedural textures (wood grain, linen weave, bouclé, plaster, paper) from `lib/materialPatches.ts`; call `withSurface(material, kind)` on any standard material.
 
 ## Structure
 

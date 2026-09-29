@@ -22,7 +22,8 @@ import {
 
 import { HeroEvent, PalaceItem } from '@/lib/types';
 import { CATEGORY_SPECS, getItemColor, getItemScale } from '@/lib/itemVisuals';
-import { BODY_ROUGHNESS, DISC, getDiscSliceGeometry } from '@/lib/itemGeometry';
+import { DISC, getDiscSliceGeometry } from '@/lib/itemGeometry';
+import { itemMaterials } from '@/lib/finishes';
 import { getRoomDims, getRoomLevel, getSlotWorld } from '@/lib/palaceLayout';
 import CoverFace from './CoverFace';
 import ItemModel from './ItemModel';
@@ -180,14 +181,9 @@ function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<Poin
     const sun = new Color(SUNLIGHT);
     const size = Math.max(h, d);
     const implode: ImplodeUniforms = { uImplode: { value: 1 }, uRadius: { value: 0.5 * Math.hypot(t, h, d) } };
-    const body = new MeshStandardMaterial({
-      color,
-      roughness: BODY_ROUGHNESS[item?.category ?? 'movies'],
-      metalness: 0,
-      emissive: sun.clone().lerp(accent, 0.35),
-      emissiveIntensity: 0,
-    });
-    const detail = new MeshStandardMaterial({ vertexColors: true, roughness: 0.38 });
+    const { body, detail } = itemMaterials(item?.category ?? 'movies', color);
+    body.emissive = sun.clone().lerp(accent, 0.35);
+    body.emissiveIntensity = 0;
     applyImplode(body, implode);
     applyImplode(detail, implode);
     const discMat = new MeshStandardMaterial({ color: '#F4F1FA', roughness: 0.2, metalness: 0.25 });

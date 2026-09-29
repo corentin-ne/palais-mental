@@ -293,7 +293,7 @@ export function getSlotWorld(
 }
 
 // ---------------------------------------------------------------- Furniture pieces
-export type PieceMaterial = 'lacquer' | 'lining' | 'oak' | 'brass' | 'glow';
+export type PieceMaterial = 'lacquer' | 'lining' | 'oak' | 'brass' | 'glow' | 'jelly';
 /** box: rounded block · plinth: very soft block · leg: capsule · arch: panel with a round top · archRing: arched frame. */
 export type PieceShape = 'box' | 'plinth' | 'leg' | 'arch' | 'archRing';
 
@@ -327,7 +327,7 @@ export function getFurniturePieces(layout: FurnitureLayout): FurniturePiece[] {
   if (stage === 0) {
     // Pedestal: a soft plinth and an arched backdrop behind the objects.
     const h = baseY - T;
-    add('base', 'plinth', 'lacquer', [0, h / 2, D / 2], [W - 0.03, h, D - 0.02]);
+    add('base', 'plinth', 'jelly', [0, h / 2, D / 2], [W - 0.03, h, D - 0.02]);
     add('back', 'arch', 'lining', [0, baseY + tierHeight * 0.55, 0.015], [W * 0.9, tierHeight * 1.1, 0.02]);
     return out;
   }
@@ -368,7 +368,7 @@ export function getFurniturePieces(layout: FurnitureLayout): FurniturePiece[] {
     const towerH = H + CROWN_HEIGHT * 0.6;
     for (const sx of [-1, 1]) {
       const x = sx * (W / 2 + TOWER_WIDTH / 2 + 0.01);
-      add(`tower-${sx}`, 'arch', 'lacquer', [x, towerH / 2, D / 2], [TOWER_WIDTH, towerH, D + 0.02]);
+      add(`tower-${sx}`, 'arch', 'jelly', [x, towerH / 2, D / 2], [TOWER_WIDTH, towerH, D + 0.02]);
       add(`tower-glow-${sx}`, 'leg', 'glow', [x, towerH * 0.45, D + 0.016], [0.007, towerH * 0.62, 0.007]);
       add(`tower-cap-${sx}`, 'leg', 'brass', [x, towerH + 0.08, D / 2], [0.05, 0.05, 0.05]);
     }

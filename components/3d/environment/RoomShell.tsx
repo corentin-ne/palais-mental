@@ -30,6 +30,7 @@ import { WINDOW_SDF } from '@/shaders/common';
 import { COVE_RADIUS, RoomDims, WINDOW, getRoomDims } from '@/lib/palaceLayout';
 import { softBox, windowOutline } from '@/lib/itemGeometry';
 import { safeDelta } from '@/lib/easing';
+import { finish } from '@/lib/finishes';
 import { withSurface } from '@/lib/materialPatches';
 import { useSceneLook } from '@/lib/sceneLook';
 import { selectRoomLevel, usePalaceStore } from '@/store/usePalaceStore';
@@ -268,7 +269,7 @@ export default function RoomShell({ dimsRef }: { dimsRef: RoomDimsRef }) {
         bevelSegments: 6,
         curveSegments: 56,
       }),
-      frameMat: new MeshStandardMaterial({ color: '#FFFDF9', roughness: 0.32, envMapIntensity: 0.9 }),
+      frameMat: withSurface(finish('satin', '#FFFDF9'), 'plaster', { strength: 0.5 }),
       cushionGeo: softBox(WINDOW.halfWidth * 2 - 0.16, 0.11, 0.46, 0.9, 4),
       pillowGeo: new SphereGeometry(1, 32, 20),
       rugGeo: new CylinderGeometry(1.9, 1.9, 0.016, 128),
@@ -277,9 +278,9 @@ export default function RoomShell({ dimsRef }: { dimsRef: RoomDimsRef }) {
       shadowMat: shadowMaterial(),
       plantA,
       plantB,
-      potMat: new MeshStandardMaterial({ color: '#E7BCA6', roughness: 0.6 }),
-      leafMat: new MeshStandardMaterial({ color: '#8FBC8B', roughness: 0.55, side: DoubleSide }),
-      stemMat: new MeshStandardMaterial({ color: '#7FA36E', roughness: 0.7 }),
+      potMat: finish('glossy', '#E7BCA6'),
+      leafMat: finish('satin', '#8FBC8B', { side: DoubleSide }),
+      stemMat: finish('satin', '#7FA36E'),
     };
   }, []);
 
@@ -287,11 +288,11 @@ export default function RoomShell({ dimsRef }: { dimsRef: RoomDimsRef }) {
   // Soft furnishings: linen weave on the cushion and pillows, a looser weave on the rug.
   const textiles = useMemo(
     () => ({
-      cushion: withSurface(new MeshStandardMaterial({ color: look.cushion, roughness: 0.9 }), 'linen'),
-      pillowA: withSurface(new MeshStandardMaterial({ color: look.pillows[0], roughness: 0.9 }), 'boucle', { strength: 0.6 }),
-      pillowB: withSurface(new MeshStandardMaterial({ color: look.pillows[1], roughness: 0.9 }), 'linen'),
-      rugOuter: withSurface(new MeshStandardMaterial({ color: look.rug[0], roughness: 1 }), 'boucle', { strength: 0.7 }),
-      rugInner: withSurface(new MeshStandardMaterial({ color: look.rug[1], roughness: 1 }), 'linen', { strength: 1.4 }),
+      cushion: withSurface(finish('clay', look.cushion), 'linen'),
+      pillowA: withSurface(finish('clay', look.pillows[0]), 'boucle', { strength: 0.6 }),
+      pillowB: withSurface(finish('clay', look.pillows[1]), 'linen'),
+      rugOuter: withSurface(finish('clay', look.rug[0]), 'boucle', { strength: 0.7 }),
+      rugInner: withSurface(finish('clay', look.rug[1]), 'linen', { strength: 1.4 }),
     }),
     [look],
   );

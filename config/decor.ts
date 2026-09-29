@@ -33,6 +33,8 @@ export const DECOR_COLORS = {
   linen: '#FBF4E8',
   curtain: '#EFDFCB',
   ceramic: '#E9DCCB',
+  /** Tint of clear and frosted glass (vases, the coffee table top). */
+  glass: '#CFE6E2',
   paper: '#FFF8EE',
   frame: '#D2B48C',
   pot: '#E7BCA6',
@@ -42,7 +44,7 @@ export const DECOR_COLORS = {
   pampas: '#EADBC2',
   cord: '#8C7A68',
   /** TV, soundbar and speaker fronts. */
-  charcoal: '#2A2B30',
+  charcoal: '#4A4B52',
   /** Brushed-silver plastic of the 2000s hi-fi. */
   silver: '#C9CCD1',
   /** Glow of the hi-fi display and lamp bulb. */

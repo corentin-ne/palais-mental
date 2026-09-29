@@ -1,8 +1,9 @@
 import { ReactNode, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { BufferGeometry, CylinderGeometry, DoubleSide, Group, LatheGeometry, MeshBasicMaterial, MeshStandardMaterial, Vector2 } from 'three';
+import { BufferGeometry, CylinderGeometry, Group, LatheGeometry, Vector2 } from 'three';
 
 import { buildPlant } from './environment/RoomShell';
+import { decorMaterials } from './decor/materials';
 import { FurnitureLayout } from '@/lib/palaceLayout';
 import { Spring, safeDelta, spring, springSettled, stepSpring } from '@/lib/easing';
 
@@ -36,16 +37,7 @@ function build() {
     holder,
     flame,
     plant: buildPlant(8, 0.42, 0.09, 53),
-    mats: {
-      ceramic: new MeshStandardMaterial({ color: '#EADFD1', roughness: 0.35 }),
-      stem: new MeshStandardMaterial({ color: '#B89A74', roughness: 0.8 }),
-      wax: new MeshStandardMaterial({ color: '#FBF6EE', roughness: 0.6 }),
-      brass: new MeshStandardMaterial({ color: '#C9A56A', metalness: 0.9, roughness: 0.3 }),
-      flame: new MeshBasicMaterial({ color: '#FFD9A0', toneMapped: false }),
-      pot: new MeshStandardMaterial({ color: '#E7BCA6', roughness: 0.6 }),
-      leaf: new MeshStandardMaterial({ color: '#8FBC8B', roughness: 0.55, side: DoubleSide }),
-      plantStem: new MeshStandardMaterial({ color: '#7FA36E', roughness: 0.7 }),
-    },
+    mats: decorMaterials(),
   };
 }
 
@@ -77,9 +69,9 @@ function Grow({ position, children }: { position: [number, number, number]; chil
 function Vase({ geo, mats }: { geo: NonNullable<typeof shared>; mats: NonNullable<typeof shared>['mats'] }) {
   return (
     <>
-      <mesh geometry={geo.vase} material={mats.ceramic} />
+      <mesh geometry={geo.vase} material={mats.glass} />
       {[-0.25, 0.1, 0.35].map((r, i) => (
-        <mesh key={i} geometry={geo.stem} material={mats.stem} rotation={[0.1 * i - 0.1, i, r]} />
+        <mesh key={i} geometry={geo.stem} material={mats.driedStem} rotation={[0.1 * i - 0.1, i, r]} />
       ))}
     </>
   );
@@ -90,7 +82,7 @@ function Plant({ geo, mats }: { geo: NonNullable<typeof shared>; mats: NonNullab
   return (
     <group scale={0.42}>
       <mesh geometry={p.pot as BufferGeometry} material={mats.pot} />
-      <mesh geometry={p.stems} material={mats.plantStem} />
+      <mesh geometry={p.stems} material={mats.stem} />
       <mesh geometry={p.leaves} material={mats.leaf} />
     </group>
   );

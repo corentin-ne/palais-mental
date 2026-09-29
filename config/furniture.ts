@@ -4,6 +4,8 @@
  *
  *   0 pedestal → 1 console → 2 bookcase → 3 arched cabinet → 4 wall unit
  */
+import type { FinishKind } from './finishes';
+
 export type FurnitureStage = 0 | 1 | 2 | 3 | 4;
 
 /** Object counts at which a collection's furniture moves to the next stage. */
@@ -30,7 +32,7 @@ export const STAGES: StageSpec[] = [
 
 /** Carcass proportions (m). */
 export const CARCASS = {
-  plank: 0.032,
+  plank: 0.038,
   side: 0.036,
   sidePadding: 0.03,
   bayGap: 0.03,
@@ -39,15 +41,26 @@ export const CARCASS = {
   /** Width of each side tower on a wall unit. */
   towerWidth: 0.16,
   /** Corner radius cap of every rounded part: higher is softer. */
-  cornerRadius: 0.02,
+  cornerRadius: 0.034,
   /** Clearance between an object and the next tier above it. */
   headroom: 0.07,
 } as const;
 
-/** Materials of the furniture; the lacquer and back-panel tint follow config/look. */
+/**
+ * Materials of the furniture: a finish (config/finishes) per part. The carcass colour and
+ * the back-panel tint follow config/look and each collection's accent.
+ */
 export const FURNITURE_MATERIALS = {
-  oak: { color: '#E8D0AE', roughness: 0.55 },
-  brass: { color: '#C9A56A', metalness: 0.9, roughness: 0.3 },
+  carcass: 'satin' as FinishKind,
+  /** Back panels and the arch behind a cabinet's crown. */
+  panels: 'frosted' as FinishKind,
+  /** How pale the panel tint is (0 = the collection's accent, 1 = clear). */
+  panelWhiten: 0.3,
+  shelves: 'clay' as FinishKind,
+  /** The pedestal's block, tinted with the collection's accent. */
+  pedestal: 'jelly' as FinishKind,
+  oak: { color: '#E8D0AE' },
+  brass: { color: '#C9A56A' },
   /** How far the light lines under each plank lean toward white (0–1) and their brightness. */
   glowWhiten: 0.55,
   glowIntensity: 1.6,

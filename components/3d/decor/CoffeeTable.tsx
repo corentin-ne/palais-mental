@@ -12,7 +12,7 @@ const STEMS = [
   [0.2, 0.3],
 ] as const;
 
-/** Round oak table on three brass legs, with a vase of dried stems and two art books. */
+/** Round frosted-glass table on three brass legs, with a glass vase of dried stems and two art books. */
 export default function CoffeeTable() {
   const mats = decorMaterials();
   const geo = useMemo(
@@ -57,9 +57,9 @@ export default function CoffeeTable() {
   useEffect(() => () => disposeAll(geo), [geo]);
   return (
     <>
-      <mesh geometry={geo.top} material={mats.oak} />
+      <mesh geometry={geo.top} material={mats.glassTable} />
       <mesh geometry={geo.legs} material={mats.brass} />
-      <mesh geometry={geo.vase} material={mats.ceramic} />
+      <mesh geometry={geo.vase} material={mats.glass} />
       <mesh geometry={geo.stems} material={mats.driedStem} />
       <mesh geometry={geo.heads} material={mats.pampas} />
       <mesh geometry={geo.books} material={mats.painted} />

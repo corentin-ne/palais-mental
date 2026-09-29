@@ -48,11 +48,6 @@ export interface ItemParts {
   detail: BufferGeometry;
 }
 
-/** Surface finish of each collection's body (see config/collections). */
-export const BODY_ROUGHNESS = Object.fromEntries(
-  Object.entries(CATEGORY_SPECS).map(([k, v]) => [k, v.roughness]),
-) as Record<CategoryId, number>;
-
 function buildParts(category: CategoryId, halfSeries = false): ItemParts {
   const [t, h, d] = CATEGORY_SPECS[category].size;
   switch (category) {
