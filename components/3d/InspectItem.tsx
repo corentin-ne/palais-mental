@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Color, Group, MathUtils, MeshStandardMaterial, PerspectiveCamera, Quaternion, Vector3 } from 'three';
 
+import CoverFace from './CoverFace';
 import ItemModel from './ItemModel';
 import { PalaceItem } from '@/lib/types';
 import { CATEGORY_SPECS, getItemColor, getItemScale } from '@/lib/itemVisuals';
@@ -115,6 +116,7 @@ function Inspected({ item }: { item: PalaceItem }) {
     <group ref={root}>
       <group ref={content}>
         <ItemModel category={item.category} body={mats.body} detail={mats.detail} />
+        <CoverFace url={item.coverUrl} category={item.category} />
       </group>
     </group>
   );

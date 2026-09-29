@@ -10,6 +10,7 @@ import Effects from './Effects';
 import HeroItemSpawner from './HeroItemSpawner';
 import InspectItem from './InspectItem';
 import DustMotes from './environment/DustMotes';
+import RoomDecor from './environment/RoomDecor';
 import RoomShell from './environment/RoomShell';
 import SkyAndLandscape from './environment/SkyAndLandscape';
 import SunShafts from './environment/SunShafts';
@@ -56,6 +57,7 @@ export default function MentalPalace() {
       <Lighting />
       <SkyAndLandscape />
       <RoomShell dimsRef={dimsRef} />
+      <RoomDecor dimsRef={dimsRef} />
       <SunShafts dimsRef={dimsRef} />
       {ambient && <DustMotes dimsRef={dimsRef} />}
       {CATEGORIES.map((category) => (

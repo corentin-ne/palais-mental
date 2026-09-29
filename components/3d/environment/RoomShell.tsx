@@ -86,24 +86,85 @@ function buildShellGeometry(d: RoomDims, COLORS: typeof DEFAULT_COLORS = DEFAULT
   return geo;
 }
 
-/** Shell material: cuts the arched window out of the wall in the fragment shader. */
+/**
+ * Light oak planks running toward the window, in world space so they stay the same size
+ * as the room grows. Each plank gets its own tone and a stretched grain; seams are
+ * darkened. Returns a linear colour and writes a 0..1 grain value for the roughness.
+ */
+const PARQUET_GLSL = /* glsl */ `
+  uniform float uFloorRadius;
+  float pqHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  vec3 parquet(vec2 p, out float grain) {
+    const float W = 0.17;
+    const float L = 1.3;
+    float col = floor(p.x / W);
+    float off = pqHash(vec2(col, 7.3)) * L;
+    float row = floor((p.y + off) / L);
+    vec2 id = vec2(col, row);
+    vec2 f = vec2(fract(p.x / W), fract((p.y + off) / L));
+    float h = pqHash(id);
+    float h2 = pqHash(id + 17.0);
+    vec3 pale = vec3(0.94, 0.86, 0.74);
+    vec3 honey = vec3(0.86, 0.73, 0.58);
+    vec3 c = mix(honey, pale, 0.35 + 0.65 * h);
+    // Grain: fine lines along the plank, wobbling slowly, plus a few knots.
+    float wob = sin(f.y * L * 2.3 + h * 40.0) * 0.22 + sin(f.y * L * 7.0 + h2 * 30.0) * 0.06;
+    float fine = sin((f.x + wob) * (24.0 + 20.0 * h2) + h * 12.0);
+    float broad = sin((f.x - wob * 0.5) * 7.0 + h2 * 9.0);
+    grain = 0.5 + 0.35 * fine * fine * sign(fine) * 0.6 + 0.15 * broad;
+    c *= 0.96 + 0.05 * grain;
+    float knot = smoothstep(0.06, 0.0, length((f - vec2(0.3 + 0.4 * h2, 0.2 + 0.6 * h)) * vec2(W, L) * vec2(6.0, 2.0)));
+    c *= 1.0 - 0.18 * knot * step(0.7, h2);
+    float seam = smoothstep(0.0, 0.02, f.x) * smoothstep(1.0, 0.98, f.x) * smoothstep(0.0, 0.005, f.y) * smoothstep(1.0, 0.995, f.y);
+    c *= mix(0.84, 1.0, seam);
+    return pow(c, vec3(2.2));
+  }
+`;
+
+/** Shell material: parquet on the flat floor, and the arched window cut out of the wall. */
 function buildShellMaterial(): MeshStandardMaterial {
   const mat = new MeshStandardMaterial({ vertexColors: true, roughness: 0.95, side: DoubleSide, envMapIntensity: 0.45 });
+  const floorRadius = { value: BASE.radius - COVE_RADIUS };
+  mat.userData.floorRadius = floorRadius;
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uWin = { value: WIN_UNIFORM };
+    shader.uniforms.uFloorRadius = floorRadius;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vShellPos;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvShellPos = (modelMatrix * vec4(position, 1.0)).xyz;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vShellPos;\n${WINDOW_SDF}`)
-      .replace('void main() {', 'void main() {\n  if (vShellPos.z < -1.0 && windowSdf(vShellPos.xy) < 0.0) discard;');
+      .replace('#include <common>', `#include <common>\nvarying vec3 vShellPos;\n${WINDOW_SDF}\n${PARQUET_GLSL}`)
+      .replace(
+        'void main() {',
+        `void main() {
+  if (vShellPos.z < -1.0 && windowSdf(vShellPos.xy) < 0.0) discard;
+  float pqGrain = 0.5;
+  float pqR = length(vShellPos.xz);
+  // Wood on the flat floor, up to the skirting where the cove starts to rise.
+  float pqMask = (1.0 - smoothstep(uFloorRadius + 0.02, uFloorRadius + 0.06, pqR)) * step(vShellPos.y, 0.01);`,
+      )
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+  if (pqMask > 0.0) {
+    vec3 wood = parquet(vShellPos.xz, pqGrain);
+    // Soft darkening toward the walls keeps the room's ambient-occlusion gradient.
+    wood *= mix(1.0, 0.86, smoothstep(0.0, uFloorRadius, pqR));
+    diffuseColor.rgb = mix(diffuseColor.rgb, wood, pqMask);
+  }`,
+      )
+      .replace(
+        '#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>
+  roughnessFactor = mix(roughnessFactor, 0.5 + 0.12 * pqGrain, pqMask);`,
+      );
   };
-  mat.customProgramCacheKey = () => 'palace-shell-window';
+  mat.customProgramCacheKey = () => 'palace-shell-window-parquet';
   return mat;
 }
 
 /** Stylized potted plant: rounded lathe pot + a fan of plump leaves merged into one mesh. */
-function buildPlant(leafCount: number, height: number, spread: number, seed: number) {
+export function buildPlant(leafCount: number, height: number, spread: number, seed: number) {
   const pot = new LatheGeometry(
     [
       [0.001, 0],
@@ -242,6 +303,7 @@ export default function RoomShell({ dimsRef }: { dimsRef: RoomDimsRef }) {
     const sXZ = d.radius / BASE.radius;
     const sY = (d.wallHeight + d.domeHeight) / (BASE.wallHeight + BASE.domeHeight);
     shell.current?.scale.set(sXZ, sY, sXZ);
+    res.shellMat.userData.floorRadius.value = d.radius - COVE_RADIUS;
     windowGroup.current?.position.set(0, 0, -d.radius);
     plantL.current?.position.set(-2.05, 0, -d.radius + 1.55);
     plantR.current?.position.set(2.1, 0, -d.radius + 1.6);

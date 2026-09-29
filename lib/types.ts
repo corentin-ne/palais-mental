@@ -78,6 +78,12 @@ export type CatalogProvider =
   | 'deezer'
   | 'steam'
   | 'wikipedia'
+  | 'wikidata'
+  | 'imdb'
+  | 'jikan'
+  | 'gog'
+  | 'bgg'
+  | 'gutendex'
   | 'manual';
 export interface ItemSource {
   provider: CatalogProvider;

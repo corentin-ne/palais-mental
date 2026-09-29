@@ -7,12 +7,14 @@ import LogFlow from '@/components/ui/LogFlow';
 import TabBar from '@/components/ui/TabBar';
 import Toast from '@/components/ui/Toast';
 import { useTheme } from '@/constants/theme';
+import { startCoverSync } from '@/lib/covers';
 import { startReleaseSync } from '@/lib/releases';
 
 /** Four places, one add button. Sheets and toasts live above every tab. */
 export default function TabsLayout() {
   const { palette } = useTheme();
   useEffect(() => startReleaseSync(), []);
+  useEffect(() => startCoverSync(), []);
   return (
     <View style={[styles.root, { backgroundColor: palette.bg }]}>
       <Tabs

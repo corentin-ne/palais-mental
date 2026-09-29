@@ -24,6 +24,7 @@ import { HeroEvent, PalaceItem } from '@/lib/types';
 import { CATEGORY_SPECS, getItemColor, getItemScale } from '@/lib/itemVisuals';
 import { BODY_ROUGHNESS, DISC, getDiscSliceGeometry } from '@/lib/itemGeometry';
 import { getRoomDims, getRoomLevel, getSlotWorld } from '@/lib/palaceLayout';
+import CoverFace from './CoverFace';
 import ItemModel from './ItemModel';
 import {
   clamp01,
@@ -85,7 +86,8 @@ function buildTimeline(event: HeroEvent): Timeline {
     if (event.completesSeason) seq.push(['insert', 0.38], ['close', 0.18], ['hold', 0.35]);
     else seq.push(['hold', 0.16], ['close', 0.22]);
   } else {
-    seq.push(['hold', 0.25]);
+    // Long enough to read the artwork on the cover before the object flies home.
+    seq.push(['hold', 0.7]);
   }
   seq.push(['fly', 0.62]);
 
@@ -166,6 +168,7 @@ function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<Poin
   // ---- Scene-graph refs (mutated in useFrame, never through React state)
   const root = useRef<Group>(null);
   const content = useRef<Group>(null);
+  const cover = useRef<Mesh>(null);
   const lid = useRef<Group>(null);
   const disc = useRef<Group>(null);
   const newSlice = useRef<Mesh>(null);
@@ -338,6 +341,12 @@ function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<Poin
       c.scale.set(lerp(1, f.scale[0], eFly), lerp(1, f.scale[1], eFly), lerp(1, f.scale[2], eFly));
     }
     c.visible = born;
+    // Artwork settles onto the face once the twist has unwound, and fades as the object flies home spine-out.
+    if (cover.current) {
+      const m = cover.current.material as MeshStandardMaterial;
+      m.opacity = clamp01((pBurst - 0.55) / 0.3) * (1 - clamp01(pFly * 1.6));
+      cover.current.visible = m.opacity > 0.01;
+    }
     // The twist unwinds with a snap as the object leaves the pearl.
     res.implode.uImplode.value = born ? 1 - easeOutQuint(pBurst) : 1;
     // Cover faces the camera (-π/2) after a spin-in; unwinds to spine-out (0) in flight.
@@ -450,6 +459,7 @@ function Hero({ event, light }: { event: HeroEvent; light: MutableRefObject<Poin
 
       <group ref={content} visible={false}>
         <ItemModel category={category} body={res.body} detail={res.detail} lidRef={isSeries ? lid : undefined} />
+        {event.kind === 'item' && <CoverFace ref={cover} url={item.coverUrl} category={category} />}
       </group>
 
       {/* Season disc, built from pie slices in the camera-facing plane */}

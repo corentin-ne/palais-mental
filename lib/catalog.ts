@@ -1,17 +1,18 @@
 /**
  * Catalog search. Every source is free and keyless; each category queries several in
  * parallel, then results are merged and de-duplicated (first source wins, so the
- * order below is also a quality ranking):
+ * order below is also a quality ranking; later sources fill missing covers and years):
  *
- *  - movies      iTunes (posters, dates) · Wikipedia
- *  - series      TVmaze (posters, seasons, next episodes) · iTunes seasons
- *  - music       iTunes albums · Deezer · MusicBrainz + Cover Art Archive
- *  - books       Google Books · Open Library
- *  - videogames  Steam · Wikipedia
- *  - boardgames  Wikipedia
+ *  - movies      iTunes · IMDb suggestions · MyAnimeList (Jikan) · Wikidata · Wikipedia
+ *  - series      TVmaze (seasons, next episodes) · IMDb suggestions · iTunes seasons · MyAnimeList · Wikidata
+ *  - music       iTunes albums · Deezer · MusicBrainz + Cover Art Archive · Wikipedia
+ *  - books       Google Books · Open Library · Apple Books · MyAnimeList (manga) · Gutendex · Wikidata
+ *  - videogames  Steam · GOG · IMDb suggestions · Wikipedia · Wikidata
+ *  - boardgames  BoardGameGeek · Wikipedia · Wikidata
  *
- * Providers never throw: a failed or offline source returns nothing, and manual entry
- * is always offered.
+ * Identical requests made by several categories at once (IMDb, Jikan, Wikidata in the
+ * "All" search) share one network call. Providers never throw: a failed or offline
+ * source returns nothing, and manual entry is always offered.
  */
 import { CATEGORIES, CategoryId, ItemSource } from './types';
 
@@ -63,6 +64,20 @@ const strip = (s: string) =>
 
 /** iTunes serves any square size by rewriting the file name. */
 const itunesArt = (url?: string) => url?.replace(/\/\d+x\d+bb\./, '/600x600bb.');
+
+/** IMDb (Amazon) images resize through their file name suffix. */
+export const imdbArt = (url?: string) => url?.replace(/\._V1_[^/]*\.(jpe?g|png)$/i, '._V1_QL75_UX600_.$1');
+
+/** "Stoker, Bram" → "Bram Stoker" (Gutenberg and MyAnimeList list people surname first). */
+export const personName = (s?: string) => {
+  if (!s) return undefined;
+  const m = s.match(/^([^,]+),\s*(.+)$/);
+  return m ? `${m[2]} ${m[1]}` : s;
+};
+
+/** Wikimedia Commons file name → a resized image URL. */
+export const commonsImage = (file: string, width = 500) =>
+  `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file.replace(/ /g, '_'))}?width=${width}`;
 
 // ------------------------------------------------------------------ Parsers (pure, tested)
 interface OpenLibraryDoc {
@@ -289,6 +304,226 @@ export function parseWikipedia(json: unknown, category: CategoryId, lang: string
     }));
 }
 
+export function parseItunesBooks(json: unknown): CatalogResult[] {
+  const results = (json as { results?: ItunesEntry[] })?.results ?? [];
+  return results.flatMap((r): CatalogResult[] =>
+    r.trackId && r.trackName
+      ? [
+          {
+            key: `it:b:${r.trackId}`,
+            category: 'books',
+            title: r.trackName,
+            creator: r.artistName,
+            year: yearOf(r.releaseDate),
+            releaseDate: dateOf(r.releaseDate),
+            coverUrl: itunesArt(r.artworkUrl100),
+            source: { provider: 'itunes', id: `book:${r.trackId}` },
+          },
+        ]
+      : [],
+  );
+}
+
+interface ImdbSuggestion {
+  id?: string;
+  l?: string;
+  qid?: string;
+  s?: string;
+  y?: number;
+  i?: { imageUrl?: string };
+}
+const IMDB_KINDS: Record<'movies' | 'series' | 'videogames', string[]> = {
+  movies: ['movie', 'tvMovie', 'video', 'short'],
+  series: ['tvSeries', 'tvMiniSeries'],
+  videogames: ['videoGame'],
+};
+export function parseImdb(json: unknown, category: 'movies' | 'series' | 'videogames'): CatalogResult[] {
+  const rows = (json as { d?: ImdbSuggestion[] })?.d ?? [];
+  return rows.flatMap((r): CatalogResult[] => {
+    if (!r?.id?.startsWith('tt') || !r.l || !IMDB_KINDS[category].includes(r.qid ?? '')) return [];
+    return [
+      {
+        key: `im:${r.id}`,
+        category,
+        title: r.l,
+        // `s` lists the leading cast; for games it is often the studio.
+        creator: category === 'videogames' ? undefined : r.s?.split(',')[0]?.trim() || undefined,
+        year: r.y,
+        coverUrl: imdbArt(r.i?.imageUrl),
+        season: category === 'series' ? 1 : undefined,
+        source: { provider: 'imdb', id: r.id },
+      },
+    ];
+  });
+}
+
+interface JikanEntry {
+  mal_id: number;
+  title: string;
+  title_english?: string | null;
+  type?: string | null;
+  episodes?: number | null;
+  year?: number | null;
+  aired?: { from?: string | null } | null;
+  published?: { from?: string | null } | null;
+  studios?: { name?: string }[];
+  authors?: { name?: string }[];
+  images?: { jpg?: { large_image_url?: string; image_url?: string }; webp?: { large_image_url?: string } };
+}
+/** MyAnimeList through Jikan: anime → films or series, manga and light novels → books. */
+export function parseJikan(json: unknown, category: 'movies' | 'series' | 'books'): CatalogResult[] {
+  const rows = (json as { data?: JikanEntry[] })?.data ?? [];
+  return rows.flatMap((r): CatalogResult[] => {
+    if (!r?.mal_id || !r.title) return [];
+    const type = r.type ?? '';
+    if (category === 'movies' && type !== 'Movie') return [];
+    if (category === 'series' && !['TV', 'ONA', 'OVA'].includes(type)) return [];
+    const from = (category === 'books' ? r.published?.from : r.aired?.from) ?? undefined;
+    return [
+      {
+        key: `mal:${category}:${r.mal_id}`,
+        category,
+        title: r.title_english || r.title,
+        creator: category === 'books' ? personName(r.authors?.[0]?.name) : r.studios?.[0]?.name,
+        year: r.year ?? yearOf(from),
+        releaseDate: dateOf(from),
+        coverUrl: r.images?.jpg?.large_image_url ?? r.images?.webp?.large_image_url ?? r.images?.jpg?.image_url,
+        season: category === 'series' ? 1 : undefined,
+        episodeCount: category === 'series' ? r.episodes ?? undefined : undefined,
+        source: { provider: 'jikan', id: `${category === 'books' ? 'manga' : 'anime'}:${r.mal_id}` },
+      },
+    ];
+  });
+}
+
+interface GogProduct {
+  id?: string | number;
+  title?: string;
+  releaseDate?: string;
+  developers?: string[];
+  coverVertical?: string;
+  coverHorizontal?: string;
+}
+export function parseGog(json: unknown): CatalogResult[] {
+  const products = (json as { products?: GogProduct[] })?.products ?? [];
+  return products.flatMap((p): CatalogResult[] =>
+    p?.id && p.title
+      ? [
+          {
+            key: `gog:${p.id}`,
+            category: 'videogames',
+            title: p.title,
+            creator: p.developers?.[0],
+            year: yearOf(p.releaseDate),
+            coverUrl: https(p.coverVertical ?? p.coverHorizontal),
+            source: { provider: 'gog', id: String(p.id) },
+          },
+        ]
+      : [],
+  );
+}
+
+interface GutenbergBook {
+  id: number;
+  title: string;
+  authors?: { name?: string }[];
+  formats?: Record<string, string>;
+}
+export function parseGutendex(json: unknown): CatalogResult[] {
+  const results = (json as { results?: GutenbergBook[] })?.results ?? [];
+  return results.flatMap((b): CatalogResult[] =>
+    b?.id && b.title
+      ? [
+          {
+            key: `pg:${b.id}`,
+            category: 'books',
+            title: b.title.split(/[;:]\s/)[0],
+            creator: personName(b.authors?.[0]?.name),
+            coverUrl: https(b.formats?.['image/jpeg']),
+            source: { provider: 'gutendex', id: String(b.id) },
+          },
+        ]
+      : [],
+  );
+}
+
+interface BggItem {
+  objectid?: string | number;
+  name?: string;
+  yearpublished?: number | string;
+  subtype?: string;
+}
+/** BoardGameGeek's own search suggestions; artwork is fetched per game afterwards. */
+export function parseBggSearch(json: unknown): CatalogResult[] {
+  const items = (json as { items?: BggItem[] })?.items ?? [];
+  return items.flatMap((i): CatalogResult[] =>
+    i?.objectid && i.name && (!i.subtype || i.subtype === 'boardgame')
+      ? [
+          {
+            key: `bgg:${i.objectid}`,
+            category: 'boardgames',
+            title: i.name,
+            year: yearOf(i.yearpublished),
+            source: { provider: 'bgg', id: String(i.objectid) },
+          },
+        ]
+      : [],
+  );
+}
+
+export function parseBggImage(json: unknown): string | undefined {
+  const item = (json as { item?: { imageurl?: string; images?: { original?: string; square200?: string } } })?.item;
+  return https(item?.imageurl ?? item?.images?.original ?? item?.images?.square200);
+}
+
+interface WikidataSearchHit {
+  id: string;
+  label?: string;
+  description?: string;
+}
+/** Which Wikidata descriptions count as each kind of work (English and French). */
+export const WIKIDATA_KINDS: Record<CategoryId, RegExp> = {
+  movies: /\b(film|movie)\b/i,
+  series: /(television|tv|web) (series|show)|série (télévisée|tv)|sitcom|anime series/i,
+  music: /\balbum\b/i,
+  books: /\b(novel|book|novella|manga|comic|poetry|roman|livre|essai|bande dessinée)\b/i,
+  videogames: /video ?game|jeu vidéo/i,
+  boardgames: /board game|card game|tabletop|jeu de société|jeu de cartes/i,
+};
+export function parseWikidataSearch(json: unknown, category: CategoryId): WikidataSearchHit[] {
+  const hits = (json as { search?: WikidataSearchHit[] })?.search ?? [];
+  return hits.filter((h) => h?.id && h.label && WIKIDATA_KINDS[category].test(h.description ?? ''));
+}
+
+type WikidataClaims = Record<string, { mainsnak?: { datavalue?: { value?: unknown } } }[]>;
+const claimValue = (claims: WikidataClaims | undefined, prop: string) => claims?.[prop]?.[0]?.mainsnak?.datavalue?.value;
+
+/** Poster (P3383), image (P18), cover art (P6802) or logo (P154), in that order. */
+export function wikidataImage(claims?: WikidataClaims): string | undefined {
+  for (const prop of ['P3383', 'P18', 'P6802', 'P154']) {
+    const v = claimValue(claims, prop);
+    if (typeof v === 'string' && v) return commonsImage(v);
+  }
+  return undefined;
+}
+
+export function parseWikidataEntities(json: unknown, hits: WikidataSearchHit[], category: CategoryId): CatalogResult[] {
+  const entities = (json as { entities?: Record<string, { claims?: WikidataClaims }> })?.entities ?? {};
+  return hits.map((h) => {
+    const claims = entities[h.id]?.claims;
+    const date = claimValue(claims, 'P577') as { time?: string } | undefined;
+    const iso = date?.time?.replace(/^\+/, '');
+    return {
+      key: `wd:${h.id}`,
+      category,
+      title: h.label!,
+      year: yearOf(iso) ?? yearOf(h.description),
+      coverUrl: wikidataImage(claims),
+      source: { provider: 'wikidata' as const, id: h.id },
+    };
+  });
+}
+
 // ------------------------------------------------------------------ Merge
 /** Keep the first occurrence of each work (normalized title + first word of the creator). */
 export function mergeResults(lists: CatalogResult[][], limit = 14): CatalogResult[] {
@@ -347,11 +582,54 @@ const itunes = (category: 'movies' | 'series' | 'music', params: string): Provid
 const wiki = (category: CategoryId, hints: { en: string; fr: string }): Provider =>
   safe(async (q, { lang, f, signal }) => parseWikipedia(await f(wikiUrl(q, hints[lang], lang), signal), category, lang));
 
+const imdb = (category: 'movies' | 'series' | 'videogames'): Provider =>
+  safe(async (q, { f, signal }) => {
+    const first = q.toLocaleLowerCase().match(/[a-z0-9]/)?.[0] ?? 'x';
+    return parseImdb(await f(`https://v3.sg.media-imdb.com/suggestion/${first}/${enc(q.toLocaleLowerCase())}.json`, signal), category);
+  });
+
+const jikan = (category: 'movies' | 'series' | 'books'): Provider =>
+  safe(async (q, { f, signal }) =>
+    parseJikan(await f(`https://api.jikan.moe/v4/${category === 'books' ? 'manga' : 'anime'}?q=${enc(q)}&limit=${LIMIT}&sfw=true`, signal), category),
+  );
+
+const wikidata = (category: CategoryId): Provider =>
+  safe(async (q, { lang, f, signal }) => {
+    const base = 'https://www.wikidata.org/w/api.php?format=json&origin=*';
+    const hits = parseWikidataSearch(
+      await f(`${base}&action=wbsearchentities&search=${enc(q)}&language=${lang}&uselang=${lang}&type=item&limit=20`, signal),
+      category,
+    ).slice(0, 6);
+    if (!hits.length) return [];
+    const ids = hits.map((h) => h.id).join('|');
+    return parseWikidataEntities(await f(`${base}&action=wbgetentities&ids=${ids}&props=claims`, signal), hits, category);
+  });
+
+const bgg: Provider = safe(async (q, { f, signal }) => {
+  const games = parseBggSearch(
+    await f(`https://boardgamegeek.com/search/boardgame?nosession=1&showcount=${LIMIT}&q=${enc(q)}`, signal),
+  );
+  // Artwork for the first few, in parallel; a missing image never drops the game.
+  await Promise.all(
+    games.slice(0, 6).map(async (g) => {
+      try {
+        g.coverUrl = parseBggImage(await f(`https://api.geekdo.com/api/geekitems?objecttype=thing&objectid=${g.source.id}`, signal));
+      } catch {
+        // keep the game without artwork
+      }
+    }),
+  );
+  return games;
+});
+
 export const PROVIDERS: Record<CategoryId, Provider[]> = {
-  movies: [itunes('movies', 'media=movie&entity=movie'), wiki('movies', { en: 'film', fr: 'film' })],
+  movies: [itunes('movies', 'media=movie&entity=movie'), imdb('movies'), jikan('movies'), wikidata('movies'), wiki('movies', { en: 'film', fr: 'film' })],
   series: [
     safe(async (q, { f, signal }) => parseTvmaze(await f(`https://api.tvmaze.com/search/shows?q=${enc(q)}`, signal))),
+    imdb('series'),
     itunes('series', 'media=tvShow&entity=tvSeason'),
+    jikan('series'),
+    wikidata('series'),
   ],
   music: [
     itunes('music', 'media=music&entity=album'),
@@ -359,6 +637,7 @@ export const PROVIDERS: Record<CategoryId, Provider[]> = {
     safe(async (q, { f, signal }) =>
       parseMusicBrainz(await f(`https://musicbrainz.org/ws/2/release-group?query=${enc(q)}&fmt=json&limit=${LIMIT}`, signal)),
     ),
+    wiki('music', { en: 'album', fr: 'album' }),
   ],
   books: [
     safe(async (q, { lang, f, signal }) =>
@@ -371,15 +650,55 @@ export const PROVIDERS: Record<CategoryId, Provider[]> = {
         await f(`https://openlibrary.org/search.json?q=${enc(q)}&limit=${LIMIT}&fields=key,title,author_name,first_publish_year,cover_i`, signal),
       ),
     ),
+    safe(async (q, { country, f, signal }) =>
+      parseItunesBooks(await f(`https://itunes.apple.com/search?term=${enc(q)}&media=ebook&limit=${LIMIT}&country=${country}`, signal)),
+    ),
+    jikan('books'),
+    safe(async (q, { f, signal }) => parseGutendex(await f(`https://gutendex.com/books/?search=${enc(q)}`, signal))),
+    wikidata('books'),
   ],
   videogames: [
     safe(async (q, { lang, f, signal }) =>
       parseSteam(await f(`https://store.steampowered.com/api/storesearch/?term=${enc(q)}&l=${lang === 'fr' ? 'french' : 'english'}&cc=${lang === 'fr' ? 'FR' : 'US'}`, signal)),
     ),
+    safe(async (q, { f, signal }) =>
+      parseGog(await f(`https://catalog.gog.com/v1/catalog?limit=${LIMIT}&query=like:${enc(q)}&order=desc:score&productType=in:game,pack`, signal)),
+    ),
+    imdb('videogames'),
     wiki('videogames', { en: 'video game', fr: 'jeu vidéo' }),
+    wikidata('videogames'),
   ],
-  boardgames: [wiki('boardgames', { en: 'board game', fr: 'jeu de société' })],
+  boardgames: [bgg, wiki('boardgames', { en: 'board game', fr: 'jeu de société' }), wikidata('boardgames')],
 };
+
+// ------------------------------------------------------------------ Shared requests
+const CACHE_TTL = 5 * 60_000;
+const responseCache = new Map<string, { at: number; value: Promise<unknown> }>();
+
+/**
+ * Requests are cached briefly by URL, so the same call made by several categories (the
+ * "All" search) or by a retyped query goes out once. Failures are not kept. Aborting one
+ * caller never cancels a request another caller is still waiting on.
+ */
+function sharedFetch(f: Fetcher): Fetcher {
+  return (url, signal) => {
+    const now = Date.now();
+    let hit = responseCache.get(url);
+    if (!hit || now - hit.at > CACHE_TTL) {
+      const value = f(url);
+      value.catch(() => responseCache.delete(url));
+      hit = { at: now, value };
+      responseCache.set(url, hit);
+      if (responseCache.size > 200) responseCache.delete(responseCache.keys().next().value!);
+    }
+    if (!signal) return hit.value;
+    return new Promise((resolve, reject) => {
+      if (signal.aborted) return reject(new Error('aborted'));
+      signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+      hit!.value.then(resolve, reject);
+    });
+  };
+}
 
 export async function searchCategory(
   category: CategoryId,
@@ -389,7 +708,7 @@ export async function searchCategory(
   const q = query.trim();
   if (q.length < 2) return [];
   const lang = opts.lang.startsWith('fr') ? 'fr' : 'en';
-  const ctx = { lang, country: lang === 'fr' ? 'FR' : 'US', f: opts.fetcher ?? defaultFetch, signal: opts.signal } as const;
+  const ctx = { lang, country: lang === 'fr' ? 'FR' : 'US', f: opts.fetcher ?? sharedFetch(defaultFetch), signal: opts.signal } as const;
   const lists = await Promise.all(PROVIDERS[category].map((p) => p(q, ctx)));
   return mergeResults(lists, opts.limit);
 }
@@ -398,6 +717,29 @@ export async function searchCategory(
 export async function searchAll(query: string, opts: { lang: string; signal?: AbortSignal; fetcher?: Fetcher }) {
   const groups = await Promise.all(CATEGORIES.map((c) => searchCategory(c, query, { ...opts, limit: 4 })));
   return CATEGORIES.map((c, i) => ({ category: c, results: groups[i] })).filter((g) => g.results.length);
+}
+
+// ------------------------------------------------------------------ Covers
+/** Best artwork match for a title: same normalized title first, then a creator match. */
+export function pickCover(results: CatalogResult[], title: string, creator?: string): string | undefined {
+  const t = strip(title);
+  const c = strip(creator ?? '').split(' ')[0];
+  const withCover = results.filter((r) => r.coverUrl);
+  const exact = withCover.filter((r) => strip(r.title) === t);
+  const close = exact.length ? exact : withCover.filter((r) => strip(r.title).startsWith(t) || t.startsWith(strip(r.title)));
+  const best = (c && close.find((r) => strip(r.creator ?? '').includes(c))) || close[0];
+  return best?.coverUrl;
+}
+
+/** Look up artwork for an object that has none (added by hand, or from a source without images). */
+export async function findCover(
+  category: CategoryId,
+  title: string,
+  creator?: string,
+  opts: { lang: string; fetcher?: Fetcher } = { lang: 'en' },
+): Promise<string | undefined> {
+  const results = await searchCategory(category, title, { ...opts, limit: 30 });
+  return pickCover(results, title, creator);
 }
 
 // ------------------------------------------------------------------ Series details (TVmaze)
