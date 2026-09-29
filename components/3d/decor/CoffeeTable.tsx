@@ -3,6 +3,9 @@ import { LatheGeometry, SphereGeometry, Vector2 } from 'three';
 
 import { cyl, disposeAll, merge, paint, put } from './build';
 import { decorMaterials } from './materials';
+import Glow from '../light/Glow';
+import { LIGHTING } from '@/config/lighting';
+
 import { softBox } from '@/lib/itemGeometry';
 
 const STEMS = [
@@ -63,6 +66,17 @@ export default function CoffeeTable() {
       <mesh geometry={geo.stems} material={mats.driedStem} />
       <mesh geometry={geo.heads} material={mats.pampas} />
       <mesh geometry={geo.books} material={mats.painted} />
+      {/* Light refracted by the glass top and vase, shimmering on the rug below. */}
+      {LIGHTING.decor.caustics.enabled && (
+        <Glow
+          kind="caustics"
+          color={LIGHTING.decor.caustics.color}
+          intensity={LIGHTING.decor.caustics.intensity}
+          size={[1.3, 1.3]}
+          position={[0.05, 0.012, 0.05]}
+          rotation={[-Math.PI / 2, 0, 0]}
+        />
+      )}
     </>
   );
 }

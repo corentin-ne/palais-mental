@@ -3,6 +3,9 @@ import { CapsuleGeometry, PlaneGeometry, ShaderMaterial, SphereGeometry } from '
 
 import { cyl, disposeAll, merge, paint, put } from './build';
 import { decorMaterials } from './materials';
+import Glow from '../light/Glow';
+import { LIGHTING } from '@/config/lighting';
+
 import { softBox } from '@/lib/itemGeometry';
 import { screenFragment, screenVertex } from '@/shaders/screen';
 
@@ -74,6 +77,16 @@ export default function TvConsole({ width }: { width: number }) {
       <mesh geometry={res.screen} material={res.screenMat} />
       <mesh geometry={res.soundbar} material={mats.grill} />
       <mesh geometry={res.console} material={mats.painted} />
+      {/* Bias light: the screen's glow spilling onto the wall behind the TV. */}
+      {LIGHTING.decor.tvBias.enabled && (
+        <Glow
+          kind="pool"
+          color={LIGHTING.decor.tvBias.color}
+          intensity={LIGHTING.decor.tvBias.intensity}
+          size={[res.tvW * 2.2, res.tvH * 2.6]}
+          position={[0, res.tvY, DEPTH * 0.42 - 0.03]}
+        />
+      )}
     </>
   );
 }

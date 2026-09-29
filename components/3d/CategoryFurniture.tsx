@@ -39,6 +39,8 @@ import {
 } from '@/lib/palaceLayout';
 import { Spring, safeDelta, spring, springSettled, stepSpring } from '@/lib/easing';
 import { FURNITURE_MATERIALS } from '@/config/furniture';
+import { LIGHTING } from '@/config/lighting';
+import FurnitureLight from './light/FurnitureLight';
 import { withSurface } from '@/lib/materialPatches';
 import { useSceneLook } from '@/lib/sceneLook';
 import { sceneSignals } from '@/lib/sceneSignals';
@@ -144,12 +146,18 @@ export default function CategoryFurniture({ category, dimsRef }: Props) {
     () => ({
       lacquer: withSurface(finish(FURNITURE_MATERIALS.carcass, look.lacquer), 'plaster', { strength: 0.5 }),
       // Tinted panels you half see through, like coloured resin.
-      lining: finish(FURNITURE_MATERIALS.panels, new Color(spec.accent).lerp(_white, FURNITURE_MATERIALS.panelWhiten)),
+      lining: finish(FURNITURE_MATERIALS.panels, new Color(spec.accent).lerp(_white, FURNITURE_MATERIALS.panelWhiten), {
+        emissive: new Color(spec.accent).lerp(_white, 0.5),
+        emissiveIntensity: LIGHTING.furniture.innerGlow,
+      }),
       oak: withSurface(finish(FURNITURE_MATERIALS.shelves, FURNITURE_MATERIALS.oak.color), 'wood', { strength: 0.8 }),
       brass: finish('metal', FURNITURE_MATERIALS.brass.color),
-      jelly: finish(FURNITURE_MATERIALS.pedestal, new Color(spec.accent).lerp(_white, 0.45)),
+      jelly: finish(FURNITURE_MATERIALS.pedestal, new Color(spec.accent).lerp(_white, 0.45), {
+        emissive: new Color(spec.accent).lerp(_white, 0.35),
+        emissiveIntensity: LIGHTING.furniture.innerGlow * 1.6,
+      }),
       glow: new MeshBasicMaterial({
-        color: new Color(spec.accent).lerp(_white, FURNITURE_MATERIALS.glowWhiten).multiplyScalar(FURNITURE_MATERIALS.glowIntensity),
+        color: new Color(spec.accent).lerp(_white, FURNITURE_MATERIALS.glowWhiten).multiplyScalar(LIGHTING.furniture.lineIntensity),
         toneMapped: false,
       }),
       ...itemMaterials(category),
@@ -405,6 +413,8 @@ export default function CategoryFurniture({ category, dimsRef }: Props) {
   return (
     <group ref={zoneRef}>
       <mesh ref={shadowRef} geometry={shadowGeo} material={mats.shadow} rotation-x={-Math.PI / 2} position={[0, 0.006, layout.depth / 2]} />
+
+      <FurnitureLight layout={layout} accent={spec.accent} />
 
       <group ref={bodyGroup}>
         {rendered.map((p) => (

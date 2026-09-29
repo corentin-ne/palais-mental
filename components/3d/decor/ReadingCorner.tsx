@@ -3,6 +3,9 @@ import { SphereGeometry } from 'three';
 
 import { cyl, disposeAll, merge, paint, put } from './build';
 import { decorMaterials } from './materials';
+import Glow from '../light/Glow';
+import { LIGHTING } from '@/config/lighting';
+
 import { softBox } from '@/lib/itemGeometry';
 
 /** Bouclé armchair with a throw and a cushion, a linen floor lamp and a round side table. */
@@ -45,6 +48,13 @@ export default function ReadingCorner() {
         <mesh geometry={geo.lampBrass} material={mats.brass} />
         <mesh geometry={geo.lampShade} material={mats.linenShade} />
         <mesh geometry={geo.lampBulb} material={mats.bulb} />
+        {LIGHTING.decor.lamp.enabled && (
+          <>
+            <Glow kind="pool" color={LIGHTING.decor.lamp.color} intensity={LIGHTING.decor.lamp.intensity} size={[1.1, 1.1]} position={[0, 1.5, 0.05]} breathe />
+            <Glow kind="pool" color={LIGHTING.decor.lamp.color} intensity={LIGHTING.decor.lamp.intensity * 0.7} size={[1.8, 1.8]} position={[0.3, 0.012, 0.3]} rotation={[-Math.PI / 2, 0, 0]} />
+            <Glow kind="beam" color={LIGHTING.decor.lamp.color} intensity={0.12} size={[0.2, 0.55, 1.3]} position={[0, 1.38, 0]} />
+          </>
+        )}
       </group>
       <group position={[0.68, 0, 0.1]}>
         <mesh geometry={geo.tableTop} material={mats.oak} />

@@ -5,6 +5,7 @@ import { NeutralToneMapping } from 'three';
 
 import { Canvas } from './Canvas';
 import { FINISH_OPTIONS } from '@/config/finishes';
+import { LIGHTING } from '@/config/lighting';
 import CameraRig from './CameraRig';
 import CategoryFurniture from './CategoryFurniture';
 import Effects from './Effects';
@@ -116,11 +117,21 @@ function Lighting() {
   const [lx, ly, lz] = SUN_LIGHT_DIR;
   return (
     <>
-      <hemisphereLight args={look.hemi} />
+      <hemisphereLight args={[look.hemi[0], look.hemi[1], look.hemi[2] * LIGHTING.ambientScale]} />
       {/* Sun: enters through the window, same direction as the god rays. */}
       <directionalLight position={[-lx * 10, -ly * 10, -lz * 10]} intensity={look.sun[1]} color={look.sun[0]} />
       {/* Soft bounce from the room, so faces turned away from the window stay luminous. */}
       <directionalLight position={[1.5, 3, 5]} intensity={look.fill[1]} color={look.fill[0]} />
+      {/* Warm light high in the dome: lit fronts on every piece, soft falloff toward the walls. */}
+      <pointLight
+        position={[0, LIGHTING.ceiling.height, 0]}
+        color={LIGHTING.ceiling.color}
+        intensity={LIGHTING.ceiling.enabled ? LIGHTING.ceiling.intensity : 0}
+        distance={LIGHTING.ceiling.distance}
+        decay={LIGHTING.ceiling.decay}
+      />
+      {/* Cool rim from the window side so glossy edges catch a highlight. */}
+      <directionalLight position={[0, 2.5, -6]} intensity={LIGHTING.rim.enabled ? LIGHTING.rim.intensity : 0} color={LIGHTING.rim.color} />
     </>
   );
 }

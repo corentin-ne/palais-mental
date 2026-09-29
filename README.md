@@ -63,6 +63,7 @@ npm test          # catalog parsers and cover colours, with fixtures
 
   Furniture packs objects by their real thickness, bay by bay.
 - **Arrival.** A new object is born in the centre of the screen: light spirals into a small pearl, the pearl collapses, and the object unwinds out of it with an elastic pop and a ring of light, showing its real cover, then flies to its slot. The furniture gives a small bounce as it lands.
+- **Light.** Beyond the sun through the window: a warm light in the dome and a cool rim, a soft beam on every piece of furniture with a pool of light on the floor and a halo on the wall behind it, light washing down each shelf's back panel, resin and jelly glowing from within, the TV's bias light, halos around the lamp and lantern, caustics from the glass table on the rug, and leaf-dappled sunlight drifting over the walls. All of it except the two lights is additive shading, nearly free to draw.
 - **Rendering.** `frameloop="demand"`: an idle palace draws nothing. Ambient dust and cloud drift run only briefly after an interaction. Web adds ambient occlusion and bloom on true highlights.
 
 ## Customising
@@ -76,6 +77,7 @@ Every tunable lives in `config/`; the rest of the code reads from it.
 | `config/furniture.ts` | stage thresholds and proportions, corner softness, the finish of each part |
 | `config/finishes.ts` | clay, satin, glossy, glass, frosted, jelly and metal: roughness, clearcoat, sheen, transmission, tint depth |
 | `config/decor.ts` | which room pieces exist, where they stand, their colours |
+| `config/lighting.ts` | ceiling and rim lights, beams, floor pools, wall and shelf washes, glowing resin, TV bias light, lamp and lantern halos, caustics, sun dappling the walls, bloom, vignette, ambient occlusion |
 | `config/look.ts` | light, sky, walls, floor and textile colours |
 | `config/motion.ts` | camera lens and flight timing, arrival timing |
 | `config/catalog.ts` | which sources each collection searches, in which order, and limits |

@@ -3,6 +3,9 @@ import { CylinderGeometry, SphereGeometry } from 'three';
 
 import { cyl, disposeAll, merge, put } from './build';
 import { decorMaterials } from './materials';
+import Glow from '../light/Glow';
+import { LIGHTING } from '@/config/lighting';
+
 
 /** Paper lantern with thin ribs, hanging on a cord long enough to reach the dome. */
 export default function Lantern() {
@@ -26,6 +29,9 @@ export default function Lantern() {
       <mesh geometry={geo.lantern} material={mats.paper} />
       <mesh geometry={geo.ribs} material={mats.cord} />
       <mesh geometry={geo.cord} material={mats.cord} />
+      {LIGHTING.decor.lantern.enabled && (
+        <Glow kind="pool" color={LIGHTING.decor.lantern.color} intensity={LIGHTING.decor.lantern.intensity} size={[1.3, 1.3]} position={[0, 0, 0.3]} breathe />
+      )}
     </>
   );
 }

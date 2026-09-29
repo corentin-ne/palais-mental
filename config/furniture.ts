@@ -61,7 +61,6 @@ export const FURNITURE_MATERIALS = {
   pedestal: 'jelly' as FinishKind,
   oak: { color: '#E8D0AE' },
   brass: { color: '#C9A56A' },
-  /** How far the light lines under each plank lean toward white (0–1) and their brightness. */
+  /** How far the light lines under each plank lean toward white (0–1); brightness is in config/lighting. */
   glowWhiten: 0.55,
-  glowIntensity: 1.6,
 } as const;

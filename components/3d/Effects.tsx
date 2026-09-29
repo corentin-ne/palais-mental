@@ -1,21 +1,21 @@
-import { Bloom, EffectComposer, N8AO, SMAA, ToneMapping } from '@react-three/postprocessing';
+import { Bloom, EffectComposer, N8AO, SMAA, ToneMapping, Vignette } from '@react-three/postprocessing';
 import { ToneMappingMode } from 'postprocessing';
 
-import { useSceneLook } from '@/lib/sceneLook';
+import { LIGHTING } from '@/config/lighting';
 
 /**
- * Web post stack: ambient occlusion to seat objects on their furniture,
- * bloom on true highlights only (sun core, light lines, sparkles), Khronos PBR Neutral
- * tone mapping so cover art keeps its real colours, then SMAA. No depth-of-field or
- * vignette haze. Passes only run on rendered frames, so an idle palace costs nothing.
+ * Web post stack: ambient occlusion to seat objects on their furniture, bloom on the
+ * light lines, glows and sun, Khronos PBR Neutral tone mapping so cover art keeps its
+ * real colours, a light vignette, then SMAA (settings in config/lighting). Passes only
+ * run on rendered frames, so an idle palace costs nothing.
  */
 export default function Effects() {
-  const { bloom } = useSceneLook();
   return (
     <EffectComposer multisampling={0}>
-      <N8AO halfRes quality="medium" aoRadius={0.5} distanceFalloff={0.9} intensity={2} color="#4A3A2E" />
-      <Bloom mipmapBlur luminanceThreshold={1.0} luminanceSmoothing={0.15} intensity={bloom} radius={0.6} />
+      <N8AO halfRes quality="medium" aoRadius={LIGHTING.ambientOcclusion.radius} distanceFalloff={0.9} intensity={LIGHTING.ambientOcclusion.intensity} color="#4A3A2E" />
+      <Bloom mipmapBlur luminanceThreshold={LIGHTING.bloom.threshold} luminanceSmoothing={0.2} intensity={LIGHTING.bloom.intensity} radius={LIGHTING.bloom.radius} />
       <ToneMapping mode={ToneMappingMode.NEUTRAL} />
+      <Vignette offset={LIGHTING.vignette.offset} darkness={LIGHTING.vignette.enabled ? LIGHTING.vignette.darkness : 0} />
       <SMAA />
     </EffectComposer>
   );

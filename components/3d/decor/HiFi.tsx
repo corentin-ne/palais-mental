@@ -3,6 +3,9 @@ import { CylinderGeometry, TorusGeometry } from 'three';
 
 import { disposeAll, merge, paint, put } from './build';
 import { decorMaterials } from './materials';
+import Glow from '../light/Glow';
+import { LIGHTING } from '@/config/lighting';
+
 import { softBox } from '@/lib/itemGeometry';
 
 const BENCH_H = 0.34;
@@ -63,6 +66,12 @@ export default function HiFi() {
       <mesh geometry={geo.dark} material={mats.painted} />
       <mesh geometry={geo.display} material={mats.display} />
       <mesh geometry={geo.cds} material={mats.painted} />
+      {LIGHTING.decor.hifi.enabled && (
+        <>
+          <Glow kind="pool" color={LIGHTING.decor.hifi.color} intensity={LIGHTING.decor.hifi.intensity} size={[0.5, 0.3]} position={[-0.03, BENCH_H + UNIT.h * 0.58, 0.02 + UNIT.d + 0.02]} breathe />
+          <Glow kind="pool" color="#FFE3C2" intensity={0.4} size={[1.6, 1.3]} position={[0, 0.7, -0.03]} />
+        </>
+      )}
     </>
   );
 }

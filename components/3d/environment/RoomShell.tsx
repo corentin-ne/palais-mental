@@ -32,6 +32,8 @@ import { softBox, windowOutline } from '@/lib/itemGeometry';
 import { safeDelta } from '@/lib/easing';
 import { finish } from '@/lib/finishes';
 import { withSurface } from '@/lib/materialPatches';
+import { LIGHTING } from '@/config/lighting';
+import { sceneSignals } from '@/lib/sceneSignals';
 import { useSceneLook } from '@/lib/sceneLook';
 import { selectRoomLevel, usePalaceStore } from '@/store/usePalaceStore';
 
@@ -141,15 +143,20 @@ const PARQUET_GLSL = /* glsl */ `
 function buildShellMaterial(): MeshStandardMaterial {
   const mat = new MeshStandardMaterial({ vertexColors: true, roughness: 0.95, side: DoubleSide, envMapIntensity: 0.45 });
   const floorRadius = { value: BASE.radius - COVE_RADIUS };
+  const time = { value: 0 };
   mat.userData.floorRadius = floorRadius;
+  mat.userData.time = time;
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uWin = { value: WIN_UNIFORM };
     shader.uniforms.uFloorRadius = floorRadius;
+    shader.uniforms.uTime = time;
+    shader.uniforms.uDapple = { value: new Color(LIGHTING.dapple.color).multiplyScalar(LIGHTING.dapple.enabled ? LIGHTING.dapple.intensity : 0) };
+    shader.uniforms.uDappleScale = { value: LIGHTING.dapple.scale };
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vShellPos;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvShellPos = (modelMatrix * vec4(position, 1.0)).xyz;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vShellPos;\n${WINDOW_SDF}\n${PARQUET_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying vec3 vShellPos;\nuniform float uTime;\nuniform vec3 uDapple;\nuniform float uDappleScale;\n${WINDOW_SDF}\n${PARQUET_GLSL}`)
       .replace(
         'void main() {',
         `void main() {
@@ -170,6 +177,20 @@ function buildShellMaterial(): MeshStandardMaterial {
     // Soft darkening toward the walls keeps the room's ambient-occlusion gradient.
     wood *= mix(1.0, 0.86, smoothstep(0.0, uFloorRadius, pqR));
     diffuseColor.rgb = mix(diffuseColor.rgb, wood, pqMask);
+  }`,
+      )
+      .replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
+  // Sunlight broken by leaves outside, drifting slowly over the walls; strongest on the
+  // back half of the room, opposite the window.
+  if (pqMask < 0.5 && vShellPos.y > 0.5) {
+    float around = atan(vShellPos.x, vShellPos.z) * uFloorRadius;
+    vec3 q = vec3(around, vShellPos.y, 0.0) * uDappleScale + vec3(uTime * 0.05, uTime * 0.02, uTime * 0.03);
+    float leaves = plNoise(q * 1.3) * 0.65 + plNoise(q * 3.1 + 4.0) * 0.35;
+    float light = smoothstep(0.52, 0.72, leaves);
+    float reach = mix(0.45, 1.0, smoothstep(-0.8, 0.6, vShellPos.z / uFloorRadius)) * smoothstep(0.5, 1.4, vShellPos.y) * (1.0 - smoothstep(3.2, 4.6, vShellPos.y));
+    totalEmissiveRadiance += uDapple * light * reach;
   }`,
       )
       .replace(
@@ -335,6 +356,7 @@ export default function RoomShell({ dimsRef }: { dimsRef: RoomDimsRef }) {
     const sY = (d.wallHeight + d.domeHeight) / (BASE.wallHeight + BASE.domeHeight);
     shell.current?.scale.set(sXZ, sY, sXZ);
     res.shellMat.userData.floorRadius.value = d.radius - COVE_RADIUS;
+    res.shellMat.userData.time.value = sceneSignals.ambientTime;
     windowGroup.current?.position.set(0, 0, -d.radius);
     plantL.current?.position.set(-2.05, 0, -d.radius + 1.55);
     plantR.current?.position.set(2.1, 0, -d.radius + 1.6);
