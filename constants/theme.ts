@@ -1,31 +1,31 @@
 import { StyleSheet } from 'react-native';
 
 /**
- * Design tokens. Editorial and crisp: near-white paper, near-black ink, and the cover
- * art as the colour. Components read tokens through `useTheme()` and build styles
+ * Design tokens. Crisp and marine: pale sky-blue paper, deep navy ink, ocean-blue actions,
+ * and the cover art as the colour. Components read tokens through `useTheme()` and build styles
  * through `makeStyles()`, so a future style only needs a second token set.
  */
 const palette = {
-  bg: '#FAF9F6',
-  screen: '#FAF9F6',
+  bg: '#EAF3FB',
+  screen: '#EAF3FB',
   surface: '#FFFFFF',
-  ink: '#161412',
-  inkSoft: 'rgba(22,20,18,0.6)',
-  inkFaint: 'rgba(22,20,18,0.38)',
-  hairline: 'rgba(22,20,18,0.08)',
-  field: 'rgba(22,20,18,0.045)',
-  fieldActive: 'rgba(22,20,18,0.085)',
-  glass: 'rgba(255,255,255,0.7)',
-  glassStrong: 'rgba(255,255,255,0.94)',
+  ink: '#0A2540',
+  inkSoft: 'rgba(10,37,64,0.62)',
+  inkFaint: 'rgba(10,37,64,0.4)',
+  hairline: 'rgba(10,37,64,0.09)',
+  field: 'rgba(10,37,64,0.05)',
+  fieldActive: 'rgba(10,37,64,0.09)',
+  glass: 'rgba(244,250,255,0.72)',
+  glassStrong: 'rgba(248,252,255,0.94)',
   glassEdge: 'rgba(255,255,255,0.9)',
-  primary: '#161412',
-  primaryDeep: '#161412',
+  primary: '#0B63CE',
+  primaryDeep: '#084C9E',
   onInk: '#FFFFFF',
   star: '#F2A93B',
   danger: '#D2462F',
   dangerTint: 'rgba(210,70,47,0.09)',
   success: '#2F9E6A',
-  shadow: '#2B1E14',
+  shadow: '#0A2A55',
 };
 export type Palette = typeof palette;
 

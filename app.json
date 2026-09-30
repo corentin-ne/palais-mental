@@ -6,7 +6,7 @@
     "scheme": "palaismental",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#FBEEDD",
+    "backgroundColor": "#EAF3FB",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.palaismental.app",

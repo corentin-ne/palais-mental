@@ -17,7 +17,7 @@ npm test          # catalog parsers and cover colours, with fixtures
 
 ## What you can do
 
-- **Palace (home).** The room itself is the menu. The window is home; a chip, a swipe or a tap on a piece of furniture turns your head toward a collection. Tap an object to lift it out, drag to turn it, and edit it in place.
+- **Palace (home).** An open sea. You float just above the water; each collection is an island on the horizon that grows with it, and a chip or a swipe turns your head toward one. Everything you log falls into the sea as a drop. Tap the water to ripple it. Dolphins, leaping fish and gulls come by now and then.
 - **Add in a few taps.** Tap **+**, type a few letters, tap the right cover. Metadata and artwork come from free, keyless catalogs, queried in parallel and merged (a later source fills a missing cover or year):
   - films: iTunes, IMDb suggestions, MyAnimeList (Jikan), Wikidata and Wikipedia
   - series: TVmaze (seasons, episode counts, next episodes), IMDb suggestions, iTunes, MyAnimeList and Wikidata
@@ -36,10 +36,21 @@ npm test          # catalog parsers and cover colours, with fixtures
 
 - **No scores.** No journal, dates, streaks, progress bars or unlock messages. The furniture evolving is the only sign of growth.
 - **Minimal interface.** The room is the menu; the interface is a row of chips, one card and the **+** button.
-- **Editorial look.** Near-white paper and near-black ink, with the cover art as the colour. Instrument Sans for the interface, Instrument Serif for accents.
+- **Marine look.** Pale sky-blue paper, deep navy ink and ocean-blue actions, with the cover art as the colour. Instrument Sans for the interface, Instrument Serif for accents.
 - **Motion.** Springs everywhere: furniture morphs between stages, objects pop out of a pearl of light, camera moves are short and decisive.
 
-## The 3D palace
+## The sea
+
+- **Water.** One full-screen pass: a ray from the eye meets the sea, the normal comes from a small spectrum of swell plus a wave-equation ripple field around you, and the colour mixes the reflected sky with light scattered back from deep water (no visible bottom). Sun glitter, clouds, horizon haze.
+- **Islands.** One per collection, drawn in the sky shader so they also reflect in the water. Each grows smoothly with its collection.
+- **Drops.** A logged item gathers in the air holding its cover, falls, and melts into the sea: splash, a jet that falls back, and a bloom of its colour. Episodes fall as smaller drops.
+- **Visitors.** A pod of dolphins arcing through the swell, a shoal of small fish skipping out of the water, gulls wheeling overhead, always where you are looking.
+- **Fluid.** The loop runs only while the Palace tab is on screen; the pixel ratio steps down when frames run long and back up when there is headroom. Phones without half-float render targets keep everything but the local ripples.
+- **Tuning.** `config/ocean.ts`: camera, sun, water and sky colours, island placement and growth, drop timing, how often animals visit.
+
+The room below is no longer on screen; its code stays in `components/3d/` for now.
+
+## The 3D palace (room)
 
 - **Room.** One cornerless lathe surface (floor, cove, round wall, dome) with an arched window cut in the shader. The floor is procedural light-oak parquet (per-plank tone, grain, knots, seams) finished with an oak skirting; the walls are lime plaster. Around it: a lacquered TV console with fluted doors (films, series and games stand beside it), a 2000s silver mini hi-fi on an oak bench (music stands beside it), sheer curtains on a brass rod, a window seat, a paper lantern, a reading corner (bouclé armchair, floor lamp, side table), a coffee table on the rug, framed prints drawn by a shader, and plants.
 - **Furniture.** Each collection stands on the flat floor in front of the curved wall, in cream lacquer, pastel back panels, oak planks and brass. It evolves with the collection:

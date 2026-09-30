@@ -86,7 +86,7 @@ export default function Sheet({
     <Modal visible transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <Animated.View
         pointerEvents="none"
-        style={[StyleSheet.absoluteFill, { backgroundColor: backdrop === 'dim' ? 'rgba(74,52,36,0.22)' : 'transparent', opacity: progress }]}
+        style={[StyleSheet.absoluteFill, { backgroundColor: backdrop === 'dim' ? 'rgba(8,30,60,0.22)' : 'transparent', opacity: progress }]}
       />
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={accessibilityLabel} />
       <KeyboardAvoidingView

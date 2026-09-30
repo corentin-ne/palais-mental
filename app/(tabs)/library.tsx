@@ -203,7 +203,7 @@ const useStyles = makeStyles(({ palette, fonts, radii }) => ({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(22,20,18,0.78)',
+    backgroundColor: 'rgba(10,37,64,0.78)',
     borderRadius: radii.pill,
     paddingHorizontal: 7,
     paddingVertical: 3,

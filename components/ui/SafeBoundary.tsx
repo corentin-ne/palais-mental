@@ -50,10 +50,10 @@ export default class SafeBoundary extends Component<Props, State> {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FAF9F6', padding: 24, paddingTop: 72, gap: 16 },
-  title: { fontSize: 22, fontWeight: '700', color: '#161412' },
+  root: { flex: 1, backgroundColor: '#EAF3FB', padding: 24, paddingTop: 72, gap: 16 },
+  title: { fontSize: 22, fontWeight: '700', color: '#0A2540' },
   box: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12 },
-  mono: { fontFamily: 'monospace', fontSize: 12, color: '#3A3632' },
-  button: { alignSelf: 'flex-start', backgroundColor: '#161412', borderRadius: 999, paddingHorizontal: 20, paddingVertical: 12 },
+  mono: { fontFamily: 'monospace', fontSize: 12, color: '#2E4A66' },
+  button: { alignSelf: 'flex-start', backgroundColor: '#0A2540', borderRadius: 999, paddingHorizontal: 20, paddingVertical: 12 },
   buttonText: { color: '#FFFFFF', fontWeight: '600' },
 });

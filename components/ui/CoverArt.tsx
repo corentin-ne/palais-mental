@@ -83,7 +83,7 @@ function Generated({ title, category, width, height }: { title: string; category
         <Rect x={0} y={0} width={width} height={height} fill={`url(#${id})`} />
       </Svg>
       <View style={[styles.generated, { padding: small ? 6 : 12 }]}>
-        <Icon name={category} size={small ? 14 : 18} color="rgba(22,20,18,0.55)" strokeWidth={1.8} />
+        <Icon name={category} size={small ? 14 : 18} color="rgba(10,37,64,0.55)" strokeWidth={1.8} />
         {!small && (
           <Text style={[styles.genTitle, { fontSize: Math.max(13, Math.min(22, width / 7)) }]} numberOfLines={4}>
             {title}
@@ -95,7 +95,7 @@ function Generated({ title, category, width, height }: { title: string; category
 }
 
 const useStyles = makeStyles(({ fonts }) => ({
-  clip: { flex: 1, overflow: 'hidden', backgroundColor: '#EEE9E2' },
+  clip: { flex: 1, overflow: 'hidden', backgroundColor: '#E3EDF7' },
   generated: { flex: 1, justifyContent: 'space-between' },
-  genTitle: { fontFamily: fonts.displayItalic, color: 'rgba(22,20,18,0.82)', lineHeight: undefined },
+  genTitle: { fontFamily: fonts.displayItalic, color: 'rgba(10,37,64,0.82)', lineHeight: undefined },
 }));

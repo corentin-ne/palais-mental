@@ -1,10 +1,10 @@
 import { useRef } from 'react';
-import { GestureResponderEvent, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { GestureResponderEvent, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import MentalPalace from '@/components/3d/MentalPalace';
+import OceanWorld from '@/components/3d/ocean/OceanWorld';
 import SafeBoundary from '@/components/ui/SafeBoundary';
 import FocusCard from '@/components/ui/FocusCard';
 import Glass from '@/components/ui/Glass';
@@ -14,16 +14,16 @@ import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { CATEGORY_SPECS } from '@/lib/itemVisuals';
 import { ZONE_SEQUENCE } from '@/lib/palaceLayout';
-import { sceneSignals, wakeAmbient } from '@/lib/sceneSignals';
+import { tapWater } from '@/lib/oceanSignals';
 import { CameraFocus } from '@/lib/types';
 import { usePalaceStore } from '@/store/usePalaceStore';
 
 const SWIPE_DISTANCE = 56;
 
 /**
- * Your collection as a place. The camera stands in the room at eye level; the chips,
- * a swipe, or a tap on a piece of furniture turns it toward a collection. Tap an object to lift it
- * out and open it.
+ * Your collection as a place: an open sea. You float just above the water; each collection is
+ * an island on the horizon, and the chips or a swipe turn your head toward one. Tap the water
+ * to ripple it. What you log falls into the sea as a drop.
  */
 export default function PalaceScreen() {
   const { palette, radii } = useTheme();
@@ -36,6 +36,7 @@ export default function PalaceScreen() {
   const setFocus = usePalaceStore((s) => s.setFocus);
   const logEpisode = usePalaceStore((s) => s.logEpisode);
   const selectedId = usePalaceStore((s) => s.selectedId);
+  const screen = useWindowDimensions();
 
   const goTo = (next: CameraFocus) => {
     if (next === focus) return;
@@ -43,24 +44,20 @@ export default function PalaceScreen() {
     setFocus(next);
   };
 
-  // ---- Swipe to turn your head; while inspecting, the same drag spins the object.
-  const touch = useRef({ x: 0, y: 0, t: 0, lastX: 0 });
+  // ---- Swipe to turn your head; a tap ripples the water under your finger.
+  const touch = useRef({ x: 0, y: 0, t: 0 });
   const onTouchStart = (e: GestureResponderEvent) => {
     const { pageX, pageY } = e.nativeEvent;
-    touch.current = { x: pageX, y: pageY, t: Date.now(), lastX: pageX };
-    wakeAmbient(5);
-  };
-  const onTouchMove = (e: GestureResponderEvent) => {
-    if (!usePalaceStore.getState().inspectId) return;
-    const { pageX } = e.nativeEvent;
-    sceneSignals.inspectSpin += (pageX - touch.current.lastX) * 0.012;
-    touch.current.lastX = pageX;
-    sceneSignals.requestFrame?.();
+    touch.current = { x: pageX, y: pageY, t: Date.now() };
   };
   const onTouchEnd = (e: GestureResponderEvent) => {
-    if (usePalaceStore.getState().inspectId) return;
-    const dx = e.nativeEvent.pageX - touch.current.x;
-    const dy = e.nativeEvent.pageY - touch.current.y;
+    const { pageX, pageY } = e.nativeEvent;
+    const dx = pageX - touch.current.x;
+    const dy = pageY - touch.current.y;
+    if (Math.hypot(dx, dy) < 10 && Date.now() - touch.current.t < 400) {
+      tapWater((pageX / screen.width) * 2 - 1, 1 - (pageY / screen.height) * 2);
+      return;
+    }
     if (Math.abs(dx) < SWIPE_DISTANCE || Math.abs(dx) < Math.abs(dy) * 1.6 || Date.now() - touch.current.t > 700) return;
     const i = ZONE_SEQUENCE.indexOf(focus);
     const n = ZONE_SEQUENCE.length;
@@ -69,9 +66,9 @@ export default function PalaceScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={StyleSheet.absoluteFill} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+      <View style={StyleSheet.absoluteFill} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <SafeBoundary label="palace" fallback={null}>
-          <MentalPalace />
+          <OceanWorld />
         </SafeBoundary>
       </View>
 
