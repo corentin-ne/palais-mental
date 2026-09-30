@@ -1,0 +1,853 @@
+<title>Palais Mental Clearwater</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: full-bleed WebGL pool; floating liquid-glass controls pinned to corners, sheet rises from the gel button. */
+:root {
+  --ink: #0b2a4a;
+  --ink-soft: #3d6285;
+  --glass-top: rgba(255, 255, 255, 0.62);
+  --glass-bottom: rgba(255, 255, 255, 0.20);
+  --glass-edge: rgba(255, 255, 255, 0.78);
+  --aqua: #19b3ff;
+  --deep: #0a5fd6;
+  --sky: #bfe9ff;
+  --display: "Nunito", "Segoe UI", "Frutiger", system-ui, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", "Frutiger", system-ui, sans-serif;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0; overflow: hidden; background: var(--sky); color: var(--ink);
+  font-family: var(--body); font-size: 15px; -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#gl.dragging { cursor: grabbing; }
+
+.glass {
+  position: relative;
+  background: linear-gradient(180deg, var(--glass-top), var(--glass-bottom));
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid var(--glass-edge);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    inset 0 -12px 24px rgba(120, 210, 255, 0.18),
+    0 12px 32px rgba(10, 60, 120, 0.22);
+}
+.glass::before {
+  content: ""; position: absolute; inset: 1px 1px 52% 1px; border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0));
+  pointer-events: none;
+}
+
+.hud {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 3;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 0;
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.brand {
+  display: flex; align-items: center; gap: 10px; border-radius: 999px;
+  padding: 7px 14px 7px 8px; font-family: var(--display); font-weight: 800; font-size: 15px; letter-spacing: 0.01em;
+}
+.orb {
+  width: 22px; height: 22px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 35% 30%, #fff 0 12%, #7ff3ff 30%, var(--aqua) 55%, var(--deep) 100%);
+  box-shadow: 0 2px 6px rgba(0, 80, 170, 0.4), inset 0 -2px 4px rgba(160,255,255,0.6);
+}
+.count {
+  font-family: var(--body); font-weight: 600; font-size: 13px; color: var(--ink-soft);
+  font-variant-numeric: tabular-nums; padding-left: 10px; border-left: 1px solid rgba(11,42,74,0.15);
+  display: inline-block; transition: transform .35s cubic-bezier(.3,1.8,.5,1);
+}
+.count.bump { transform: scale(1.18); color: var(--deep); }
+.pill-btn {
+  font: 600 14px var(--body); color: var(--ink); border-radius: 999px; padding: 9px 16px;
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+}
+.pill-btn:focus-visible, .gel:focus-visible, .chip input:focus-visible + span, .cta:focus-visible, .field input:focus-visible {
+  outline: 3px solid rgba(25, 179, 255, 0.7); outline-offset: 2px;
+}
+
+.dock {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 3;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 22px);
+  pointer-events: none;
+}
+.dock > * { pointer-events: auto; }
+.gel {
+  position: relative; width: 72px; height: 72px; border-radius: 50%; border: 0; cursor: pointer;
+  background: radial-gradient(circle at 50% 118%, #9ff8ff 0%, var(--aqua) 46%, var(--deep) 100%);
+  box-shadow:
+    inset 0 -8px 16px rgba(170, 255, 255, 0.65),
+    inset 0 2px 1px rgba(255,255,255,0.8),
+    0 0 0 1px rgba(0, 60, 140, 0.35),
+    0 14px 30px rgba(0, 80, 170, 0.45);
+  transition: transform .25s cubic-bezier(.3,1.6,.5,1);
+  display: grid; place-items: center;
+}
+.gel::before {
+  content: ""; position: absolute; left: 13%; right: 13%; top: 5%; height: 46%; border-radius: 50% / 60% 60% 40% 40%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.08));
+}
+.gel svg { position: relative; width: 28px; height: 28px; filter: drop-shadow(0 1px 1px rgba(0,50,120,0.5)); transition: transform .3s; }
+.gel:hover { transform: scale(1.06); }
+.gel:active { transform: scale(0.94); }
+.gel[aria-expanded="true"] svg { transform: rotate(45deg); }
+.dock-caption { font: 600 13px var(--body); color: #fff; text-shadow: 0 1px 3px rgba(0, 40, 90, 0.55); }
+.hint {
+  position: fixed; left: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); z-index: 2; margin: 0;
+  font-size: 12.5px; color: rgba(255,255,255,0.92); text-shadow: 0 1px 3px rgba(0, 40, 90, 0.55); max-width: 30ch;
+}
+
+.sheet {
+  position: fixed; z-index: 4; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 112px);
+  width: min(420px, calc(100% - 32px)); transform: translateX(-50%);
+  border-radius: 28px; padding: 18px 18px 16px; margin: 0; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 14px;
+  transform-origin: 50% 110%;
+  animation: rise .42s cubic-bezier(.2,1.3,.4,1);
+}
+.sheet.closing { animation: sink .32s cubic-bezier(.6,0,.8,.3) forwards; }
+@keyframes rise { from { opacity: 0; transform: translateX(-50%) translateY(30px) scale(0.6); } }
+@keyframes sink { to { opacity: 0; transform: translateX(-50%) translateY(40px) scale(0.2); } }
+.sheet h2 { margin: 0; font: 800 19px var(--display); text-wrap: balance; }
+.sheet .sub { margin: -10px 0 0; font-size: 13px; color: var(--ink-soft); }
+.chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; border: 0; padding: 0; margin: 0; }
+.chip { position: relative; cursor: pointer; }
+.chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.chip > span {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px 9px;
+  border-radius: 18px; font-size: 13px; font-weight: 600; color: var(--ink-soft);
+  border: 1px solid transparent; transition: background .2s, border-color .2s, color .2s;
+}
+.bead {
+  width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; position: relative;
+  background: radial-gradient(circle at 50% 115%, color-mix(in srgb, var(--c) 40%, #fff) 0%, var(--c) 50%, color-mix(in srgb, var(--c) 60%, #002050) 100%);
+  box-shadow: inset 0 -4px 8px rgba(255,255,255,0.45), 0 4px 10px color-mix(in srgb, var(--c) 45%, transparent);
+  transition: transform .3s cubic-bezier(.3,1.8,.5,1);
+}
+.bead::before {
+  content: ""; position: absolute; left: 16%; right: 16%; top: 6%; height: 44%; border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0));
+}
+.bead svg { position: relative; width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25)); }
+.chip input:checked + span { background: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.95); color: var(--ink); box-shadow: 0 4px 14px rgba(10,60,120,0.12); }
+.chip input:checked + span .bead { transform: scale(1.12); }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field label { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+.field input {
+  font: 600 16px var(--body); color: var(--ink); border-radius: 14px; padding: 11px 13px; min-width: 0;
+  border: 1px solid rgba(255,255,255,0.9); background: rgba(255,255,255,0.72);
+  box-shadow: inset 0 2px 5px rgba(10, 60, 120, 0.12);
+}
+.row { display: flex; gap: 10px; }
+.row .field { flex: 1; }
+.cta {
+  position: relative; border: 0; cursor: pointer; border-radius: 999px; padding: 13px 18px;
+  font: 800 16px var(--display); color: #fff; letter-spacing: 0.01em; text-shadow: 0 1px 2px rgba(0,50,120,0.5);
+  background: linear-gradient(180deg, #5fd8ff, var(--aqua) 50%, var(--deep));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -6px 12px rgba(160,255,255,0.45), 0 8px 20px rgba(0,80,170,0.35);
+  overflow: hidden;
+}
+.cta::before { content: ""; position: absolute; left: 3%; right: 3%; top: 2px; height: 48%; border-radius: 999px; background: linear-gradient(180deg, rgba(255,255,255,0.75), rgba(255,255,255,0.05)); }
+.cta span { position: relative; }
+
+.panel {
+  position: fixed; z-index: 4; right: 16px; top: calc(env(safe-area-inset-top, 0px) + 70px);
+  width: min(340px, calc(100% - 32px)); max-height: min(62vh, 520px);
+  border-radius: 24px; padding: 16px 8px 8px; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 8px;
+  animation: drop-in .38s cubic-bezier(.2,1.3,.4,1);
+}
+@keyframes drop-in { from { opacity: 0; transform: translateY(-14px) scale(0.92); } }
+.panel header { padding: 0 10px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.panel h2 { margin: 0; font: 800 17px var(--display); }
+.panel header p { margin: 0; font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.panel ul { list-style: none; margin: 0; padding: 0 2px; overflow: auto; display: flex; flex-direction: column; gap: 2px; }
+.panel li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: center; padding: 8px; border-radius: 14px; }
+.panel li:hover { background: rgba(255,255,255,0.45); }
+.panel li .bead { width: 28px; height: 28px; }
+.panel li .bead svg { width: 13px; height: 13px; }
+.panel .t { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel .m { font-size: 12.5px; color: var(--ink-soft); display: flex; gap: 6px; align-items: center; }
+.tag { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 1px 6px; border-radius: 6px; background: rgba(11,42,74,0.08); }
+
+#labels { position: fixed; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }
+.drop-label {
+  position: absolute; left: 0; top: 0; white-space: nowrap; will-change: transform;
+  display: flex; align-items: center; gap: 7px; border-radius: 999px; padding: 5px 12px 5px 5px;
+  font: 700 14px var(--body); transition: opacity .5s, filter .5s;
+}
+.drop-label .bead { width: 22px; height: 22px; }
+.drop-label .bead svg { width: 11px; height: 11px; }
+.drop-label.gone { opacity: 0; filter: blur(6px); }
+
+.toast {
+  position: fixed; z-index: 3; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 72px);
+  transform: translateX(-50%); border-radius: 999px; padding: 8px 16px 8px 8px;
+  display: flex; align-items: center; gap: 9px; font-weight: 600; max-width: calc(100% - 32px); box-sizing: border-box;
+  animation: toast 2.6s ease forwards;
+}
+.toast .bead { width: 24px; height: 24px; flex: none; }
+.toast .bead svg { width: 12px; height: 12px; }
+.toast b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+@keyframes toast {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.9); }
+  12%, 80% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+}
+.fallback { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; text-align: center; font-size: 16px; }
+
+@media (max-width: 520px) {
+  .hint { display: none; }
+  .brand .label-long { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet, .panel, .toast { animation-duration: .01s; }
+}
+</style>
+
+<canvas id="gl" aria-label="Clear water pool. Tap the water to make ripples."></canvas>
+<div id="labels" aria-hidden="true"></div>
+
+<div class="hud">
+  <div class="brand glass"><span class="orb"></span><span>Palais Mental</span><span class="count" id="count">0 drops</span></div>
+  <button class="pill-btn glass" id="logBtn" aria-expanded="false" aria-controls="panel">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    <span>In the water</span>
+  </button>
+</div>
+
+<aside class="panel glass" id="panel" hidden aria-label="Logged drops">
+  <header><h2>In the water</h2><p id="panelCount"></p></header>
+  <ul id="list"></ul>
+</aside>
+
+<form class="sheet glass" id="sheet" hidden autocomplete="off">
+  <h2>New drop</h2>
+  <p class="sub">Pick what it is, name it, and let it fall into the pool.</p>
+  <fieldset class="chips" id="chips"><legend hidden>Category</legend></fieldset>
+  <div class="field">
+    <label for="title">Title</label>
+    <input id="title" name="title" required maxlength="80" placeholder="Dune: Part Two">
+  </div>
+  <div class="row" id="seriesRow" hidden>
+    <div class="field"><label for="season">Season</label><input id="season" type="number" min="1" max="99" value="1" inputmode="numeric"></div>
+    <div class="field"><label for="episode">Episode</label><input id="episode" type="number" min="1" max="999" value="1" inputmode="numeric"></div>
+  </div>
+  <button class="cta" type="submit"><span>Let it fall</span></button>
+</form>
+
+<p class="hint">Tap the water to ripple it. Drag to look around.</p>
+
+<div class="dock">
+  <button class="gel" id="addBtn" aria-label="New drop" aria-expanded="false" aria-controls="sheet">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+  <span class="dock-caption">Drop a memory</span>
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js';
+
+/* ---------------- Data ---------------- */
+const ICONS = {
+  movies: '<path d="M4 5h16v14H4z"/><path d="M8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4"/>',
+  series: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 21h8M9 3l3 3 3-3"/>',
+  music: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+  books: '<path d="M4 4h6a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6a3 3 0 0 0-1 .2V20a2 2 0 0 1 2-2h5z"/>',
+  boardgames: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="15" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="9" cy="15" r="1"/>',
+  videogames: '<path d="M6 8h12a4 4 0 0 1 3.8 5.2l-1 3a2.5 2.5 0 0 1-4.3.8L15 15H9l-1.5 2a2.5 2.5 0 0 1-4.3-.8l-1-3A4 4 0 0 1 6 8z"/><path d="M8 11v2M7 12h2"/>',
+};
+const CATS = [
+  { id: 'movies', label: 'Movie', color: '#ff8a3d', hint: 'Dune: Part Two' },
+  { id: 'series', label: 'Series', color: '#ff5fa2', hint: 'Severance' },
+  { id: 'music', label: 'Album', color: '#9b6bff', hint: 'Blonde' },
+  { id: 'books', label: 'Book', color: '#f5c518', hint: 'Piranesi' },
+  { id: 'boardgames', label: 'Board game', color: '#43d465', hint: 'Cascadia' },
+  { id: 'videogames', label: 'Video game', color: '#2f7dff', hint: 'Outer Wilds' },
+];
+const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
+const bead = (cat) => `<span class="bead" style="--c:${CAT[cat].color}"><svg viewBox="0 0 24 24">${ICONS[cat]}</svg></span>`;
+const esc = (s) => s.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+const KEY = 'palais-mental.clearwater.v1';
+const now = Date.now(), H = 3600e3;
+const SAMPLES = [
+  { id: 's1', category: 'movies', title: 'Perfect Days', createdAt: now - 50 * H, sample: true },
+  { id: 's2', category: 'books', title: 'Piranesi', createdAt: now - 27 * H, sample: true },
+  { id: 's3', category: 'series', title: 'Severance', season: 2, episode: 4, createdAt: now - 6 * H, sample: true },
+  { id: 's4', category: 'music', title: 'Blonde', createdAt: now - 2 * H, sample: true },
+];
+let items = SAMPLES;
+try { const s = JSON.parse(localStorage.getItem(KEY)); if (Array.isArray(s) && s.length) items = s; } catch {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch {} };
+
+/* ---------------- UI ---------------- */
+const $ = (id) => document.getElementById(id);
+const chips = $('chips');
+chips.insertAdjacentHTML('beforeend', CATS.map((c, i) =>
+  `<label class="chip"><input type="radio" name="cat" value="${c.id}" ${i === 0 ? 'checked' : ''}><span>${bead(c.id)}${c.label}</span></label>`).join(''));
+chips.addEventListener('change', () => {
+  const cat = chips.querySelector('input:checked').value;
+  $('title').placeholder = CAT[cat].hint;
+  $('seriesRow').hidden = cat !== 'series';
+});
+
+function ago(t) {
+  const m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  return h < 24 ? `${h} h ago` : `${Math.round(h / 24)} d ago`;
+}
+function renderCount() {
+  const n = items.length;
+  $('count').textContent = `${n} drop${n === 1 ? '' : 's'}`;
+  $('panelCount').textContent = items.some(i => i.sample) ? 'Sample drops' : `${n} logged`;
+}
+function renderList() {
+  $('list').innerHTML = [...items].sort((a, b) => b.createdAt - a.createdAt).map(it => {
+    const ep = it.category === 'series' && it.season ? ` · S${it.season} E${it.episode}` : '';
+    return `<li>${bead(it.category)}<div style="min-width:0"><div class="t">${esc(it.title)}</div>
+      <div class="m">${CAT[it.category].label}${ep} · ${ago(it.createdAt)}${it.sample ? ' <span class="tag">Sample</span>' : ''}</div></div></li>`;
+  }).join('');
+}
+renderCount();
+
+const sheet = $('sheet'), panel = $('panel'), addBtn = $('addBtn'), logBtn = $('logBtn');
+function openSheet() {
+  closePanel();
+  sheet.classList.remove('closing'); sheet.hidden = false; addBtn.setAttribute('aria-expanded', 'true');
+  setTimeout(() => $('title').focus({ preventScroll: true }), 60);
+}
+function closeSheet() {
+  if (sheet.hidden) return;
+  addBtn.setAttribute('aria-expanded', 'false');
+  sheet.classList.add('closing');
+  setTimeout(() => { sheet.hidden = true; sheet.classList.remove('closing'); }, 300);
+}
+function openPanel() { closeSheet(); renderList(); panel.hidden = false; logBtn.setAttribute('aria-expanded', 'true'); }
+function closePanel() { panel.hidden = true; logBtn.setAttribute('aria-expanded', 'false'); }
+addBtn.addEventListener('click', () => sheet.hidden || sheet.classList.contains('closing') ? openSheet() : closeSheet());
+logBtn.addEventListener('click', () => panel.hidden ? openPanel() : closePanel());
+addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeSheet(); closePanel(); } });
+
+sheet.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const title = $('title').value.trim();
+  if (!title) { $('title').focus(); return; }
+  const category = chips.querySelector('input:checked').value;
+  const item = { id: Math.random().toString(36).slice(2), category, title, createdAt: Date.now() };
+  if (category === 'series') { item.season = +$('season').value || 1; item.episode = +$('episode').value || 1; }
+  $('title').value = '';
+  closeSheet();
+  setTimeout(() => spawnDrop(item, true), 220);
+});
+
+function toast(item) {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const el = document.createElement('div');
+  el.className = 'toast glass'; el.setAttribute('role', 'status');
+  el.innerHTML = `${bead(item.category)}<span>In the water:</span><b>${esc(item.title)}</b>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2700);
+}
+
+/* ---------------- Renderer ---------------- */
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const canvas = $('gl');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
+} catch (err) {
+  document.body.insertAdjacentHTML('beforeend', '<div class="fallback glass">This pool needs WebGL 2. Open it in a recent browser to see the water.</div>');
+  throw err;
+}
+let pixelRatio = Math.min(devicePixelRatio || 1, 1.5);
+renderer.setPixelRatio(pixelRatio);
+renderer.autoClear = false;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 200);
+const SUN = new THREE.Vector3(0.25, 0.42, -1).normalize();
+
+/* ---------------- Shared GLSL ---------------- */
+const COMMON = /* glsl */`
+uniform vec3 uSunDir;
+uniform float uTime;
+float hash21(vec2 p){ vec3 p3 = fract(vec3(p.xyx)*.1031); p3 += dot(p3, p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+vec2 hash22(vec2 p){ vec3 p3 = fract(vec3(p.xyx)*vec3(.1031,.1030,.0973)); p3 += dot(p3, p3.yzx+33.33); return fract((p3.xx+p3.yz)*p3.zy); }
+float vnoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  return mix(mix(hash21(i),hash21(i+vec2(1,0)),f.x), mix(hash21(i+vec2(0,1)),hash21(i+vec2(1,1)),f.x), f.y); }
+float fbm(vec2 p){ float a=.5, s=0.; for(int i=0;i<5;i++){ s+=a*vnoise(p); p=p*2.03+vec2(1.7,9.2); a*=.5; } return s; }
+vec3 skyCol(vec3 d){
+  float y = d.y;
+  vec3 zen = vec3(0.035, 0.24, 0.78), hor = vec3(0.62, 0.86, 1.0);
+  vec3 c = mix(hor, zen, pow(clamp(y, 0., 1.), 0.5));
+  if (y < 0.0) c = hor*0.85;
+  float s = max(dot(d, uSunDir), 0.);
+  if (y > 0.004) {
+    vec2 p = d.xz/(y + 0.06)*0.55 + vec2(uTime*0.006, uTime*0.002);
+    float cl = fbm(p*1.4) + 0.25*fbm(p*5.0) - 0.1;
+    cl = smoothstep(0.52, 0.92, cl) * smoothstep(0.0, 0.18, y);
+    vec3 cc = vec3(1.0, 1.0, 1.02)*(0.95 + 0.6*pow(s, 6.0)) - vec3(0.18,0.12,0.04)*smoothstep(0.7,1.1,cl);
+    c = mix(c, cc*1.2, cl*0.9);
+  }
+  c += vec3(1.0, 0.95, 0.82)*(pow(s, 1400.0)*60.0 + pow(s, 90.0)*0.9 + pow(s, 8.0)*0.18);
+  return c;
+}
+vec3 tonemap(vec3 x){ x *= 0.92; x = clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14), 0., 1.); return pow(x, vec3(1.0/2.2)); }
+`;
+
+/* ---------------- Ripple simulation (wave equation on a height field) ---------------- */
+const SIM_N = 256, SIM_EXT = 3.0;
+const rtOpts = { type: THREE.HalfFloatType, format: THREE.RGBAFormat, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false, stencilBuffer: false };
+let simA = new THREE.WebGLRenderTarget(SIM_N, SIM_N, rtOpts);
+let simB = new THREE.WebGLRenderTarget(SIM_N, SIM_N, rtOpts);
+const simScene = new THREE.Scene(), simCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+const simQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
+simScene.add(simQuad);
+const SIM_VS = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
+const stepMat = new THREE.ShaderMaterial({
+  uniforms: { uTex: { value: null }, uDelta: { value: new THREE.Vector2(1 / SIM_N, 1 / SIM_N) } },
+  vertexShader: SIM_VS,
+  fragmentShader: `
+    uniform sampler2D uTex; uniform vec2 uDelta; varying vec2 vUv;
+    void main(){
+      vec4 info = texture2D(uTex, vUv);
+      vec2 dx = vec2(uDelta.x, 0.), dy = vec2(0., uDelta.y);
+      float avg = (texture2D(uTex, vUv-dx).r + texture2D(uTex, vUv+dx).r + texture2D(uTex, vUv-dy).r + texture2D(uTex, vUv+dy).r)*0.25;
+      info.g += (avg - info.r)*2.0;
+      float e = smoothstep(0.0, 0.14, min(min(vUv.x, 1.-vUv.x), min(vUv.y, 1.-vUv.y)));
+      info.g *= mix(0.9, 0.9955, e);
+      info.r += info.g;
+      info.r *= mix(0.95, 1.0, e);
+      gl_FragColor = info;
+    }`,
+});
+const dropMat = new THREE.ShaderMaterial({
+  uniforms: { uTex: { value: null }, uCenter: { value: new THREE.Vector2() }, uRadius: { value: 0.03 }, uStrength: { value: -0.04 } },
+  vertexShader: SIM_VS,
+  fragmentShader: `
+    uniform sampler2D uTex; uniform vec2 uCenter; uniform float uRadius, uStrength; varying vec2 vUv;
+    void main(){
+      vec4 info = texture2D(uTex, vUv);
+      float d = max(0.0, 1.0 - length(uCenter - vUv)/uRadius);
+      d = 0.5 - cos(d*3.14159265)*0.5;
+      info.r += d*uStrength;
+      gl_FragColor = info;
+    }`,
+});
+function simPass(mat) {
+  mat.uniforms.uTex.value = simA.texture;
+  simQuad.material = mat;
+  renderer.setRenderTarget(simB);
+  renderer.render(simScene, simCam);
+  [simA, simB] = [simB, simA];
+}
+const simQueue = [];
+function ripple(x, z, radiusWorld, strength) {
+  simQueue.push([x / (2 * SIM_EXT) + 0.5, z / (2 * SIM_EXT) + 0.5, radiusWorld / (2 * SIM_EXT), strength]);
+}
+for (const rt of [simA, simB]) { renderer.setRenderTarget(rt); renderer.setClearColor(0x000000, 0); renderer.clear(); }
+renderer.setRenderTarget(null);
+
+/* ---------------- Water: one full-screen pass (surface, refraction, pebbles, caustics, sky) ---------------- */
+const MAX_IMP = 4;
+const waterMat = new THREE.ShaderMaterial({
+  depthTest: false, depthWrite: false,
+  uniforms: {
+    uSunDir: { value: SUN }, uTime: { value: 0 },
+    uInvVP: { value: new THREE.Matrix4() }, uCam: { value: new THREE.Vector3() },
+    uSim: { value: null }, uSimExt: { value: SIM_EXT }, uSimN: { value: SIM_N },
+    uImp: { value: Array.from({ length: MAX_IMP }, () => new THREE.Vector4(0, 0, -99, 0)) },
+    uImpCol: { value: Array.from({ length: MAX_IMP }, () => new THREE.Vector3()) },
+    uDrop: { value: new THREE.Vector4(0, 0, 0, 0) }, uDropCol: { value: new THREE.Vector3(1, 1, 1) },
+  },
+  vertexShader: `varying vec2 vNdc; void main(){ vNdc = position.xy; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+  fragmentShader: COMMON + /* glsl */`
+    uniform mat4 uInvVP; uniform vec3 uCam; uniform sampler2D uSim; uniform float uSimExt, uSimN;
+    uniform vec4 uImp[${MAX_IMP}]; uniform vec3 uImpCol[${MAX_IMP}];
+    uniform vec4 uDrop; uniform vec3 uDropCol;
+    varying vec2 vNdc;
+    float depthAt(vec2 xz){ return 0.5 + 0.16*max(-xz.y - 1.2, 0.0) + 0.08*(vnoise(xz*0.5) - 0.5); }
+
+    vec2 simUV(vec2 xz){ return xz/(2.0*uSimExt) + 0.5; }
+    float simH(vec2 uv){ return texture2D(uSim, uv).r; }
+    float simMask(vec2 uv){ vec2 e = min(uv, 1.0-uv); return smoothstep(0.0, 0.1, min(e.x, e.y)); }
+    vec2 simGrad(vec2 xz){
+      vec2 uv = simUV(xz); float m = simMask(uv);
+      if (m <= 0.0) return vec2(0.0);
+      float tx = 1.0/uSimN, w = 2.0*uSimExt/uSimN;
+      return vec2(simH(uv+vec2(tx,0.)) - simH(uv-vec2(tx,0.)), simH(uv+vec2(0.,tx)) - simH(uv-vec2(0.,tx)))/(2.0*w)*m;
+    }
+    float simLap(vec2 xz){
+      vec2 uv = simUV(xz); float m = simMask(uv);
+      if (m <= 0.0) return 0.0;
+      float tx = 2.0/uSimN;
+      return (simH(uv+vec2(tx,0.)) + simH(uv-vec2(tx,0.)) + simH(uv+vec2(0.,tx)) + simH(uv-vec2(0.,tx)) - 4.0*simH(uv))*m;
+    }
+    vec2 ambGrad(vec2 p, float far){
+      vec2 g = vec2(0.0);
+      for (int i = 0; i < 7; i++){
+        float fi = float(i);
+        float a = 0.9 + fi*2.39996;
+        vec2 dir = vec2(cos(a), sin(a));
+        float k = 2.6*pow(1.62, fi);
+        float amp = 0.0075/pow(1.55, fi);
+        float w = sqrt(9.81*k);
+        float fade = i > 3 ? (1.0 - far) : 1.0;
+        g += dir*amp*k*cos(k*dot(dir, p) - w*uTime*0.55 + fi*1.7)*fade;
+      }
+      vec2 q = p*7.0;
+      g += (vec2(vnoise(q + uTime*0.35), vnoise(q.yx + 3.1 - uTime*0.3)) - 0.5)*0.035*(1.0-far);
+      return g;
+    }
+    vec3 stoneColor(float h){
+      vec3 c = vec3(0.50, 0.42, 0.31);
+      c = mix(c, vec3(0.34, 0.33, 0.31), step(0.30, h));
+      c = mix(c, vec3(0.72, 0.69, 0.62), step(0.50, h));
+      c = mix(c, vec3(0.20, 0.24, 0.27), step(0.68, h));
+      c = mix(c, vec3(0.48, 0.30, 0.20), step(0.80, h));
+      c = mix(c, vec3(0.12, 0.115, 0.11), step(0.92, h));
+      return c;
+    }
+    vec3 pebbles(vec2 p, float fw){
+      vec2 q = p*8.5;
+      vec2 ip = floor(q), fp = fract(q);
+      float d1 = 8.0, d2 = 8.0; vec2 id = vec2(0.0);
+      for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++){
+        vec2 g = vec2(float(i), float(j));
+        vec2 o = 0.5 + 0.4*sin(6.2831*hash22(ip + g));
+        vec2 r = g + o - fp;
+        float d = dot(r, r);
+        if (d < d1){ d2 = d1; d1 = d; id = ip + g; } else if (d < d2){ d2 = d; }
+      }
+      float edge = sqrt(d2) - sqrt(d1);
+      float h = hash21(id*1.37);
+      float stone = smoothstep(0.05, 0.2, edge + 0.06*(vnoise(p*30.0) - 0.5));
+      float dome = pow(clamp(edge*2.2, 0.0, 1.0), 0.6);
+      vec3 sc = stoneColor(h)*(0.5 + 0.6*dome)*(0.88 + 0.24*vnoise(p*38.0 + h*20.0));
+      vec3 sand = vec3(0.62, 0.55, 0.42)*(0.8 + 0.35*vnoise(p*60.0));
+      vec3 col = mix(sand*0.5, sc, stone);
+      return mix(col, vec3(0.40, 0.37, 0.32), smoothstep(0.25, 0.9, fw*8.5));
+    }
+    float caustic(vec2 uv){
+      vec2 p = mod(uv*6.28318, 6.28318) - 250.0;
+      vec2 i = p; float c = 1.0; float inten = 0.005;
+      for (int n = 0; n < 5; n++){
+        float t = uTime*0.45*(1.0 - 3.5/float(n+1));
+        i = p + vec2(cos(t - i.x) + sin(t + i.y), sin(t - i.y) + cos(t + i.x));
+        c += 1.0/length(vec2(p.x/(sin(i.x + t)/inten), p.y/(cos(i.y + t)/inten)));
+      }
+      c /= 5.0;
+      c = 1.17 - pow(c, 1.4);
+      return pow(abs(c), 8.0);
+    }
+
+    void main(){
+      vec4 wp = uInvVP*vec4(vNdc, 1.0, 1.0);
+      vec3 rd = normalize(wp.xyz/wp.w - uCam);
+      vec3 col;
+      if (rd.y > -0.0015){
+        col = skyCol(rd);
+      } else {
+        float t = -uCam.y/rd.y;
+        vec3 P = uCam + rd*t;
+        float far = smoothstep(5.0, 28.0, t);
+        vec2 g = ambGrad(P.xz, far) + simGrad(P.xz);
+        vec3 N = normalize(vec3(-g.x, 1.0, -g.y));
+        float cosi = max(dot(-rd, N), 0.0);
+        float F = 0.02 + 0.98*pow(1.0 - cosi, 5.0);
+        vec3 R = reflect(rd, N); R.y = abs(R.y);
+        vec3 refl = skyCol(R);
+
+        vec3 rr = refract(rd, N, 0.7499);
+        float DEPTH = depthAt(P.xz);
+        float L = DEPTH/max(-rr.y, 0.06);
+        vec3 B = P + rr*L;
+        float fw = length(fwidth(B.xz));
+        vec3 bed = pebbles(B.xz, fw);
+
+        float cf = 1.0 - smoothstep(0.03, 0.2, fw*3.0);
+        vec2 cp = B.xz*0.62 + g*0.08;
+        vec3 caus = vec3(caustic(cp + vec2(0.004, 0.0)), caustic(cp), caustic(cp - vec2(0.004, 0.0)));
+        float focus = clamp(1.0 - simLap(B.xz - uSunDir.xz*0.4)*260.0, 0.25, 3.0);
+        vec3 light = vec3(0.22, 0.36, 0.46) + vec3(1.0, 0.95, 0.85)*(0.45 + caus*2.4*cf)*focus;
+
+        if (uDrop.w > 0.0){
+          float hgt = max(uDrop.y, 0.0) + DEPTH;
+          float d = length(B.xz - (uDrop.xz - uSunDir.xz/uSunDir.y*hgt));
+          light *= 1.0 - 0.35*exp(-d*d/(0.02 + 0.01*hgt));
+          light += uDropCol*2.5*exp(-d*d/(0.0015 + 0.002*hgt))/(0.6 + hgt);
+        }
+
+        vec3 sigma = vec3(0.55, 0.12, 0.09);
+        vec3 refr = bed*light*exp(-sigma*(L + DEPTH*0.8));
+        refr += vec3(0.0, 0.11, 0.17)*(1.0 - exp(-(L + DEPTH)*0.35));
+
+        vec3 glow = vec3(0.0);
+        for (int i = 0; i < ${MAX_IMP}; i++){
+          vec4 im = uImp[i];
+          float dt = uTime - im.z;
+          if (im.w < 0.5 || dt < 0.0 || dt > 5.0) continue;
+          float d = length(P.xz - im.xy);
+          float ring = exp(-pow((d - dt*0.62)/(0.03 + dt*0.05), 2.0))*exp(-dt*1.1);
+          float bloom = exp(-d*d/(0.01 + dt*0.09))*exp(-dt*0.75);
+          refr += uImpCol[i]*(bloom*0.45 + ring*0.25);
+          glow += uImpCol[i]*ring*0.22;
+        }
+
+        col = mix(refr, refl, F) + glow;
+        col = mix(col, skyCol(normalize(vec3(rd.x, 0.02, rd.z))), smoothstep(14.0, 70.0, t)*0.75);
+      }
+      col *= 1.0 - 0.16*dot(vNdc*0.7, vNdc*0.7);
+      gl_FragColor = vec4(tonemap(col), 1.0);
+    }`,
+});
+const water = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), waterMat);
+water.frustumCulled = false; water.renderOrder = -10;
+scene.add(water);
+
+/* ---------------- Drops ---------------- */
+const dropBase = new THREE.ShaderMaterial({
+  transparent: true, depthTest: false, depthWrite: false,
+  uniforms: { uSunDir: { value: SUN }, uTime: { value: 0 }, uTint: { value: new THREE.Vector3(1, 1, 1) }, uStretch: { value: 1 }, uOpacity: { value: 0.96 } },
+  vertexShader: /* glsl */`
+    uniform float uStretch; varying vec3 vN; varying vec3 vW;
+    void main(){
+      vec3 p = position; float s = uStretch; float inv = inversesqrt(s);
+      float top = max(position.y, 0.0);
+      float taper = max(1.0 - top*top*(s - 1.0)*1.3, 0.15);
+      float sy = position.y > 0.0 ? s : 1.0 + (s - 1.0)*0.25;
+      p.y *= sy; p.xz *= inv*taper;
+      vec3 n = normalize(vec3(normal.x/(inv*taper), normal.y/sy, normal.z/(inv*taper)));
+      vec4 w = modelMatrix*vec4(p, 1.0);
+      vW = w.xyz; vN = normalize(mat3(modelMatrix)*n);
+      gl_Position = projectionMatrix*viewMatrix*w;
+    }`,
+  fragmentShader: COMMON + /* glsl */`
+    uniform vec3 uTint; uniform float uOpacity; varying vec3 vN; varying vec3 vW;
+    void main(){
+      vec3 V = normalize(vW - cameraPosition); vec3 N = normalize(vN);
+      float c = max(dot(-V, N), 0.0);
+      float F = 0.04 + 0.96*pow(1.0 - c, 4.0);
+      vec3 refl = skyCol(reflect(V, N));
+      vec3 rd = refract(V, N, 0.75);
+      vec3 flip = vec3(rd.x, -rd.y, rd.z);
+      vec3 behind = flip.y > 0.0 ? skyCol(flip) : mix(vec3(0.03, 0.30, 0.36), vec3(0.35, 0.62, 0.6), smoothstep(-1.0, 0.0, flip.y));
+      vec3 body = mix(behind, uTint*1.3, 0.38);
+      float back = max(dot(N, -uSunDir), 0.0);
+      body += uTint*pow(back, 5.0)*1.8 + vec3(1.0)*pow(back, 40.0)*2.0;
+      vec3 col = mix(body, refl, F) + uTint*pow(1.0 - c, 2.5)*0.4;
+      gl_FragColor = vec4(tonemap(col), uOpacity);
+    }`,
+});
+const dropGeo = new THREE.SphereGeometry(1, 40, 28);
+const sprayGeo = new THREE.SphereGeometry(1, 14, 10);
+const G = 7.2;
+const drops = [];
+const impacts = [];
+let impactSlot = 0;
+const labelsEl = $('labels');
+
+function makeMesh(geo, color, r) {
+  const m = new THREE.Mesh(geo, dropBase.clone());
+  const c = new THREE.Color(color);
+  m.material.uniforms.uTint.value.set(c.r, c.g, c.b);
+  m.material.uniforms.uSunDir.value = SUN;
+  m.scale.setScalar(r);
+  m.frustumCulled = false;
+  scene.add(m);
+  return m;
+}
+function spawnDrop(item, log) {
+  const color = CAT[item.category].color;
+  const x = (Math.random() - 0.5) * 1.3, z = -0.35 - Math.random() * 1.1;
+  const r = 0.085;
+  const d = { kind: 'main', item, log, color, r, pos: new THREE.Vector3(x, 1.75, z), vel: new THREE.Vector3(0, 0, 0), age: 0, hang: 0.55, mesh: makeMesh(dropGeo, color, r) };
+  d.mesh.scale.setScalar(0.0001);
+  if (item.title) {
+    const el = document.createElement('div');
+    el.className = 'drop-label glass';
+    el.innerHTML = `${bead(item.category)}<span>${esc(item.title)}</span>`;
+    labelsEl.appendChild(el);
+    d.label = el;
+  }
+  drops.push(d);
+}
+function spawnSpray(x, z, color, n, power) {
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + Math.random() * 0.4;
+    const hs = (0.45 + Math.random() * 0.7) * power, vs = (1.0 + Math.random() * 1.2) * power;
+    const r = (0.01 + Math.random() * 0.018) * Math.sqrt(power);
+    const pos = new THREE.Vector3(x + Math.cos(a) * 0.07, 0.02, z + Math.sin(a) * 0.07);
+    drops.push({ kind: 'spray', color, r, pos, vel: new THREE.Vector3(Math.cos(a) * hs, vs, Math.sin(a) * hs), age: 0, mesh: makeMesh(sprayGeo, color, r) });
+  }
+}
+function impact(d) {
+  const { x, z } = d.pos;
+  const c = new THREE.Color(d.color);
+  if (d.kind === 'main') {
+    ripple(x, z, 0.22, -0.05);
+    spawnSpray(x, z, d.color, reduced ? 8 : 18, 1);
+    setTimeout(() => drops.push({ kind: 'jet', color: d.color, r: 0.042, pos: new THREE.Vector3(x, 0.02, z), vel: new THREE.Vector3(0, 2.5, 0), age: 0, mesh: makeMesh(sprayGeo, d.color, 0.042) }), 170);
+    const u = waterMat.uniforms;
+    u.uImp.value[impactSlot].set(x, z, clock.elapsedTime, 1);
+    u.uImpCol.value[impactSlot].set(c.r, c.g, c.b);
+    impactSlot = (impactSlot + 1) % MAX_IMP;
+    if (d.label) { d.label.classList.add('gone'); const el = d.label; setTimeout(() => el.remove(), 600); }
+    if (d.log) {
+      if (items.some(i => i.sample)) items = [];
+      items.push(d.item); save(); renderCount();
+      if (!panel.hidden) renderList();
+      const cnt = $('count'); cnt.classList.add('bump'); setTimeout(() => cnt.classList.remove('bump'), 380);
+      toast(d.item);
+    }
+  } else if (d.kind === 'jet') {
+    ripple(x, z, 0.1, -0.02);
+    spawnSpray(x, z, d.color, reduced ? 3 : 6, 0.45);
+  } else {
+    ripple(x, z, 0.05, -0.006 * (d.r / 0.02));
+  }
+}
+function updateDrops(dt) {
+  const w = innerWidth, h = innerHeight;
+  const v = new THREE.Vector3();
+  let focus = null;
+  for (let i = drops.length - 1; i >= 0; i--) {
+    const d = drops[i];
+    d.age += dt;
+    let stretch = 1;
+    if (d.kind === 'main' && d.age < d.hang) {
+      const k = d.age / d.hang;
+      const grow = 1 - Math.pow(1 - k, 3);
+      d.mesh.scale.setScalar(d.r * grow);
+      stretch = 1 + Math.sin(k * 14) * 0.12 * (1 - k) + k * 0.12;
+    } else {
+      d.vel.y -= G * dt;
+      d.pos.addScaledVector(d.vel, dt);
+      stretch = 1 + Math.min(Math.abs(d.vel.y) * (d.kind === 'main' ? 0.07 : 0.1), d.kind === 'main' ? 0.55 : 0.8);
+    }
+    d.mesh.material.uniforms.uStretch.value = stretch;
+    d.mesh.position.copy(d.pos);
+    if (d.kind === 'main') focus = d;
+    if (d.label) {
+      v.copy(d.pos); v.y += d.r * stretch + 0.03; v.project(camera);
+      const lx = (v.x * 0.5 + 0.5) * w, ly = (-v.y * 0.5 + 0.5) * h;
+      d.label.style.transform = `translate(${lx}px, ${ly}px) translate(-50%, -130%)`;
+    }
+    if (d.pos.y - d.r * 0.3 <= 0 && d.vel.y < 0) {
+      impact(d);
+      scene.remove(d.mesh); d.mesh.material.dispose();
+      drops.splice(i, 1);
+    }
+  }
+  const u = waterMat.uniforms;
+  if (focus) {
+    u.uDrop.value.set(focus.pos.x, focus.pos.y, focus.pos.z, focus.mesh.scale.x / focus.r);
+    const c = new THREE.Color(focus.color); u.uDropCol.value.set(c.r, c.g, c.b);
+  } else u.uDrop.value.w = 0;
+}
+
+/* ---------------- Camera & input ---------------- */
+const target = new THREE.Vector3(0, 0, -0.75);
+let yaw = 0, pitch = 0.26, dist = 4.4;
+function placeCamera(t) {
+  const y = yaw + (reduced ? 0 : Math.sin(t * 0.13) * 0.035);
+  const p = pitch + (reduced ? 0 : Math.sin(t * 0.21) * 0.01);
+  camera.position.set(target.x + Math.sin(y) * Math.cos(p) * dist, target.y + Math.sin(p) * dist, target.z + Math.cos(y) * Math.cos(p) * dist);
+  camera.lookAt(target);
+}
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  const portrait = w / h < 0.85;
+  camera.fov = portrait ? 66 : 55;
+  dist = portrait ? 5.0 : 4.4;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+resize();
+
+let drag = null;
+canvas.addEventListener('pointerdown', (e) => {
+  closeSheet(); closePanel();
+  drag = { x: e.clientX, y: e.clientY, yaw, pitch, moved: 0 };
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
+  if (drag.moved > 6) {
+    canvas.classList.add('dragging');
+    yaw = THREE.MathUtils.clamp(drag.yaw - dx * 0.003, -0.7, 0.7);
+    pitch = THREE.MathUtils.clamp(drag.pitch + dy * 0.002, 0.14, 0.75);
+  }
+});
+canvas.addEventListener('pointerup', (e) => {
+  canvas.classList.remove('dragging');
+  if (drag && drag.moved <= 6) {
+    const ndc = new THREE.Vector4((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1, 1, 1);
+    ndc.applyMatrix4(waterMat.uniforms.uInvVP.value);
+    const p = new THREE.Vector3(ndc.x / ndc.w, ndc.y / ndc.w, ndc.z / ndc.w);
+    const rd = p.sub(camera.position).normalize();
+    if (rd.y < -0.01) {
+      const t = -camera.position.y / rd.y;
+      ripple(camera.position.x + rd.x * t, camera.position.z + rd.z * t, 0.09, -0.018);
+    }
+  }
+  drag = null;
+});
+
+/* ---------------- Loop ---------------- */
+const clock = new THREE.Clock();
+let acc = 0, frames = 0, frameTime = 0;
+const vp = new THREE.Matrix4();
+function frame() {
+  const dt = Math.min(clock.getDelta(), 1 / 30);
+  const t = clock.elapsedTime;
+  placeCamera(t);
+  camera.updateMatrixWorld();
+  vp.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse).invert();
+  const u = waterMat.uniforms;
+  u.uInvVP.value.copy(vp); u.uCam.value.copy(camera.position); u.uTime.value = t;
+
+  updateDrops(dt);
+  for (const d of drops) d.mesh.material.uniforms.uTime.value = t;
+
+  while (simQueue.length) {
+    const [cx, cy, r, s] = simQueue.shift();
+    dropMat.uniforms.uCenter.value.set(cx, cy); dropMat.uniforms.uRadius.value = r; dropMat.uniforms.uStrength.value = s;
+    simPass(dropMat);
+  }
+  acc += dt;
+  let steps = 0;
+  while (acc >= 1 / 110 && steps < 4) { simPass(stepMat); acc -= 1 / 110; steps++; }
+  u.uSim.value = simA.texture;
+
+  renderer.setRenderTarget(null);
+  renderer.render(scene, camera);
+
+  frameTime += dt; frames++;
+  if (frames === 90) {
+    const avg = frameTime / frames * 1000;
+    if (avg > 24 && pixelRatio > 0.6) { pixelRatio = Math.max(0.6, pixelRatio - 0.25); renderer.setPixelRatio(pixelRatio); resize(); }
+    frames = 0; frameTime = 0;
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// Opening moment: one unlabeled drop so the pool shows what it does.
+setTimeout(() => spawnDrop({ category: 'videogames', title: '' }, false), 900);
+</script>
