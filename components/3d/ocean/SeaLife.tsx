@@ -25,7 +25,7 @@ function creatureMaterial(top: number[], belly: number[], shine: number) {
       ...shared,
       uTop: { value: new Vector3(...top) },
       uBelly: { value: new Vector3(...belly) },
-      uDeepTint: { value: new Vector3(...OCEAN.water.scatter).multiplyScalar(0.6) },
+      uDeepTint: { value: new Vector3(0.02, 0.16, 0.2) },
       uShine: { value: shine },
     },
   });

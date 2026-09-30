@@ -14,6 +14,9 @@ export const shared = {
   uHorizon: { value: new Vector3(...OCEAN.sky.horizon) },
   uClouds: { value: OCEAN.sky.clouds },
   uIsland: { value: Array.from({ length: ISLAND_COUNT }, () => new Vector4()) },
+  /** The drop in the air: position and presence (w), and its colour. */
+  uDrop: { value: new Vector4() },
+  uDropColor: { value: new Vector3(1, 1, 1) },
 };
 
 /** Island size follows the collection: sqrt growth, full size at `fullAt` objects. */

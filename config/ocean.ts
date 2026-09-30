@@ -1,38 +1,34 @@
 /**
- * The open sea that replaces the room: sun, water, islands, drops and the animals
- * that come by. Every tunable of the ocean lives here.
+ * The clear water that replaces the room: camera, sun, sky, islands, drops and the animals
+ * that come by. Every tunable of the water lives here.
  */
 import type { CategoryId } from '@/lib/types';
 
 export const OCEAN = {
-  /** Camera eye height above the water (m) and how far it looks down (rad). */
-  eyeHeight: 1.55,
-  pitch: -0.1,
-  /** Vertical field of view: landscape, portrait. */
-  fov: [52, 66] as [number, number],
-  /** Head turn between collections: spring stiffness and damping (critically damped ≈ 2·√k). */
-  turnStiffness: 16,
-  turnDamping: 7.4,
-  /** Sun direction (toward the sun), elevation above the horizon. */
-  sun: { azimuth: 0.35, elevation: 0.3 },
-
-  water: {
-    /** Colour seen straight down into deep water, and the turquoise scattered back toward the sun. */
-    deep: [0.003, 0.024, 0.07] as [number, number, number],
-    scatter: [0.008, 0.085, 0.12] as [number, number, number],
-    /** Swell: slope amplitude and speed. */
-    swell: 1,
-    speed: 0.55,
+  /**
+   * Free look: the camera orbits a point on the water. Drag to turn all the way round and to
+   * look further down or up; the view keeps a little momentum when you let go.
+   */
+  camera: {
+    distance: [4.4, 5.0] as [number, number], // landscape, portrait
+    fov: [55, 66] as [number, number],
+    pitch: 0.26,
+    pitchRange: [0.12, 0.8] as [number, number],
+    /** Radians per pixel dragged, and how fast the momentum fades (per second). */
+    sensitivity: 0.005,
+    friction: 4,
   },
+  /** Sun direction (toward the sun), elevation above the horizon. */
+  sun: { azimuth: 0.245, elevation: 0.387 },
 
   sky: {
-    zenith: [0.03, 0.2, 0.62] as [number, number, number],
-    horizon: [0.42, 0.64, 0.88] as [number, number, number],
-    clouds: 0.85,
+    zenith: [0.035, 0.24, 0.78] as [number, number, number],
+    horizon: [0.62, 0.86, 1.0] as [number, number, number],
+    clouds: 1,
   },
 
-  /** Ripple simulation around the viewer: grid size and half-extent (m). */
-  ripples: { size: 320, extent: 8 },
+  /** Ripple simulation around the centre: grid size and half-extent (m). */
+  ripples: { size: 320, extent: 5 },
 
   /** Where each collection's island sits on the horizon (azimuth, rad; 0 = straight ahead). */
   islands: {
@@ -47,11 +43,11 @@ export const OCEAN = {
   islandGrowth: { width: [0.08, 0.24], height: [0.02, 0.085], fullAt: 80 },
 
   drop: {
-    radius: 0.13,
-    episodeRadius: 0.055,
-    /** Distance in front of the camera where drops land (m), and the height they form at. */
-    distance: 3.1,
-    formHeight: 1.35,
+    radius: 0.11,
+    episodeRadius: 0.06,
+    /** Drops land anywhere on the water you can see, within this distance of the centre (m). */
+    maxDistance: 4,
+    formHeight: 1.75,
     formDuration: 0.55,
     gravity: 7.2,
   },

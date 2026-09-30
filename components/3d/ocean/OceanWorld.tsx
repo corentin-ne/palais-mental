@@ -15,12 +15,12 @@ import OceanSurface from './OceanSurface';
 import SeaLife from './SeaLife';
 import { shared, updateIslands } from './uniforms';
 
-export const OCEAN_BG = '#8FC3EA';
+export const OCEAN_BG = '#9CCBEF';
 
 /**
- * The palace as an open sea. You float just above the water; each collection is an island
- * on the horizon that grows with it, and the chips turn your head toward one. Everything you
- * log falls into the sea as a drop. The loop runs only while this tab is on screen.
+ * The palace as clear water. The view is free: drag to look all the way round, further down
+ * or toward the horizon. Each collection is an island on the horizon that grows with it, and
+ * everything you log falls into the water as a drop. The loop runs only while this tab is on screen.
  */
 export default function OceanWorld() {
   const [active, setActive] = useState(true);
@@ -36,46 +36,66 @@ export default function OceanWorld() {
       style={StyleSheet.absoluteFill}
       frameloop={active ? 'always' : 'never'}
       dpr={[1, 1.75]}
-      camera={{ fov: OCEAN.fov[0], near: 0.05, far: 400, position: [0, OCEAN.eyeHeight, 0] }}
+      camera={{ fov: OCEAN.camera.fov[0], near: 0.05, far: 400, position: [0, 1.2, 4.2] }}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
     >
       <color attach="background" args={[OCEAN_BG]} />
       <OceanSurface />
       <SeaLife />
       <DropSpawner />
-      <HeadTurn />
+      <FreeLook />
       <Islands />
       <AdaptiveResolution />
     </Canvas>
   );
 }
 
-const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
-
-/** Turns the head toward the focused collection's island on a spring, with a gentle float on the swell. */
-function HeadTurn() {
-  const focus = usePalaceStore((s) => s.focus);
-  const state = useRef({ yaw: focus === 'window' ? 0 : OCEAN.islands[focus], v: 0 });
+/** Orbits the centre of the water from drags, with momentum, and floats gently on the swell. */
+function FreeLook() {
+  const state = useRef({ yaw: 0, pitch: OCEAN.camera.pitch, vy: 0, vp: 0 });
   useFrame(({ camera, clock, size }, rawDelta) => {
-    const dt = safeDelta(rawDelta);
+    const dt = Math.max(safeDelta(rawDelta), 1e-3);
     const s = state.current;
-    const target = focus === 'window' ? 0 : OCEAN.islands[focus];
-    const err = wrap(target - s.yaw);
-    s.v += (err * OCEAN.turnStiffness - s.v * OCEAN.turnDamping) * dt;
-    s.yaw = wrap(s.yaw + s.v * dt);
+    const { sensitivity, friction, pitchRange, distance, fov: fovs } = OCEAN.camera;
+    const drag = oceanSignals.drag;
+    if (drag.dx || drag.dy) {
+      const dyaw = -drag.dx * sensitivity;
+      const dpitch = drag.dy * sensitivity * 0.6;
+      s.yaw += dyaw;
+      s.pitch += dpitch;
+      // Momentum follows the finger, smoothed so one jerky frame does not fling the view.
+      s.vy += (dyaw / dt - s.vy) * 0.5;
+      s.vp += (dpitch / dt - s.vp) * 0.5;
+      drag.dx = 0;
+      drag.dy = 0;
+    } else if (!drag.active) {
+      s.yaw += s.vy * dt;
+      s.pitch += s.vp * dt;
+      const k = Math.exp(-friction * dt);
+      s.vy *= k;
+      s.vp *= k;
+    } else {
+      s.vy = 0;
+      s.vp = 0;
+    }
+    s.pitch = Math.min(pitchRange[1], Math.max(pitchRange[0], s.pitch));
     oceanSignals.yaw = s.yaw;
     shared.uTime.value = clock.elapsedTime;
 
     const t = clock.elapsedTime;
     const cam = camera as PerspectiveCamera;
-    const fov = size.width / size.height < 0.85 ? OCEAN.fov[1] : OCEAN.fov[0];
+    const portrait = size.width / size.height < 0.85;
+    const fov = portrait ? fovs[1] : fovs[0];
     if (cam.fov !== fov) {
       cam.fov = fov;
       cam.updateProjectionMatrix();
     }
-    cam.position.set(0, OCEAN.eyeHeight + Math.sin(t * 0.55) * 0.03, 0);
-    cam.rotation.order = 'YXZ';
-    cam.rotation.set(OCEAN.pitch + Math.sin(t * 0.4) * 0.006, -s.yaw, Math.sin(t * 0.33) * 0.008 - s.v * 0.02);
+    const d = portrait ? distance[1] : distance[0];
+    const yaw = s.yaw + Math.sin(t * 0.13) * 0.02;
+    const pitch = s.pitch + Math.sin(t * 0.21) * 0.008;
+    // View heading `yaw` (0 = toward -z): the camera stands behind the centre, looking at it.
+    cam.position.set(-Math.sin(yaw) * Math.cos(pitch) * d, Math.sin(pitch) * d + Math.sin(t * 0.55) * 0.01, Math.cos(yaw) * Math.cos(pitch) * d);
+    cam.lookAt(0, 0, 0);
   });
   return null;
 }

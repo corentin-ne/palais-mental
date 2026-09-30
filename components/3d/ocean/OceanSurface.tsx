@@ -33,8 +33,8 @@ const { size: N, extent: EXT } = OCEAN.ripples;
 const STEP = 1 / 110;
 
 /**
- * The sea, drawn as one full-screen pass behind everything else, plus a small wave-equation
- * simulation around the viewer that drops, animals and taps disturb.
+ * The water, drawn as one full-screen pass behind everything else, plus a small wave-equation
+ * simulation around the centre that drops, animals and taps disturb.
  */
 export default function OceanSurface() {
   const gl = useThree((s) => s.gl);
@@ -81,10 +81,6 @@ export default function OceanSurface() {
         uRippleOn: { value: canRipple ? 1 : 0 },
         uRippleExtent: { value: EXT },
         uRippleSize: { value: N },
-        uDeep: { value: new Vector3(...OCEAN.water.deep) },
-        uScatter: { value: new Vector3(...OCEAN.water.scatter) },
-        uSwell: { value: OCEAN.water.swell },
-        uSpeed: { value: OCEAN.water.speed },
         uImpact: { value: Array.from({ length: MAX_IMPACTS }, () => new Vector4()) },
         uImpactColor: { value: Array.from({ length: MAX_IMPACTS }, () => new Vector4()) },
       },

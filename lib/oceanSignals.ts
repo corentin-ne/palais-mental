@@ -22,9 +22,20 @@ export const oceanSignals = {
   impacts: [] as ImpactRequest[],
   /** Taps on the screen in normalized device coordinates, turned into ripples by the water. */
   taps: [] as { x: number; y: number }[],
-  /** Current camera heading, so animals come by where you are looking. */
+  /** Current view heading (0 = looking toward -z), so animals come by where you are looking. */
   yaw: 0,
+  /** Pixels dragged since the last frame; the camera consumes them. */
+  drag: { dx: 0, dy: 0, active: false },
 };
+
+export function dragWater(dx: number, dy: number) {
+  oceanSignals.drag.dx += dx;
+  oceanSignals.drag.dy += dy;
+}
+
+export function setDragging(active: boolean) {
+  oceanSignals.drag.active = active;
+}
 
 export function ripple(x: number, z: number, radius: number, strength: number) {
   if (oceanSignals.ripples.length < 64) oceanSignals.ripples.push({ x, z, radius, strength });

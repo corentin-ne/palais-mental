@@ -17,7 +17,7 @@ npm test          # catalog parsers and cover colours, with fixtures
 
 ## What you can do
 
-- **Palace (home).** An open sea. You float just above the water; each collection is an island on the horizon that grows with it, and a chip or a swipe turns your head toward one. Everything you log falls into the sea as a drop. Tap the water to ripple it. Dolphins, leaping fish and gulls come by now and then.
+- **Palace (home).** Clear water over blue pebbles, in free view: drag to look all the way round, tap to ripple it. Everything you log falls into the water as a drop, anywhere you can see. The tab bar is the only interface on top. Each collection is an island on the horizon that grows with it; dolphins, leaping fish and gulls come by now and then.
 - **Add in a few taps.** Tap **+**, type a few letters, tap the right cover. Metadata and artwork come from free, keyless catalogs, queried in parallel and merged (a later source fills a missing cover or year):
   - films: iTunes, IMDb suggestions, MyAnimeList (Jikan), Wikidata and Wikipedia
   - series: TVmaze (seasons, episode counts, next episodes), IMDb suggestions, iTunes, MyAnimeList and Wikidata
@@ -39,14 +39,15 @@ npm test          # catalog parsers and cover colours, with fixtures
 - **Marine look.** Pale sky-blue paper, deep navy ink and ocean-blue actions, with the cover art as the colour. Instrument Sans for the interface, Instrument Serif for accents.
 - **Motion.** Springs everywhere: furniture morphs between stages, objects pop out of a pearl of light, camera moves are short and decisive.
 
-## The sea
+## The water
 
-- **Water.** One full-screen pass: a ray from the eye meets the sea, the normal comes from a small spectrum of swell plus a wave-equation ripple field around you, and the colour mixes the reflected sky with light scattered back from deep water (no visible bottom). Sun glitter, clouds, horizon haze.
+- **Water.** One full-screen pass: a ray from the eye meets the water, the normal comes from a small swell plus a wave-equation ripple field, the refracted ray lands on blue pebbles lit by caustics (brighter where ripples focus light), and the reflected ray sees the sky. The bottom shelves away with distance.
+- **Free view.** The camera orbits the centre of the water; drags turn it all the way round and tilt it, with momentum when you let go.
 - **Islands.** One per collection, drawn in the sky shader so they also reflect in the water. Each grows smoothly with its collection.
-- **Drops.** A logged item gathers in the air holding its cover, falls, and melts into the sea: splash, a jet that falls back, and a bloom of its colour. Episodes fall as smaller drops.
-- **Visitors.** A pod of dolphins arcing through the swell, a shoal of small fish skipping out of the water, gulls wheeling overhead, always where you are looking.
-- **Fluid.** The loop runs only while the Palace tab is on screen; the pixel ratio steps down when frames run long and back up when there is headroom. Phones without half-float render targets keep everything but the local ripples.
-- **Tuning.** `config/ocean.ts`: camera, sun, water and sky colours, island placement and growth, drop timing, how often animals visit.
+- **Drops.** A logged item gathers in the air over a random spot of the water in view, holding its cover, then falls with its focused light and shadow on the pebbles, and melts in: splash, a jet that falls back, and a bloom of its colour. Episodes fall as smaller drops.
+- **Visitors.** Dolphins, a shoal of small fish skipping out of the water, gulls wheeling overhead, where you are looking.
+- **Fluid.** The loop runs only while the Palace tab is on screen; the pixel ratio steps down when frames run long and back up when there is headroom. Phones without half-float render targets keep everything but the ripples.
+- **Tuning.** `config/ocean.ts`: camera, sun, sky, island placement and growth, drop timing, how often animals visit.
 
 The room below is no longer on screen; its code stays in `components/3d/` for now.
 

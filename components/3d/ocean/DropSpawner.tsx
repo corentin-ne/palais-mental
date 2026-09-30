@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Group, Mesh, MeshBasicMaterial, PlaneGeometry, ShaderMaterial, SphereGeometry, Texture, Vector3 } from 'three';
+import { Camera, Group, Mesh, MeshBasicMaterial, PlaneGeometry, ShaderMaterial, SphereGeometry, Texture, Vector3 } from 'three';
 
 import { OCEAN } from '@/config/ocean';
 import { easeOutBack, safeDelta } from '@/lib/easing';
 import { getItemColor } from '@/lib/itemVisuals';
-import { impact, oceanSignals, ripple } from '@/lib/oceanSignals';
+import { impact, ripple } from '@/lib/oceanSignals';
 import { loadCoverTexture } from '@/lib/textureCache';
 import { HeroEvent } from '@/lib/types';
 import { DROP_FRAGMENT, DROP_VERTEX } from '@/shaders/ocean';
@@ -24,6 +24,24 @@ interface Particle {
   kind: 'spray' | 'jet';
 }
 
+const ndc = new Vector3();
+
+/** Anywhere on the water you can see right now: a random point of the lower screen, cast onto the water. */
+function landingSpot(camera: Camera): { x: number; z: number } {
+  for (let i = 0; i < 12; i++) {
+    ndc.set(-0.75 + Math.random() * 1.5, -0.75 + Math.random() * 0.8, 0.5).unproject(camera);
+    const dir = ndc.sub(camera.position).normalize();
+    if (dir.y > -0.05) continue;
+    const t = -camera.position.y / dir.y;
+    const x = camera.position.x + dir.x * t;
+    const z = camera.position.z + dir.z * t;
+    if (Math.hypot(x, z) <= D.maxDistance) return { x, z };
+  }
+  const a = Math.random() * Math.PI * 2;
+  const r = Math.sqrt(Math.random()) * 1.5;
+  return { x: Math.cos(a) * r, z: Math.sin(a) * r };
+}
+
 function dropMaterial(tint: [number, number, number], opacity: number) {
   return new ShaderMaterial({
     vertexShader: DROP_VERTEX,
@@ -35,8 +53,8 @@ function dropMaterial(tint: [number, number, number], opacity: number) {
 }
 
 /**
- * Every memory you log arrives as a drop: it gathers in the air in front of you holding its
- * cover, falls, and melts into the sea with a splash, a jet and a bloom of its colour.
+ * Every memory you log arrives as a drop: it gathers in the air somewhere over the water you
+ * can see, holding its cover, falls, and melts in with a splash, a jet and a bloom of its colour.
  * Consumes the store's hero queue one event at a time, like the room's hero did.
  */
 export default function DropSpawner() {
@@ -95,11 +113,8 @@ export default function DropSpawner() {
       completeHero(event.id);
       return;
     }
-    // Land where the head is turning to (the chips turn it to the item's island first).
-    const focus = usePalaceStore.getState().focus;
-    const yaw = (focus === 'window' ? oceanSignals.yaw : OCEAN.islands[focus]) + (Math.random() - 0.5) * 0.3;
-    const dist = D.distance * (0.9 + Math.random() * 0.2);
-    const pos = new Vector3(camera.position.x + Math.sin(yaw) * dist, D.formHeight, camera.position.z - Math.cos(yaw) * dist);
+    const spot = landingSpot(camera);
+    const pos = new Vector3(spot.x, D.formHeight, spot.z);
     const color = linearRgb(getItemColor(item));
     const r = event.kind === 'episode' ? D.episodeRadius : D.radius;
     live.current = { event, pos, vy: 0, age: 0, r, color, phase: 'form', melt: 0 };
@@ -176,6 +191,8 @@ export default function DropSpawner() {
         }
       }
       group.visible = scale > 0.001;
+      shared.uDrop.value.set(d.pos.x, d.pos.y, d.pos.z, d.phase === 'melt' ? 0 : scale / d.r);
+      shared.uDropColor.value.set(...d.color);
       group.position.copy(d.pos);
       drop.scale.setScalar(Math.max(scale, 1e-4));
       (drop.material as ShaderMaterial).uniforms.uStretch.value = stretch;
@@ -186,6 +203,7 @@ export default function DropSpawner() {
       res.coverMat.opacity = res.coverMat.map ? fade : 0;
     } else {
       group.visible = false;
+      shared.uDrop.value.w = 0;
     }
 
     for (const p of res.particles) {

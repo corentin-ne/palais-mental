@@ -1,7 +1,7 @@
 /**
- * GLSL for the open sea. The water is one full-screen pass: a ray from the eye meets the
- * sea plane, the normal comes from the swell plus a ripple height field, and the colour
- * mixes the reflected sky (islands included) with light scattered back from deep water.
+ * GLSL for the water. One full-screen pass: a ray from the eye meets the water, the normal
+ * comes from a small swell plus a ripple height field, the refracted ray lands on blue pebbles
+ * lit by caustics, and the reflected ray sees the sky (islands included).
  * Every shader here writes display-ready colour itself (own tone curve + gamma).
  */
 
@@ -19,6 +19,7 @@ export const OCEAN_COMMON = /* glsl */ `
 
   #define PI 3.14159265
 
+  vec2 hash22(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973)); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.xx + p3.yz) * p3.zy); }
   float hash21(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
   float vnoise(vec2 p) {
     vec2 i = floor(p), f = fract(p);
@@ -27,7 +28,7 @@ export const OCEAN_COMMON = /* glsl */ `
   }
   float fbm(vec2 p) {
     float a = 0.5, s = 0.0;
-    for (int i = 0; i < 4; i++) { s += a * vnoise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; }
+    for (int i = 0; i < 5; i++) { s += a * vnoise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; }
     return s;
   }
 
@@ -69,21 +70,23 @@ export const OCEAN_COMMON = /* glsl */ `
   vec3 skyCol(vec3 d) {
     float y = d.y;
     vec3 c = mix(uHorizon, uZenith, pow(clamp(y, 0.0, 1.0), 0.5));
+    if (y < 0.0) c = uHorizon * 0.85;
     float s = max(dot(d, uSun), 0.0);
     if (y > 0.004) {
-      vec2 p = d.xz / (y + 0.07) * 0.5 + vec2(uTime * 0.005, uTime * 0.0018);
-      float cl = fbm(p * 1.3) + 0.3 * vnoise(p * 6.0) - 0.12;
-      cl = smoothstep(0.5, 0.9, cl) * smoothstep(0.0, 0.2, y) * uClouds;
-      vec3 cc = vec3(1.0) * (0.92 + 0.5 * pow(s, 6.0)) - vec3(0.2, 0.16, 0.1) * smoothstep(0.75, 1.15, cl);
-      c = mix(c, cc * 1.15, cl * 0.9);
+      vec2 p = d.xz / (y + 0.06) * 0.55 + vec2(uTime * 0.006, uTime * 0.002);
+      float cl = fbm(p * 1.4) + 0.25 * fbm(p * 5.0) - 0.1;
+      cl = smoothstep(0.52, 0.92, cl) * smoothstep(0.0, 0.18, y) * uClouds;
+      vec3 cc = vec3(1.0, 1.0, 1.02) * (0.95 + 0.6 * pow(s, 6.0)) - vec3(0.18, 0.12, 0.04) * smoothstep(0.7, 1.1, cl);
+      c = mix(c, cc * 1.2, cl * 0.9);
     }
-    c += vec3(1.0, 0.94, 0.82) * (pow(s, 1600.0) * 70.0 + pow(s, 120.0) * 0.8 + pow(s, 8.0) * 0.16);
+    c += vec3(1.0, 0.95, 0.82) * (pow(s, 1400.0) * 60.0 + pow(s, 90.0) * 0.9 + pow(s, 8.0) * 0.18);
     vec4 isl = islands(d);
     c = mix(c, isl.rgb, isl.a);
     return c;
   }
 
   vec3 tonemap(vec3 x) {
+    x *= 0.92;
     x = clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
     return pow(x, vec3(1.0 / 2.2));
   }
@@ -100,52 +103,84 @@ export const WATER_FRAGMENT = /* glsl */ `
   uniform vec3 uCam;
   uniform sampler2D uRipples;
   uniform float uRippleOn, uRippleExtent, uRippleSize;
-  uniform vec3 uDeep, uScatter;
-  uniform float uSwell, uSpeed;
   uniform vec4 uImpact[${MAX_IMPACTS}];
   uniform vec4 uImpactColor[${MAX_IMPACTS}];
+  uniform vec4 uDrop;
+  uniform vec3 uDropColor;
   varying vec2 vNdc;
+
+  // Shallow near you, shelving away in every direction.
+  float depthAt(vec2 xz) { return 0.5 + 0.16 * max(length(xz) - 2.0, 0.0) + 0.08 * (vnoise(xz * 0.5) - 0.5); }
 
   vec2 rippleUv(vec2 xz) { return xz / (2.0 * uRippleExtent) + 0.5; }
   float rippleH(vec2 uv) { return texture2D(uRipples, uv).r; }
+  float rippleMask(vec2 uv) { vec2 e = min(uv, 1.0 - uv); return uRippleOn * smoothstep(0.0, 0.1, min(e.x, e.y)); }
   vec2 rippleGrad(vec2 xz) {
-    if (uRippleOn < 0.5) return vec2(0.0);
-    vec2 uv = rippleUv(xz);
-    vec2 e = min(uv, 1.0 - uv);
-    float m = smoothstep(0.0, 0.12, min(e.x, e.y));
+    vec2 uv = rippleUv(xz); float m = rippleMask(uv);
     if (m <= 0.0) return vec2(0.0);
     float tx = 1.0 / uRippleSize, w = 2.0 * uRippleExtent / uRippleSize;
     return vec2(rippleH(uv + vec2(tx, 0.0)) - rippleH(uv - vec2(tx, 0.0)), rippleH(uv + vec2(0.0, tx)) - rippleH(uv - vec2(0.0, tx))) / (2.0 * w) * m;
   }
-
-  // Swell: a small spectrum of directional waves, fine ones fading with distance (no shimmer).
-  vec2 swellGrad(vec2 p, float far) {
-    vec2 g = vec2(0.0);
-    float t = uTime * uSpeed;
-    for (int i = 0; i < 9; i++) {
-      float fi = float(i);
-      float a = 0.4 + fi * 2.39996;
-      vec2 dir = vec2(cos(a), sin(a));
-      float k = 0.9 * pow(1.55, fi);
-      float amp = 0.02 / pow(1.42, fi);
-      float w = sqrt(9.81 * k);
-      float fade = mix(1.0, 1.0 - far, smoothstep(2.0, 6.0, fi));
-      g += dir * amp * k * cos(k * dot(dir, p) - w * t + fi * 1.7) * fade;
-    }
-    vec2 q = p * 5.0;
-    g += (vec2(vnoise(q + t * 0.8), vnoise(q.yx + 3.1 - t * 0.7)) - 0.5) * 0.06 * (1.0 - far);
-    return g * uSwell;
+  float rippleLap(vec2 xz) {
+    vec2 uv = rippleUv(xz); float m = rippleMask(uv);
+    if (m <= 0.0) return 0.0;
+    float tx = 2.0 / uRippleSize;
+    return (rippleH(uv + vec2(tx, 0.0)) + rippleH(uv - vec2(tx, 0.0)) + rippleH(uv + vec2(0.0, tx)) + rippleH(uv - vec2(0.0, tx)) - 4.0 * rippleH(uv)) * m;
   }
-
+  vec2 ambGrad(vec2 p, float far) {
+    vec2 g = vec2(0.0);
+    for (int i = 0; i < 7; i++) {
+      float fi = float(i);
+      float a = 0.9 + fi * 2.39996;
+      vec2 dir = vec2(cos(a), sin(a));
+      float k = 2.6 * pow(1.62, fi);
+      float amp = 0.0075 / pow(1.55, fi);
+      float w = sqrt(9.81 * k);
+      float fade = i > 3 ? (1.0 - far) : 1.0;
+      g += dir * amp * k * cos(k * dot(dir, p) - w * uTime * 0.55 + fi * 1.7) * fade;
+    }
+    vec2 q = p * 7.0;
+    g += (vec2(vnoise(q + uTime * 0.35), vnoise(q.yx + 3.1 - uTime * 0.3)) - 0.5) * 0.035 * (1.0 - far);
+    return g;
+  }
+  vec3 stoneColor(float h) {
+    vec3 c = vec3(0.22, 0.38, 0.62);
+    c = mix(c, vec3(0.12, 0.22, 0.42), step(0.30, h));
+    c = mix(c, vec3(0.40, 0.55, 0.72), step(0.50, h));
+    c = mix(c, vec3(0.08, 0.14, 0.26), step(0.68, h));
+    c = mix(c, vec3(0.24, 0.42, 0.64), step(0.80, h));
+    c = mix(c, vec3(0.04, 0.07, 0.14), step(0.92, h));
+    return c;
+  }
+  vec3 pebbles(vec2 p, float fw) {
+    vec2 q = p * 8.5;
+    vec2 ip = floor(q), fp = fract(q);
+    float d1 = 8.0, d2 = 8.0; vec2 id = vec2(0.0);
+    for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+      vec2 g = vec2(float(i), float(j));
+      vec2 o = 0.5 + 0.4 * sin(6.2831 * hash22(ip + g));
+      vec2 r = g + o - fp;
+      float d = dot(r, r);
+      if (d < d1) { d2 = d1; d1 = d; id = ip + g; } else if (d < d2) { d2 = d; }
+    }
+    float edge = sqrt(d2) - sqrt(d1);
+    float h = hash21(id * 1.37);
+    float stone = smoothstep(0.05, 0.2, edge + 0.06 * (vnoise(p * 30.0) - 0.5));
+    float dome = pow(clamp(edge * 2.2, 0.0, 1.0), 0.6);
+    vec3 sc = stoneColor(h) * (0.5 + 0.6 * dome) * (0.88 + 0.24 * vnoise(p * 38.0 + h * 20.0));
+    vec3 sand = vec3(0.34, 0.47, 0.64) * (0.8 + 0.35 * vnoise(p * 60.0));
+    vec3 col = mix(sand * 0.5, sc, stone);
+    return mix(col, vec3(0.24, 0.35, 0.52), smoothstep(0.25, 0.9, fw * 8.5));
+  }
   float caustic(vec2 uv) {
     vec2 p = mod(uv * 6.28318, 6.28318) - 250.0;
     vec2 i = p; float c = 1.0;
-    for (int n = 0; n < 4; n++) {
-      float t = uTime * 0.4 * (1.0 - 3.5 / float(n + 1));
+    for (int n = 0; n < 5; n++) {
+      float t = uTime * 0.45 * (1.0 - 3.5 / float(n + 1));
       i = p + vec2(cos(t - i.x) + sin(t + i.y), sin(t - i.y) + cos(t + i.x));
       c += 1.0 / length(vec2(p.x / (sin(i.x + t) / 0.005), p.y / (cos(i.y + t) / 0.005)));
     }
-    c = 1.17 - pow(c / 4.0, 1.4);
+    c = 1.17 - pow(c / 5.0, 1.4);
     return pow(abs(c), 8.0);
   }
 
@@ -153,13 +188,13 @@ export const WATER_FRAGMENT = /* glsl */ `
     vec4 wp = uInvViewProj * vec4(vNdc, 1.0, 1.0);
     vec3 rd = normalize(wp.xyz / wp.w - uCam);
     vec3 col;
-    if (rd.y > -0.0008) {
+    if (rd.y > -0.0015) {
       col = skyCol(rd);
     } else {
       float t = -uCam.y / rd.y;
       vec3 P = uCam + rd * t;
-      float far = smoothstep(6.0, 40.0, t);
-      vec2 g = swellGrad(P.xz, far) + rippleGrad(P.xz);
+      float far = smoothstep(5.0, 28.0, t);
+      vec2 g = ambGrad(P.xz, far) + rippleGrad(P.xz);
       vec3 N = normalize(vec3(-g.x, 1.0, -g.y));
       float cosi = max(dot(-rd, N), 0.0);
       float F = 0.02 + 0.98 * pow(1.0 - cosi, 5.0);
@@ -167,12 +202,30 @@ export const WATER_FRAGMENT = /* glsl */ `
       R.y = abs(R.y);
       vec3 refl = skyCol(R);
 
-      // Deep water: no bottom, only light scattered back up. Brighter on the faces of the
-      // swell turned toward the eye, and turquoise where the sun shines through a crest.
-      float face = clamp(dot(N.xz, -normalize(rd.xz)) * 5.0 + 0.5, 0.0, 1.0);
-      float back = pow(max(dot(normalize(vec3(rd.x, 0.0, rd.z)), normalize(vec3(uSun.x, 0.0, uSun.z))), 0.0), 3.0);
-      vec3 refr = uDeep + uScatter * (0.3 + 0.5 * face + 2.2 * back * face) * (0.6 + 0.4 * cosi);
-      refr += uScatter * caustic(P.xz * 0.28 + g * 0.2) * 0.12 * (1.0 - far);
+      vec3 rr = refract(rd, N, 0.7499);
+      float DEPTH = depthAt(P.xz);
+      float L = DEPTH / max(-rr.y, 0.06);
+      vec3 B = P + rr * L;
+      float fw = length(fwidth(B.xz));
+      vec3 bed = pebbles(B.xz, fw);
+
+      float cf = 1.0 - smoothstep(0.03, 0.2, fw * 3.0);
+      vec2 cp = B.xz * 0.62 + g * 0.08;
+      vec3 caus = vec3(caustic(cp + vec2(0.004, 0.0)), caustic(cp), caustic(cp - vec2(0.004, 0.0)));
+      float focus = clamp(1.0 - rippleLap(B.xz - uSun.xz * 0.4) * 260.0, 0.25, 3.0);
+      vec3 light = vec3(0.22, 0.36, 0.46) + vec3(1.0, 0.95, 0.85) * (0.45 + caus * 2.4 * cf) * focus;
+
+      // A falling drop focuses a spot of its colour on the pebbles and casts a soft shadow.
+      if (uDrop.w > 0.0) {
+        float hgt = max(uDrop.y, 0.0) + DEPTH;
+        float d = length(B.xz - (uDrop.xz - uSun.xz / uSun.y * hgt));
+        light *= 1.0 - 0.35 * exp(-d * d / (0.02 + 0.01 * hgt));
+        light += uDropColor * 2.5 * exp(-d * d / (0.0015 + 0.002 * hgt)) / (0.6 + hgt) * uDrop.w;
+      }
+
+      vec3 sigma = vec3(0.55, 0.12, 0.09);
+      vec3 refr = bed * light * exp(-sigma * (L + DEPTH * 0.8));
+      refr += vec3(0.0, 0.11, 0.17) * (1.0 - exp(-(L + DEPTH) * 0.35));
 
       vec3 glow = vec3(0.0);
       for (int i = 0; i < ${MAX_IMPACTS}; i++) {
@@ -180,17 +233,17 @@ export const WATER_FRAGMENT = /* glsl */ `
         float dt = uTime - im.z;
         if (im.w <= 0.0 || dt < 0.0 || dt > 5.0) continue;
         float d = length(P.xz - im.xy);
-        float ring = exp(-pow((d - dt * 0.6) / (0.03 + dt * 0.05), 2.0)) * exp(-dt * 1.1);
-        float bloom = exp(-d * d / (0.01 + dt * 0.09)) * exp(-dt * 0.8);
+        float ring = exp(-pow((d - dt * 0.62) / (0.03 + dt * 0.05), 2.0)) * exp(-dt * 1.1);
+        float bloom = exp(-d * d / (0.01 + dt * 0.09)) * exp(-dt * 0.75);
         vec4 ic = uImpactColor[i];
-        refr += ic.rgb * (bloom * 0.5 + ring * 0.2) * im.w;
-        glow += mix(ic.rgb, vec3(1.0), ic.a) * ring * 0.3 * im.w;
+        refr += ic.rgb * (bloom * 0.45 + ring * 0.25) * im.w;
+        glow += mix(ic.rgb, vec3(1.0), ic.a) * ring * 0.22 * im.w;
       }
 
       col = mix(refr, refl, F) + glow;
-      col = mix(col, uHorizon, smoothstep(40.0, 180.0, t) * 0.55);
+      col = mix(col, uHorizon, smoothstep(14.0, 70.0, t) * 0.75);
     }
-    col *= 1.0 - 0.12 * dot(vNdc * 0.7, vNdc * 0.7);
+    col *= 1.0 - 0.16 * dot(vNdc * 0.7, vNdc * 0.7);
     gl_FragColor = vec4(tonemap(col), 1.0);
   }
 `;
@@ -266,7 +319,7 @@ export const DROP_FRAGMENT = /* glsl */ `
     vec3 refl = skyCol(reflect(V, N));
     vec3 rd = refract(V, N, 0.75);
     vec3 flip = vec3(rd.x, -rd.y, rd.z);
-    vec3 behind = flip.y > 0.0 ? skyCol(flip) : mix(vec3(0.01, 0.1, 0.2), vec3(0.1, 0.35, 0.5), smoothstep(-1.0, 0.0, flip.y));
+    vec3 behind = flip.y > 0.0 ? skyCol(flip) : mix(vec3(0.03, 0.30, 0.36), vec3(0.35, 0.62, 0.6), smoothstep(-1.0, 0.0, flip.y));
     vec3 body = mix(behind, uTint * 1.3, 0.4);
     float back = max(dot(N, -uSun), 0.0);
     body += uTint * pow(back, 5.0) * 1.8 + vec3(1.0) * pow(back, 40.0) * 2.0;
