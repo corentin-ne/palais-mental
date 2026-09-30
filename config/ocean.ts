@@ -22,8 +22,8 @@ export const OCEAN = {
   sun: { azimuth: 0.245, elevation: 0.387 },
 
   sky: {
-    zenith: [0.035, 0.24, 0.78] as [number, number, number],
-    horizon: [0.62, 0.86, 1.0] as [number, number, number],
+    zenith: [0.02, 0.14, 0.6] as [number, number, number],
+    horizon: [0.46, 0.8, 1.0] as [number, number, number],
     clouds: 1,
   },
 
@@ -40,7 +40,7 @@ export const OCEAN = {
     books: 1.75,
   } as Record<CategoryId, number>,
   /** Island size grows with the collection: angular width and height at 0 and at `fullAt` objects. */
-  islandGrowth: { width: [0.08, 0.24], height: [0.02, 0.085], fullAt: 80 },
+  islandGrowth: { width: [0.11, 0.28], height: [0.05, 0.14], fullAt: 80 },
 
   drop: {
     radius: 0.11,

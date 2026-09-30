@@ -14,6 +14,14 @@ const WHITE: [number, number, number] = [1, 1, 1];
 const POD = 3;
 const SHOAL = 6;
 const SPRAY = 48;
+const REEF_FISH = 18;
+/** Yellow tangs, blue tangs, clownfish orange, and a few pink wrasses. */
+const REEF_COLOURS: [number[], number[]][] = [
+  [[1, 0.78, 0.05], [1, 0.9, 0.4]],
+  [[0.05, 0.3, 1], [0.35, 0.65, 1]],
+  [[1, 0.42, 0.05], [1, 0.85, 0.7]],
+  [[1, 0.35, 0.65], [0.7, 0.9, 1]],
+];
 
 function creatureMaterial(top: number[], belly: number[], shine: number) {
   return new ShaderMaterial({
@@ -25,7 +33,7 @@ function creatureMaterial(top: number[], belly: number[], shine: number) {
       ...shared,
       uTop: { value: new Vector3(...top) },
       uBelly: { value: new Vector3(...belly) },
-      uDeepTint: { value: new Vector3(0.02, 0.16, 0.2) },
+      uDeepTint: { value: new Vector3(0.05, 0.36, 0.42) },
       uShine: { value: shine },
     },
   });
@@ -51,8 +59,8 @@ interface Leaper {
 }
 
 /**
- * Visitors: a pod of dolphins arcing through the swell, a shoal of small fish skipping out
- * of the water, gulls wheeling high above. Each comes by where you are looking, now and then.
+ * Visitors: a school of reef fish drifting over the sand, a pod of dolphins arcing through the
+ * swell, a shoal of small fish skipping out of the water, gulls wheeling high above. Each comes by where you are looking, now and then.
  */
 export default function SeaLife() {
   const res = useMemo(() => {
@@ -82,6 +90,14 @@ export default function SeaLife() {
     const dolphins = Array.from({ length: POD }, () => mkLeaper(dolphinGeo, dolphinMat, 2.1));
     const fish = Array.from({ length: SHOAL }, () => mkLeaper(fishGeo, fishMat, 0.26));
 
+    const reefMats = REEF_COLOURS.map(([top, belly]) => creatureMaterial(top, belly, 0.8));
+    const reef = Array.from({ length: REEF_FISH }, (_, i) => {
+      const mesh = new Mesh(fishGeo, reefMats[i % reefMats.length]);
+      mesh.rotation.order = 'YZX';
+      mesh.scale.setScalar(rand(0.1, 0.16));
+      return { mesh, phase: rand(0, Math.PI * 2), radius: rand(0.25, 0.9), speed: rand(0.3, 0.45), depth: rand(0.12, 0.3), wob: rand(0, 6) };
+    });
+
     const gulls = Array.from({ length: OCEAN.creatures.gulls }, (_, i) => {
       const g = new Group();
       const body = new Mesh(bodyGeo, gullMat);
@@ -103,7 +119,7 @@ export default function SeaLife() {
       return { mesh, pos: new Vector3(), vel: new Vector3(), r: 0, alive: false };
     });
 
-    return { dolphinGeo, fishGeo, bodyGeo, wingGeo, sprayGeo, mats: [dolphinMat, fishMat, gullMat, sprayMat], dolphins, fish, gulls, spray };
+    return { dolphinGeo, fishGeo, bodyGeo, wingGeo, sprayGeo, mats: [dolphinMat, fishMat, gullMat, sprayMat, ...reefMats], dolphins, fish, gulls, spray, reef };
   }, []);
 
   useEffect(
@@ -219,6 +235,17 @@ export default function SeaLife() {
     res.dolphins.forEach((d) => moveLeaper(d, t, 1));
     res.fish.forEach((f) => moveLeaper(f, t, 0.3));
 
+    // The reef school drifts around the lagoon, each fish circling its own path within it.
+    const cx = Math.sin(t * 0.045) * 1.6;
+    const cz = Math.cos(t * 0.033) * 1.4 - 0.4;
+    for (const f of res.reef) {
+      const a = f.phase + t * f.speed;
+      const r = f.radius * (1 + 0.15 * Math.sin(t * 0.7 + f.wob));
+      f.mesh.position.set(cx + Math.cos(a) * r, -f.depth + Math.sin(t * 1.3 + f.wob) * 0.02, cz + Math.sin(a) * r);
+      // Heading along the circle's tangent, with a swimmer's wiggle.
+      f.mesh.rotation.set(0, -(a + Math.PI / 2) + Math.sin(t * 9 + f.wob) * 0.18, 0);
+    }
+
     for (const g of res.gulls) {
       const a = g.phase + t * g.speed;
       g.g.position.set(g.cx + Math.cos(a) * g.radius, g.height + Math.sin(t * 0.3 + g.phase) * 0.4, g.cz + Math.sin(a) * g.radius);
@@ -255,6 +282,9 @@ export default function SeaLife() {
       ))}
       {res.fish.map((f, i) => (
         <primitive key={`f${i}`} object={f.mesh} />
+      ))}
+      {res.reef.map((f, i) => (
+        <primitive key={`r${i}`} object={f.mesh} />
       ))}
       {res.gulls.map((g, i) => (
         <primitive key={`g${i}`} object={g.g} />

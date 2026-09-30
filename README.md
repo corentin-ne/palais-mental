@@ -17,7 +17,7 @@ npm test          # catalog parsers and cover colours, with fixtures
 
 ## What you can do
 
-- **Palace (home).** Clear water over blue pebbles, in free view: drag to look all the way round, tap to ripple it. Everything you log falls into the water as a drop, anywhere you can see. The tab bar is the only interface on top. Each collection is an island on the horizon that grows with it; dolphins, leaping fish and gulls come by now and then.
+- **Palace (home).** A tropical lagoon: clear turquoise water over white sand and coral, in free view: drag to look all the way round, tap to ripple it. Everything you log falls into the water as a drop, anywhere you can see. The tab bar is the only interface on top. Each collection is an island on the horizon that grows with it; dolphins, leaping fish and gulls come by now and then.
 - **Add in a few taps.** Tap **+**, type a few letters, tap the right cover. Metadata and artwork come from free, keyless catalogs, queried in parallel and merged (a later source fills a missing cover or year):
   - films: iTunes, IMDb suggestions, MyAnimeList (Jikan), Wikidata and Wikipedia
   - series: TVmaze (seasons, episode counts, next episodes), IMDb suggestions, iTunes, MyAnimeList and Wikidata
@@ -41,11 +41,11 @@ npm test          # catalog parsers and cover colours, with fixtures
 
 ## The water
 
-- **Water.** One full-screen pass: a ray from the eye meets the water, the normal comes from a small swell plus a wave-equation ripple field, the refracted ray lands on blue pebbles lit by caustics (brighter where ripples focus light), and the reflected ray sees the sky. The bottom shelves away with distance.
+- **Water.** One full-screen pass: a ray from the eye meets the water, the normal comes from a calm swell (each wave fades once it is smaller than a few pixels, so the distance stays smooth) plus a wave-equation ripple field. The refracted ray lands on white sand combed by the tide with clusters of coral heads, lit by caustics; the water absorbs reds first, so the sand turns turquoise and the lagoon deepens to blue. Far out, turquoise lagoons ring the islands. The reflected ray sees the sky: azure overhead, aqua at the horizon, a peach glow toward the sun, a lavender blush opposite, cumulus with lit rims and cirrus veils.
 - **Free view.** The camera orbits the centre of the water; drags turn it all the way round and tilt it, with momentum when you let go.
-- **Islands.** One per collection, drawn in the sky shader so they also reflect in the water. Each grows smoothly with its collection.
+- **Islands.** One per collection: a green volcanic peak with jungle crowns and palms, a white beach and surf, drawn in the sky shader so they also reflect in the water. Each grows smoothly with its collection.
 - **Drops.** A logged item gathers in the air over a random spot of the water in view, holding its cover, then falls with its focused light and shadow on the pebbles, and melts in: splash, a jet that falls back, and a bloom of its colour. Episodes fall as smaller drops.
-- **Visitors.** Dolphins, a shoal of small fish skipping out of the water, gulls wheeling overhead, where you are looking.
+- **Visitors.** A school of yellow, blue, orange and pink reef fish drifting over the sand, dolphins, a shoal of small fish skipping out of the water, gulls wheeling overhead, where you are looking.
 - **Fluid.** The loop runs only while the Palace tab is on screen; the pixel ratio steps down when frames run long and back up when there is headroom. Phones without half-float render targets keep everything but the ripples.
 - **Tuning.** `config/ocean.ts`: camera, sun, sky, island placement and growth, drop timing, how often animals visit.
 
