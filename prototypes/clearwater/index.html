@@ -1,364 +1,247 @@
 <title>Palais Mental Clearwater</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&family=Source+Sans+3:wght@400;600;700&display=swap">
 <style>
-/* Layout: full-bleed WebGL pool; floating liquid-glass controls pinned to corners, sheet rises from the gel button. */
+/* Layout: full-bleed WebGL pool; the app's own overlay (top bar, caption, Log button, bottom sheet) floats above it. */
 :root {
-  --ink: #0b2a4a;
-  --ink-soft: #3d6285;
-  --glass-top: rgba(255, 255, 255, 0.62);
-  --glass-bottom: rgba(255, 255, 255, 0.20);
-  --glass-edge: rgba(255, 255, 255, 0.78);
-  --aqua: #19b3ff;
-  --deep: #0a5fd6;
-  --sky: #bfe9ff;
-  --display: "Nunito", "Segoe UI", "Frutiger", system-ui, sans-serif;
-  --body: "Source Sans 3", "Segoe UI", "Frutiger", system-ui, sans-serif;
-  color-scheme: light;
+  --bg: #07080B;
+  --glass: rgba(15, 16, 21, 0.84);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --text: #F4F4F5;
+  --text-dim: rgba(244, 244, 245, 0.55);
+  --text-faint: rgba(244, 244, 245, 0.32);
+  --primary: #F4F4F5;
+  --on-primary: #0A0A0C;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
 }
 [hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
-  margin: 0; overflow: hidden; background: var(--sky); color: var(--ink);
-  font-family: var(--body); font-size: 15px; -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
+  margin: 0; overflow: hidden; background: var(--bg); color: var(--text);
+  font-family: var(--font); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
 }
-#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
-#gl.dragging { cursor: grabbing; }
+button { font-family: inherit; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--text-dim); outline-offset: 2px; }
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 
-.glass {
-  position: relative;
-  background: linear-gradient(180deg, var(--glass-top), var(--glass-bottom));
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-  backdrop-filter: blur(22px) saturate(180%);
-  border: 1px solid var(--glass-edge);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.95),
-    inset 0 -12px 24px rgba(120, 210, 255, 0.18),
-    0 12px 32px rgba(10, 60, 120, 0.22);
+.overlay {
+  position: fixed; inset: 0; z-index: 2; pointer-events: none;
+  display: flex; flex-direction: column;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
 }
-.glass::before {
-  content: ""; position: absolute; inset: 1px 1px 52% 1px; border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0));
-  pointer-events: none;
+.overlay button { pointer-events: auto; }
+.title, .meta, .hint { text-shadow: 0 1px 10px rgba(0, 20, 50, 0.45); }
+.top-bar { display: flex; justify-content: space-between; align-items: flex-start; padding: 0 20px; }
+.title { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0.3px; }
+.meta { margin: 4px 0 0; font-size: 13px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.pill {
+  background: var(--glass); border: 0.5px solid var(--glass-border); border-radius: 999px;
+  padding: 8px 14px; color: var(--text); font-size: 13px; font-weight: 600; letter-spacing: 0.4px; cursor: pointer;
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
 }
+button:active { opacity: 0.7; }
+.caption-wrap { flex: 1; display: flex; justify-content: center; align-items: flex-end; padding: 0 32px 12px; }
+.caption {
+  margin: 0; font-size: 15px; font-weight: 500; letter-spacing: 0.3px; text-align: center;
+  text-shadow: 0 0 12px rgba(0, 0, 0, 0.8); transition: opacity .4s;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.caption.fade { opacity: 0; }
+.bottom { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 0 16px; }
+.hint { margin: 0; font-size: 13px; color: var(--text-faint); letter-spacing: 0.3px; text-align: center; }
+.log-button {
+  display: flex; align-items: center; gap: 8px; border: 0; cursor: pointer;
+  background: var(--primary); color: var(--on-primary); border-radius: 999px; padding: 14px 28px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+.log-button .plus { font-size: 20px; font-weight: 500; line-height: 22px; }
+.log-button .log-text { font-size: 16px; font-weight: 600; letter-spacing: 0.3px; }
 
-.hud {
-  position: fixed; left: 0; right: 0; top: 0; z-index: 3;
-  display: flex; justify-content: space-between; align-items: center; gap: 12px;
-  padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 0;
-  pointer-events: none;
-}
-.hud > * { pointer-events: auto; }
-.brand {
-  display: flex; align-items: center; gap: 10px; border-radius: 999px;
-  padding: 7px 14px 7px 8px; font-family: var(--display); font-weight: 800; font-size: 15px; letter-spacing: 0.01em;
-}
-.orb {
-  width: 22px; height: 22px; border-radius: 50%; flex: none;
-  background: radial-gradient(circle at 35% 30%, #fff 0 12%, #7ff3ff 30%, var(--aqua) 55%, var(--deep) 100%);
-  box-shadow: 0 2px 6px rgba(0, 80, 170, 0.4), inset 0 -2px 4px rgba(160,255,255,0.6);
-}
-.count {
-  font-family: var(--body); font-weight: 600; font-size: 13px; color: var(--ink-soft);
-  font-variant-numeric: tabular-nums; padding-left: 10px; border-left: 1px solid rgba(11,42,74,0.15);
-  display: inline-block; transition: transform .35s cubic-bezier(.3,1.8,.5,1);
-}
-.count.bump { transform: scale(1.18); color: var(--deep); }
-.pill-btn {
-  font: 600 14px var(--body); color: var(--ink); border-radius: 999px; padding: 9px 16px;
-  cursor: pointer; display: flex; align-items: center; gap: 8px;
-}
-.pill-btn:focus-visible, .gel:focus-visible, .chip input:focus-visible + span, .cta:focus-visible, .field input:focus-visible {
-  outline: 3px solid rgba(25, 179, 255, 0.7); outline-offset: 2px;
-}
-
-.dock {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 3;
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 22px);
-  pointer-events: none;
-}
-.dock > * { pointer-events: auto; }
-.gel {
-  position: relative; width: 72px; height: 72px; border-radius: 50%; border: 0; cursor: pointer;
-  background: radial-gradient(circle at 50% 118%, #9ff8ff 0%, var(--aqua) 46%, var(--deep) 100%);
-  box-shadow:
-    inset 0 -8px 16px rgba(170, 255, 255, 0.65),
-    inset 0 2px 1px rgba(255,255,255,0.8),
-    0 0 0 1px rgba(0, 60, 140, 0.35),
-    0 14px 30px rgba(0, 80, 170, 0.45);
-  transition: transform .25s cubic-bezier(.3,1.6,.5,1);
-  display: grid; place-items: center;
-}
-.gel::before {
-  content: ""; position: absolute; left: 13%; right: 13%; top: 5%; height: 46%; border-radius: 50% / 60% 60% 40% 40%;
-  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.08));
-}
-.gel svg { position: relative; width: 28px; height: 28px; filter: drop-shadow(0 1px 1px rgba(0,50,120,0.5)); transition: transform .3s; }
-.gel:hover { transform: scale(1.06); }
-.gel:active { transform: scale(0.94); }
-.gel[aria-expanded="true"] svg { transform: rotate(45deg); }
-.dock-caption { font: 600 13px var(--body); color: #fff; text-shadow: 0 1px 3px rgba(0, 40, 90, 0.55); }
-.hint {
-  position: fixed; left: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); z-index: 2; margin: 0;
-  font-size: 12.5px; color: rgba(255,255,255,0.92); text-shadow: 0 1px 3px rgba(0, 40, 90, 0.55); max-width: 30ch;
-}
-
+.scrim { position: fixed; inset: 0; z-index: 3; background: rgba(0, 0, 0, 0.25); animation: fade .25s ease; }
 .sheet {
-  position: fixed; z-index: 4; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 112px);
-  width: min(420px, calc(100% - 32px)); transform: translateX(-50%);
-  border-radius: 28px; padding: 18px 18px 16px; margin: 0; box-sizing: border-box;
-  display: flex; flex-direction: column; gap: 14px;
-  transform-origin: 50% 110%;
-  animation: rise .42s cubic-bezier(.2,1.3,.4,1);
+  position: fixed; z-index: 4; left: 0; right: 0; bottom: 0; margin: 0 auto; width: 100%; max-width: 560px; box-sizing: border-box;
+  background: var(--glass); border: 0.5px solid var(--glass-border); border-bottom: 0;
+  border-radius: 28px 28px 0 0; padding: 10px 20px calc(env(safe-area-inset-bottom, 0px) + 20px);
+  -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  animation: slide .3s cubic-bezier(.2, .8, .2, 1);
 }
-.sheet.closing { animation: sink .32s cubic-bezier(.6,0,.8,.3) forwards; }
-@keyframes rise { from { opacity: 0; transform: translateX(-50%) translateY(30px) scale(0.6); } }
-@keyframes sink { to { opacity: 0; transform: translateX(-50%) translateY(40px) scale(0.2); } }
-.sheet h2 { margin: 0; font: 800 19px var(--display); text-wrap: balance; }
-.sheet .sub { margin: -10px 0 0; font-size: 13px; color: var(--ink-soft); }
-.chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; border: 0; padding: 0; margin: 0; }
-.chip { position: relative; cursor: pointer; }
-.chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-.chip > span {
-  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px 9px;
-  border-radius: 18px; font-size: 13px; font-weight: 600; color: var(--ink-soft);
-  border: 1px solid transparent; transition: background .2s, border-color .2s, color .2s;
+@keyframes slide { from { transform: translateY(100%); } }
+@keyframes fade { from { opacity: 0; } }
+.grabber { width: 36px; height: 4px; border-radius: 2px; background: var(--glass-border); margin: 0 auto 16px; }
+.heading { margin: 0 0 16px; font-size: 20px; font-weight: 600; letter-spacing: 0.2px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tile {
+  display: flex; align-items: center; gap: 10px; padding: 16px 14px; border-radius: 16px; cursor: pointer; text-align: left;
+  border: 0.5px solid var(--glass-border); background: rgba(255, 255, 255, 0.03); color: var(--text); font-size: 15px; font-weight: 500;
 }
-.bead {
-  width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; position: relative;
-  background: radial-gradient(circle at 50% 115%, color-mix(in srgb, var(--c) 40%, #fff) 0%, var(--c) 50%, color-mix(in srgb, var(--c) 60%, #002050) 100%);
-  box-shadow: inset 0 -4px 8px rgba(255,255,255,0.45), 0 4px 10px color-mix(in srgb, var(--c) 45%, transparent);
-  transition: transform .3s cubic-bezier(.3,1.8,.5,1);
+.dot { width: 8px; height: 8px; border-radius: 4px; flex: none; }
+.head-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+.link { background: none; border: 0; padding: 0; margin-right: 6px; color: var(--text-dim); font-size: 15px; cursor: pointer; }
+.heading-inline { margin: 0; font-size: 18px; font-weight: 600; }
+.label { display: block; color: var(--text-dim); font-size: 13px; margin-bottom: 8px; letter-spacing: 0.3px; }
+.input {
+  width: 100%; box-sizing: border-box; color: var(--text); font: 17px var(--font); border-radius: 14px;
+  border: 0.5px solid var(--glass-border); background: rgba(255, 255, 255, 0.04); padding: 12px 14px; margin-bottom: 16px;
 }
-.bead::before {
-  content: ""; position: absolute; left: 16%; right: 16%; top: 6%; height: 44%; border-radius: 50%;
-  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0));
+.input::placeholder { color: var(--text-faint); }
+.stepper-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.stepper-row .label { margin: 0; }
+.stepper { display: flex; align-items: center; gap: 14px; }
+.step-btn {
+  width: 38px; height: 38px; border-radius: 19px; border: 1px solid var(--glass-border); background: none;
+  color: var(--text); font-size: 20px; line-height: 22px; cursor: pointer;
 }
-.bead svg { position: relative; width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.25)); }
-.chip input:checked + span { background: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.95); color: var(--ink); box-shadow: 0 4px 14px rgba(10,60,120,0.12); }
-.chip input:checked + span .bead { transform: scale(1.12); }
-.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.field label { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
-.field input {
-  font: 600 16px var(--body); color: var(--ink); border-radius: 14px; padding: 11px 13px; min-width: 0;
-  border: 1px solid rgba(255,255,255,0.9); background: rgba(255,255,255,0.72);
-  box-shadow: inset 0 2px 5px rgba(10, 60, 120, 0.12);
+.step-value { font-size: 18px; font-variant-numeric: tabular-nums; min-width: 28px; text-align: center; }
+.primary {
+  width: 100%; border: 0; border-radius: 16px; padding: 15px; cursor: pointer;
+  background: var(--primary); color: var(--on-primary); font-size: 16px; font-weight: 600;
 }
-.row { display: flex; gap: 10px; }
-.row .field { flex: 1; }
-.cta {
-  position: relative; border: 0; cursor: pointer; border-radius: 999px; padding: 13px 18px;
-  font: 800 16px var(--display); color: #fff; letter-spacing: 0.01em; text-shadow: 0 1px 2px rgba(0,50,120,0.5);
-  background: linear-gradient(180deg, #5fd8ff, var(--aqua) 50%, var(--deep));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -6px 12px rgba(160,255,255,0.45), 0 8px 20px rgba(0,80,170,0.35);
-  overflow: hidden;
-}
-.cta::before { content: ""; position: absolute; left: 3%; right: 3%; top: 2px; height: 48%; border-radius: 999px; background: linear-gradient(180deg, rgba(255,255,255,0.75), rgba(255,255,255,0.05)); }
-.cta span { position: relative; }
-
-.panel {
-  position: fixed; z-index: 4; right: 16px; top: calc(env(safe-area-inset-top, 0px) + 70px);
-  width: min(340px, calc(100% - 32px)); max-height: min(62vh, 520px);
-  border-radius: 24px; padding: 16px 8px 8px; box-sizing: border-box;
-  display: flex; flex-direction: column; gap: 8px;
-  animation: drop-in .38s cubic-bezier(.2,1.3,.4,1);
-}
-@keyframes drop-in { from { opacity: 0; transform: translateY(-14px) scale(0.92); } }
-.panel header { padding: 0 10px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.panel h2 { margin: 0; font: 800 17px var(--display); }
-.panel header p { margin: 0; font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
-.panel ul { list-style: none; margin: 0; padding: 0 2px; overflow: auto; display: flex; flex-direction: column; gap: 2px; }
-.panel li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: center; padding: 8px; border-radius: 14px; }
-.panel li:hover { background: rgba(255,255,255,0.45); }
-.panel li .bead { width: 28px; height: 28px; }
-.panel li .bead svg { width: 13px; height: 13px; }
-.panel .t { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.panel .m { font-size: 12.5px; color: var(--ink-soft); display: flex; gap: 6px; align-items: center; }
-.tag { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 1px 6px; border-radius: 6px; background: rgba(11,42,74,0.08); }
-
-#labels { position: fixed; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }
-.drop-label {
-  position: absolute; left: 0; top: 0; white-space: nowrap; will-change: transform;
-  display: flex; align-items: center; gap: 7px; border-radius: 999px; padding: 5px 12px 5px 5px;
-  font: 700 14px var(--body); transition: opacity .5s, filter .5s;
-}
-.drop-label .bead { width: 22px; height: 22px; }
-.drop-label .bead svg { width: 11px; height: 11px; }
-.drop-label.gone { opacity: 0; filter: blur(6px); }
-
-.toast {
-  position: fixed; z-index: 3; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 72px);
-  transform: translateX(-50%); border-radius: 999px; padding: 8px 16px 8px 8px;
-  display: flex; align-items: center; gap: 9px; font-weight: 600; max-width: calc(100% - 32px); box-sizing: border-box;
-  animation: toast 2.6s ease forwards;
-}
-.toast .bead { width: 24px; height: 24px; flex: none; }
-.toast .bead svg { width: 12px; height: 12px; }
-.toast b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-@keyframes toast {
-  0% { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.9); }
-  12%, 80% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-6px); }
-}
-.fallback { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; text-align: center; font-size: 16px; }
-
-@media (max-width: 520px) {
-  .hint { display: none; }
-  .brand .label-long { display: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .sheet, .panel, .toast { animation-duration: .01s; }
-}
+.primary:disabled { opacity: 0.35; cursor: default; }
+.fallback { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .sheet, .scrim { animation: none; } }
 </style>
 
 <canvas id="gl" aria-label="Clear water pool. Tap the water to make ripples."></canvas>
-<div id="labels" aria-hidden="true"></div>
 
-<div class="hud">
-  <div class="brand glass"><span class="orb"></span><span>Palais Mental</span><span class="count" id="count">0 drops</span></div>
-  <button class="pill-btn glass" id="logBtn" aria-expanded="false" aria-controls="panel">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
-    <span>In the water</span>
-  </button>
+<div class="overlay">
+  <div class="top-bar">
+    <div>
+      <h1 class="title" id="appTitle"></h1>
+      <p class="meta" id="meta"></p>
+    </div>
+    <button class="pill" id="langBtn" type="button"></button>
+  </div>
+  <div class="caption-wrap"><p class="caption" id="caption" aria-live="polite"></p></div>
+  <div class="bottom">
+    <p class="hint" id="hint"></p>
+    <button class="log-button" id="logBtn" type="button"><span class="plus">+</span><span class="log-text" id="logLabel"></span></button>
+  </div>
 </div>
 
-<aside class="panel glass" id="panel" hidden aria-label="Logged drops">
-  <header><h2>In the water</h2><p id="panelCount"></p></header>
-  <ul id="list"></ul>
-</aside>
-
-<form class="sheet glass" id="sheet" hidden autocomplete="off">
-  <h2>New drop</h2>
-  <p class="sub">Pick what it is, name it, and let it fall into the pool.</p>
-  <fieldset class="chips" id="chips"><legend hidden>Category</legend></fieldset>
-  <div class="field">
-    <label for="title">Title</label>
-    <input id="title" name="title" required maxlength="80" placeholder="Dune: Part Two">
+<div class="scrim" id="scrim" hidden></div>
+<form class="sheet" id="sheet" hidden autocomplete="off">
+  <div class="grabber"></div>
+  <div id="stepPick">
+    <h2 class="heading" id="chooseHeading"></h2>
+    <div class="grid" id="grid"></div>
   </div>
-  <div class="row" id="seriesRow" hidden>
-    <div class="field"><label for="season">Season</label><input id="season" type="number" min="1" max="99" value="1" inputmode="numeric"></div>
-    <div class="field"><label for="episode">Episode</label><input id="episode" type="number" min="1" max="999" value="1" inputmode="numeric"></div>
+  <div id="stepForm" hidden>
+    <div class="head-row">
+      <button class="link" id="backBtn" type="button"></button>
+      <span class="dot" id="formDot"></span>
+      <h2 class="heading-inline" id="formHeading"></h2>
+    </div>
+    <label class="label" for="title" id="titleLabel"></label>
+    <input class="input" id="title" maxlength="120" enterkeyhint="done">
+    <div class="stepper-row" id="episodesRow" hidden>
+      <span class="label" id="episodesLabel"></span>
+      <div class="stepper">
+        <button class="step-btn" id="epMinus" type="button" aria-label="-">−</button>
+        <span class="step-value" id="epValue">10</span>
+        <button class="step-btn" id="epPlus" type="button" aria-label="+">+</button>
+      </div>
+    </div>
+    <button class="primary" id="submitBtn" type="submit" disabled></button>
   </div>
-  <button class="cta" type="submit"><span>Let it fall</span></button>
 </form>
-
-<p class="hint">Tap the water to ripple it. Drag to look around.</p>
-
-<div class="dock">
-  <button class="gel" id="addBtn" aria-label="New drop" aria-expanded="false" aria-controls="sheet">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-  </button>
-  <span class="dock-caption">Drop a memory</span>
-</div>
 
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js';
 
-/* ---------------- Data ---------------- */
-const ICONS = {
-  movies: '<path d="M4 5h16v14H4z"/><path d="M8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4"/>',
-  series: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 21h8M9 3l3 3 3-3"/>',
-  music: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
-  books: '<path d="M4 4h6a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6a3 3 0 0 0-1 .2V20a2 2 0 0 1 2-2h5z"/>',
-  boardgames: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="15" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="9" cy="15" r="1"/>',
-  videogames: '<path d="M6 8h12a4 4 0 0 1 3.8 5.2l-1 3a2.5 2.5 0 0 1-4.3.8L15 15H9l-1.5 2a2.5 2.5 0 0 1-4.3-.8l-1-3A4 4 0 0 1 6 8z"/><path d="M8 11v2M7 12h2"/>',
+/* ---------------- Data & i18n (mirrors locales/*.json) ---------------- */
+const CATEGORIES = ['movies', 'series', 'music', 'books', 'boardgames', 'videogames'];
+const ACCENT = { movies: '#60A5FA', series: '#C084FC', music: '#FBBF24', books: '#F59E0B', boardgames: '#34D399', videogames: '#F472B6' };
+const STRINGS = {
+  en: {
+    title: 'Mental Palace', items: (n) => `${n} ${n === 1 ? 'memory' : 'memories'}`, hint: 'Tap the water to ripple it',
+    categories: { movies: 'Movies', series: 'TV Series', music: 'Music', books: 'Books', boardgames: 'Board Games', videogames: 'Video Games' },
+    button: 'Log', choose: 'What are you logging?', titleLabel: 'Title', placeholder: (e) => `e.g. ${e}`,
+    episodes: 'Episodes in season 1', submit: 'Add to the palace', back: 'Back',
+    examples: { movies: 'In the Mood for Love', series: 'The Leftovers', music: 'Kind of Blue', books: 'Invisible Cities', boardgames: 'Azul', videogames: 'Outer Wilds' },
+  },
+  fr: {
+    title: 'Palais Mental', items: (n) => `${n} ${n <= 1 ? 'souvenir' : 'souvenirs'}`, hint: "Touchez l'eau pour la faire onduler",
+    categories: { movies: 'Films', series: 'Séries TV', music: 'Musique', books: 'Livres', boardgames: 'Jeux de société', videogames: 'Jeux vidéo' },
+    button: 'Ajouter', choose: "Qu'ajoutez-vous ?", titleLabel: 'Titre', placeholder: (e) => `ex. ${e}`,
+    episodes: 'Épisodes dans la saison 1', submit: 'Ajouter au palais', back: 'Retour',
+    examples: { movies: 'In the Mood for Love', series: 'The Leftovers', music: 'Kind of Blue', books: 'Les Villes invisibles', boardgames: 'Azul', videogames: 'Outer Wilds' },
+  },
 };
-const CATS = [
-  { id: 'movies', label: 'Movie', color: '#ff8a3d', hint: 'Dune: Part Two' },
-  { id: 'series', label: 'Series', color: '#ff5fa2', hint: 'Severance' },
-  { id: 'music', label: 'Album', color: '#9b6bff', hint: 'Blonde' },
-  { id: 'books', label: 'Book', color: '#f5c518', hint: 'Piranesi' },
-  { id: 'boardgames', label: 'Board game', color: '#43d465', hint: 'Cascadia' },
-  { id: 'videogames', label: 'Video game', color: '#2f7dff', hint: 'Outer Wilds' },
-];
-const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
-const bead = (cat) => `<span class="bead" style="--c:${CAT[cat].color}"><svg viewBox="0 0 24 24">${ICONS[cat]}</svg></span>`;
-const esc = (s) => s.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const LANG_CYCLE = ['system', 'en', 'fr'];
+const LANG_LABEL = { system: 'Auto', en: 'EN', fr: 'FR' };
 
-const KEY = 'palais-mental.clearwater.v1';
-const now = Date.now(), H = 3600e3;
-const SAMPLES = [
-  { id: 's1', category: 'movies', title: 'Perfect Days', createdAt: now - 50 * H, sample: true },
-  { id: 's2', category: 'books', title: 'Piranesi', createdAt: now - 27 * H, sample: true },
-  { id: 's3', category: 'series', title: 'Severance', season: 2, episode: 4, createdAt: now - 6 * H, sample: true },
-  { id: 's4', category: 'music', title: 'Blonde', createdAt: now - 2 * H, sample: true },
-];
-let items = SAMPLES;
-try { const s = JSON.parse(localStorage.getItem(KEY)); if (Array.isArray(s) && s.length) items = s; } catch {}
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch {} };
+const KEY = 'palais-mental.clearwater.v2';
+let state = { items: [], language: 'system' };
+try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && Array.isArray(s.items)) state = { ...state, ...s }; } catch {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
 
 /* ---------------- UI ---------------- */
 const $ = (id) => document.getElementById(id);
-const chips = $('chips');
-chips.insertAdjacentHTML('beforeend', CATS.map((c, i) =>
-  `<label class="chip"><input type="radio" name="cat" value="${c.id}" ${i === 0 ? 'checked' : ''}><span>${bead(c.id)}${c.label}</span></label>`).join(''));
-chips.addEventListener('change', () => {
-  const cat = chips.querySelector('input:checked').value;
-  $('title').placeholder = CAT[cat].hint;
-  $('seriesRow').hidden = cat !== 'series';
+const tr = () => STRINGS[state.language === 'system' ? ((navigator.language || 'en').startsWith('fr') ? 'fr' : 'en') : state.language];
+let pickedCategory = null, episodes = 10;
+
+function renderCount() { $('meta').textContent = tr().items(state.items.length); }
+function renderText() {
+  const t = tr();
+  document.documentElement.lang = t === STRINGS.fr ? 'fr' : 'en';
+  $('appTitle').textContent = t.title;
+  $('hint').textContent = t.hint;
+  $('logLabel').textContent = t.button;
+  $('langBtn').textContent = LANG_LABEL[state.language];
+  $('chooseHeading').textContent = t.choose;
+  $('backBtn').textContent = `‹ ${t.back}`;
+  $('titleLabel').textContent = t.titleLabel;
+  $('episodesLabel').textContent = t.episodes;
+  $('submitBtn').textContent = t.submit;
+  $('grid').innerHTML = CATEGORIES.map(c =>
+    `<button class="tile" type="button" data-cat="${c}"><span class="dot" style="background:${ACCENT[c]}"></span>${t.categories[c]}</button>`).join('');
+  if (pickedCategory) { $('formHeading').textContent = t.categories[pickedCategory]; $('title').placeholder = t.placeholder(t.examples[pickedCategory]); }
+  renderCount();
+}
+renderText();
+$('langBtn').addEventListener('click', () => {
+  state.language = LANG_CYCLE[(LANG_CYCLE.indexOf(state.language) + 1) % LANG_CYCLE.length];
+  save(); renderText();
 });
 
-function ago(t) {
-  const m = Math.round((Date.now() - t) / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m} min ago`;
-  const h = Math.round(m / 60);
-  return h < 24 ? `${h} h ago` : `${Math.round(h / 24)} d ago`;
+const sheet = $('sheet'), scrim = $('scrim');
+function showStep(cat) {
+  pickedCategory = cat;
+  $('stepPick').hidden = !!cat; $('stepForm').hidden = !cat;
+  if (cat) {
+    $('formDot').style.background = ACCENT[cat];
+    $('episodesRow').hidden = cat !== 'series';
+    renderText();
+    setTimeout(() => $('title').focus({ preventScroll: true }), 30);
+  }
 }
-function renderCount() {
-  const n = items.length;
-  $('count').textContent = `${n} drop${n === 1 ? '' : 's'}`;
-  $('panelCount').textContent = items.some(i => i.sample) ? 'Sample drops' : `${n} logged`;
-}
-function renderList() {
-  $('list').innerHTML = [...items].sort((a, b) => b.createdAt - a.createdAt).map(it => {
-    const ep = it.category === 'series' && it.season ? ` · S${it.season} E${it.episode}` : '';
-    return `<li>${bead(it.category)}<div style="min-width:0"><div class="t">${esc(it.title)}</div>
-      <div class="m">${CAT[it.category].label}${ep} · ${ago(it.createdAt)}${it.sample ? ' <span class="tag">Sample</span>' : ''}</div></div></li>`;
-  }).join('');
-}
-renderCount();
-
-const sheet = $('sheet'), panel = $('panel'), addBtn = $('addBtn'), logBtn = $('logBtn');
 function openSheet() {
-  closePanel();
-  sheet.classList.remove('closing'); sheet.hidden = false; addBtn.setAttribute('aria-expanded', 'true');
-  setTimeout(() => $('title').focus({ preventScroll: true }), 60);
+  $('title').value = ''; episodes = 10; $('epValue').textContent = episodes; $('submitBtn').disabled = true;
+  showStep(null); sheet.hidden = false; scrim.hidden = false;
 }
-function closeSheet() {
-  if (sheet.hidden) return;
-  addBtn.setAttribute('aria-expanded', 'false');
-  sheet.classList.add('closing');
-  setTimeout(() => { sheet.hidden = true; sheet.classList.remove('closing'); }, 300);
-}
-function openPanel() { closeSheet(); renderList(); panel.hidden = false; logBtn.setAttribute('aria-expanded', 'true'); }
-function closePanel() { panel.hidden = true; logBtn.setAttribute('aria-expanded', 'false'); }
-addBtn.addEventListener('click', () => sheet.hidden || sheet.classList.contains('closing') ? openSheet() : closeSheet());
-logBtn.addEventListener('click', () => panel.hidden ? openPanel() : closePanel());
-addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeSheet(); closePanel(); } });
-
+function closeSheet() { sheet.hidden = true; scrim.hidden = true; }
+$('logBtn').addEventListener('click', openSheet);
+scrim.addEventListener('click', closeSheet);
+addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+$('grid').addEventListener('click', (e) => { const b = e.target.closest('[data-cat]'); if (b) showStep(b.dataset.cat); });
+$('backBtn').addEventListener('click', () => showStep(null));
+$('title').addEventListener('input', () => { $('submitBtn').disabled = !$('title').value.trim(); });
+$('epMinus').addEventListener('click', () => { episodes = Math.max(1, episodes - 1); $('epValue').textContent = episodes; });
+$('epPlus').addEventListener('click', () => { episodes = Math.min(64, episodes + 1); $('epValue').textContent = episodes; });
 sheet.addEventListener('submit', (e) => {
   e.preventDefault();
   const title = $('title').value.trim();
-  if (!title) { $('title').focus(); return; }
-  const category = chips.querySelector('input:checked').value;
-  const item = { id: Math.random().toString(36).slice(2), category, title, createdAt: Date.now() };
-  if (category === 'series') { item.season = +$('season').value || 1; item.episode = +$('episode').value || 1; }
-  $('title').value = '';
+  if (!pickedCategory || !title) return;
+  const item = { id: Math.random().toString(36).slice(2), category: pickedCategory, title, createdAt: Date.now() };
+  if (pickedCategory === 'series') item.seasons = [{ episodeCount: episodes, watched: 0 }];
   closeSheet();
-  setTimeout(() => spawnDrop(item, true), 220);
+  setTimeout(() => spawnDrop(item, true), 250);
 });
 
-function toast(item) {
-  document.querySelectorAll('.toast').forEach(t => t.remove());
-  const el = document.createElement('div');
-  el.className = 'toast glass'; el.setAttribute('role', 'status');
-  el.innerHTML = `${bead(item.category)}<span>In the water:</span><b>${esc(item.title)}</b>`;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2700);
-}
+const captionEl = $('caption');
+let captionTimer = 0;
+function showCaption(text) { clearTimeout(captionTimer); captionEl.textContent = text; captionEl.classList.remove('fade'); }
+function hideCaption(delay) { captionTimer = setTimeout(() => captionEl.classList.add('fade'), delay); }
 
 /* ---------------- Renderer ---------------- */
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -367,7 +250,7 @@ let renderer;
 try {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
 } catch (err) {
-  document.body.insertAdjacentHTML('beforeend', '<div class="fallback glass">This pool needs WebGL 2. Open it in a recent browser to see the water.</div>');
+  document.body.insertAdjacentHTML('beforeend', '<div class="fallback">This pool needs WebGL 2. Open it in a recent browser to see the water.</div>');
   throw err;
 }
 let pixelRatio = Math.min(devicePixelRatio || 1, 1.5);
@@ -511,12 +394,12 @@ const waterMat = new THREE.ShaderMaterial({
       return g;
     }
     vec3 stoneColor(float h){
-      vec3 c = vec3(0.50, 0.42, 0.31);
-      c = mix(c, vec3(0.34, 0.33, 0.31), step(0.30, h));
-      c = mix(c, vec3(0.72, 0.69, 0.62), step(0.50, h));
-      c = mix(c, vec3(0.20, 0.24, 0.27), step(0.68, h));
-      c = mix(c, vec3(0.48, 0.30, 0.20), step(0.80, h));
-      c = mix(c, vec3(0.12, 0.115, 0.11), step(0.92, h));
+      vec3 c = vec3(0.22, 0.38, 0.62);
+      c = mix(c, vec3(0.12, 0.22, 0.42), step(0.30, h));
+      c = mix(c, vec3(0.40, 0.55, 0.72), step(0.50, h));
+      c = mix(c, vec3(0.08, 0.14, 0.26), step(0.68, h));
+      c = mix(c, vec3(0.24, 0.42, 0.64), step(0.80, h));
+      c = mix(c, vec3(0.04, 0.07, 0.14), step(0.92, h));
       return c;
     }
     vec3 pebbles(vec2 p, float fw){
@@ -535,9 +418,9 @@ const waterMat = new THREE.ShaderMaterial({
       float stone = smoothstep(0.05, 0.2, edge + 0.06*(vnoise(p*30.0) - 0.5));
       float dome = pow(clamp(edge*2.2, 0.0, 1.0), 0.6);
       vec3 sc = stoneColor(h)*(0.5 + 0.6*dome)*(0.88 + 0.24*vnoise(p*38.0 + h*20.0));
-      vec3 sand = vec3(0.62, 0.55, 0.42)*(0.8 + 0.35*vnoise(p*60.0));
+      vec3 sand = vec3(0.34, 0.47, 0.64)*(0.8 + 0.35*vnoise(p*60.0));
       vec3 col = mix(sand*0.5, sc, stone);
-      return mix(col, vec3(0.40, 0.37, 0.32), smoothstep(0.25, 0.9, fw*8.5));
+      return mix(col, vec3(0.24, 0.35, 0.52), smoothstep(0.25, 0.9, fw*8.5));
     }
     float caustic(vec2 uv){
       vec2 p = mod(uv*6.28318, 6.28318) - 250.0;
@@ -656,7 +539,6 @@ const G = 7.2;
 const drops = [];
 const impacts = [];
 let impactSlot = 0;
-const labelsEl = $('labels');
 
 function makeMesh(geo, color, r) {
   const m = new THREE.Mesh(geo, dropBase.clone());
@@ -669,18 +551,12 @@ function makeMesh(geo, color, r) {
   return m;
 }
 function spawnDrop(item, log) {
-  const color = CAT[item.category].color;
+  const color = ACCENT[item.category];
   const x = (Math.random() - 0.5) * 1.3, z = -0.35 - Math.random() * 1.1;
   const r = 0.085;
   const d = { kind: 'main', item, log, color, r, pos: new THREE.Vector3(x, 1.75, z), vel: new THREE.Vector3(0, 0, 0), age: 0, hang: 0.55, mesh: makeMesh(dropGeo, color, r) };
   d.mesh.scale.setScalar(0.0001);
-  if (item.title) {
-    const el = document.createElement('div');
-    el.className = 'drop-label glass';
-    el.innerHTML = `${bead(item.category)}<span>${esc(item.title)}</span>`;
-    labelsEl.appendChild(el);
-    d.label = el;
-  }
+  if (item.title) showCaption(item.category === 'series' ? `${item.title} · S1 · 0/${item.seasons[0].episodeCount}` : item.title);
   drops.push(d);
 }
 function spawnSpray(x, z, color, n, power) {
@@ -703,14 +579,8 @@ function impact(d) {
     u.uImp.value[impactSlot].set(x, z, clock.elapsedTime, 1);
     u.uImpCol.value[impactSlot].set(c.r, c.g, c.b);
     impactSlot = (impactSlot + 1) % MAX_IMP;
-    if (d.label) { d.label.classList.add('gone'); const el = d.label; setTimeout(() => el.remove(), 600); }
-    if (d.log) {
-      if (items.some(i => i.sample)) items = [];
-      items.push(d.item); save(); renderCount();
-      if (!panel.hidden) renderList();
-      const cnt = $('count'); cnt.classList.add('bump'); setTimeout(() => cnt.classList.remove('bump'), 380);
-      toast(d.item);
-    }
+    if (d.item.title) hideCaption(1400);
+    if (d.log) { state.items.push(d.item); save(); renderCount(); }
   } else if (d.kind === 'jet') {
     ripple(x, z, 0.1, -0.02);
     spawnSpray(x, z, d.color, reduced ? 3 : 6, 0.45);
@@ -719,8 +589,6 @@ function impact(d) {
   }
 }
 function updateDrops(dt) {
-  const w = innerWidth, h = innerHeight;
-  const v = new THREE.Vector3();
   let focus = null;
   for (let i = drops.length - 1; i >= 0; i--) {
     const d = drops[i];
@@ -739,11 +607,6 @@ function updateDrops(dt) {
     d.mesh.material.uniforms.uStretch.value = stretch;
     d.mesh.position.copy(d.pos);
     if (d.kind === 'main') focus = d;
-    if (d.label) {
-      v.copy(d.pos); v.y += d.r * stretch + 0.03; v.project(camera);
-      const lx = (v.x * 0.5 + 0.5) * w, ly = (-v.y * 0.5 + 0.5) * h;
-      d.label.style.transform = `translate(${lx}px, ${ly}px) translate(-50%, -130%)`;
-    }
     if (d.pos.y - d.r * 0.3 <= 0 && d.vel.y < 0) {
       impact(d);
       scene.remove(d.mesh); d.mesh.material.dispose();
@@ -780,7 +643,7 @@ resize();
 
 let drag = null;
 canvas.addEventListener('pointerdown', (e) => {
-  closeSheet(); closePanel();
+  closeSheet();
   drag = { x: e.clientX, y: e.clientY, yaw, pitch, moved: 0 };
   canvas.setPointerCapture(e.pointerId);
 });
@@ -789,13 +652,11 @@ canvas.addEventListener('pointermove', (e) => {
   const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
   drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
   if (drag.moved > 6) {
-    canvas.classList.add('dragging');
     yaw = THREE.MathUtils.clamp(drag.yaw - dx * 0.003, -0.7, 0.7);
     pitch = THREE.MathUtils.clamp(drag.pitch + dy * 0.002, 0.14, 0.75);
   }
 });
 canvas.addEventListener('pointerup', (e) => {
-  canvas.classList.remove('dragging');
   if (drag && drag.moved <= 6) {
     const ndc = new THREE.Vector4((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1, 1, 1);
     ndc.applyMatrix4(waterMat.uniforms.uInvVP.value);
