@@ -20,7 +20,7 @@ interface Props {
  * content centred in a readable column on wide screens.
  */
 export default function Screen({ title, subtitle, right, children, refreshing, onRefresh }: Props) {
-  const { type, palette } = useTheme();
+  const { type, palette, glass } = useTheme();
   const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { gutter, content } = useLayout();
@@ -51,7 +51,7 @@ export default function Screen({ title, subtitle, right, children, refreshing, o
         </View>
       </Animated.ScrollView>
       <Animated.View pointerEvents="none" style={[styles.bar, { height: insets.top + 48, opacity: barOpacity }]}>
-        <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={40} tint={glass.tint} style={StyleSheet.absoluteFill} />
         <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.glass }]} />
         <View style={[styles.barInner, { paddingTop: insets.top }]}>
           <Text style={type.heading} numberOfLines={1}>

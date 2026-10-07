@@ -45,6 +45,6 @@ const useStyles = makeStyles(({ palette, fonts }) => ({
   chip: { height: 36, paddingHorizontal: 15, borderRadius: 18, justifyContent: 'center', backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   active: { backgroundColor: palette.ink, borderColor: palette.ink },
   label: { fontFamily: fonts.medium, fontSize: 13.5, color: palette.ink },
-  labelActive: { color: palette.onInk },
+  labelActive: { color: palette.screen },
   count: { fontFamily: fonts.medium, fontSize: 12.5, color: palette.inkFaint },
 }));

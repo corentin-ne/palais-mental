@@ -48,7 +48,7 @@ export default function CheckButton({ checked, onPress, size = 34, disabled, lab
           height: size,
           borderRadius: size / 2,
           borderWidth: 1.6,
-          borderColor: checked ? 'transparent' : disabled ? palette.hairline : 'rgba(10,37,64,0.22)',
+          borderColor: checked ? 'transparent' : disabled ? palette.hairline : palette.checkRing,
           alignItems: 'center',
           justifyContent: 'center',
           transform: [{ scale: press }],

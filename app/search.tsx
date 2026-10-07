@@ -99,7 +99,7 @@ export default function SearchScreen() {
             ) : (
               !!q && (
                 <PressableScale onPress={() => setQ('')} accessibilityLabel={t('common.clear')} style={styles.clear}>
-                  <Icon name="close" size={12} color={palette.onInk} strokeWidth={2.6} />
+                  <Icon name="close" size={12} color={palette.screen} strokeWidth={2.6} />
                 </PressableScale>
               )
             )}

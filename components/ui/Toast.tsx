@@ -64,7 +64,7 @@ export default function Toast() {
         </Text>
         {undo && (
           <PressableScale onPress={onUndo} style={styles.action}>
-            <Icon name="undo" size={15} color={palette.onInk} strokeWidth={2.2} />
+            <Icon name="undo" size={15} color={palette.screen} strokeWidth={2.2} />
             <Text style={styles.actionText}>{t('common.undo')}</Text>
           </PressableScale>
         )}
@@ -78,5 +78,5 @@ const useStyles = makeStyles(({ palette, fonts }) => ({
   inner: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: 16, paddingRight: 6, paddingVertical: 6, minHeight: 48 },
   text: { fontFamily: fonts.medium, fontSize: 14.5, color: palette.ink, flexShrink: 1 },
   action: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: palette.ink, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 9 },
-  actionText: { fontFamily: fonts.semibold, fontSize: 13, color: palette.onInk },
+  actionText: { fontFamily: fonts.semibold, fontSize: 13, color: palette.screen },
 }));

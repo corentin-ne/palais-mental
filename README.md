@@ -12,15 +12,18 @@ npm run android   # or: npm run ios / npm run web
 npm run typecheck
 ```
 
-**Test on a phone without a dev setup:** download the APK from the latest [GitHub release](../../releases). Every push to `main` is built by `.github/workflows/android-release.yml`.
+**Test on a phone without a dev setup:** download the APK from the latest [GitHub release](../../releases). Every push to `main` (pre-release) and every `v*` tag (release) is built by `.github/workflows/android-release.yml`.
 
 ## What it does
 
 - **Up next.** The next episode of every show you're watching, with its still, progress and one tick to mark it watched; the next one slides in. Below: what's airing soon, shows you haven't started, and films waiting on your watchlist.
 - **Calendar.** Every upcoming episode and film release you follow, day by day, with premieres and new seasons flagged. Local notifications when an episode airs or a film comes out (phones).
-- **Library.** Shows by state (watching, not started, up to date, finished, dropped) and films (to watch, coming soon, watched), as a poster wall with progress bars.
-- **Detail pages.** Parallax backdrop, synopsis, cast, seasons and episodes. Tick an episode, long-press a tick to mark everything up to it, or mark a whole season. Drop a show and resume it later.
+- **Library.** Shows by state (watching, not started, up to date, finished, dropped) and films (to watch, coming soon, watched), as a poster wall with progress bars; filter by title and sort by recent, A–Z or next out.
+- **Detail pages.** Parallax backdrop, synopsis, cast, seasons and episodes. Tick an episode (with undo), long-press a tick to mark everything up to it, mark a whole season, or catch up on every aired episode in one tap. Drop a show and resume it later.
 - **Search.** One field for shows and films, add straight from the results. Before you type: what's on tonight and popular films.
+- **Trailer, where to watch, more like this.** Trailers open on YouTube, streaming/rent/buy services for your country, and similar titles (with a TMDB key; search links otherwise). IMDb link on every title.
+- **History.** Every episode and film you watched, day by day.
+- **Light and dark.** Follows the system, or pick one in **You → Settings**. English and French.
 - **Your data.** Export a full JSON backup (re-importable, merged on import) or CSV sheets of every episode and film.
 
 ## Data sources

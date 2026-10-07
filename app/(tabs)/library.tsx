@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
@@ -10,7 +10,9 @@ import PressableScale from '@/components/ui/PressableScale';
 import Screen from '@/components/ui/Screen';
 import Segmented from '@/components/ui/Segmented';
 import { FadeIn } from '@/components/ui/Motion';
-import { makeStyles } from '@/constants/theme';
+import Icon from '@/components/ui/Icon';
+import { makeStyles, noOutline, useTheme } from '@/constants/theme';
+import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
 import { countdown } from '@/lib/format';
 import { progressOf, showState } from '@/lib/progress';
@@ -20,6 +22,9 @@ import { useLibrary } from '@/store/useLibrary';
 type Tab = 'shows' | 'movies';
 type ShowFilter = 'all' | ShowState;
 type MovieFilter = 'watchlist' | 'upcoming' | 'watched';
+type Sort = 'recent' | 'title' | 'next';
+const SORTS: Sort[] = ['recent', 'title', 'next'];
+const norm = (s: string) => s.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 interface Tile {
   key: string;
@@ -34,7 +39,9 @@ interface Tile {
 /** Everything you follow, as a wall of posters. */
 export default function LibraryScreen() {
   const { t } = useTranslation();
+  const { palette } = useTheme();
   const styles = useStyles();
+  const haptics = useHaptics();
   const router = useRouter();
   const { gutter, gap, poster, columns } = useLayout();
   const shows = useLibrary((s) => s.shows);
@@ -42,13 +49,19 @@ export default function LibraryScreen() {
   const [tab, setTab] = useState<Tab>('shows');
   const [showFilter, setShowFilter] = useState<ShowFilter>('all');
   const [movieFilter, setMovieFilter] = useState<MovieFilter>('watchlist');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<Sort>('recent');
 
   const showTiles = useMemo(() => {
     const now = Date.now();
     return Object.values(shows)
-      .map((show) => ({ show, state: showState(show, now), progress: progressOf(show, now) }))
-      .sort((a, b) => a.show.title.localeCompare(b.show.title));
-  }, [shows]);
+      .map((show) => ({ show, state: showState(show, now), progress: progressOf(show, now), activity: Math.max(show.addedAt, ...Object.values(show.watched)) }))
+      .sort((a, b) => {
+        if (sort === 'title') return a.show.title.localeCompare(b.show.title);
+        if (sort === 'next') return (a.progress.upcoming?.airstamp ?? Infinity) - (b.progress.upcoming?.airstamp ?? Infinity) || a.show.title.localeCompare(b.show.title);
+        return b.activity - a.activity;
+      });
+  }, [shows, sort]);
 
   const showCounts = useMemo(() => {
     const c: Record<string, number> = { all: 0 };
@@ -63,13 +76,16 @@ export default function LibraryScreen() {
     const now = Date.now();
     const list = Object.values(movies);
     return {
-      watchlist: list.filter((m) => !m.watchedAt && (!m.releaseDate || m.releaseDate <= now)).sort((a, b) => b.addedAt - a.addedAt),
+      watchlist: list
+        .filter((m) => !m.watchedAt && (!m.releaseDate || m.releaseDate <= now))
+        .sort((a, b) => (sort === 'title' ? a.title.localeCompare(b.title) : sort === 'next' ? (b.releaseDate ?? 0) - (a.releaseDate ?? 0) : b.addedAt - a.addedAt)),
       upcoming: list.filter((m) => !m.watchedAt && m.releaseDate && m.releaseDate > now).sort((a, b) => a.releaseDate! - b.releaseDate!),
-      watched: list.filter((m) => m.watchedAt).sort((a, b) => b.watchedAt! - a.watchedAt!),
+      watched: list.filter((m) => m.watchedAt).sort((a, b) => (sort === 'title' ? a.title.localeCompare(b.title) : b.watchedAt! - a.watchedAt!)),
     };
-  }, [movies]);
+  }, [movies, sort]);
 
-  const tiles: Tile[] =
+  const q = norm(query.trim());
+  const allTiles: Tile[] =
     tab === 'shows'
       ? showTiles
           .filter((s) => (showFilter === 'all' ? s.state !== 'dropped' : s.state === showFilter))
@@ -95,6 +111,7 @@ export default function LibraryScreen() {
           caption: movieFilter === 'upcoming' && m.releaseDate ? countdown(m.releaseDate) : m.year ? String(m.year) : undefined,
         }));
 
+  const tiles = q ? allTiles.filter((tile) => norm(tile.title).includes(q)) : allTiles;
   const empty = !Object.keys(shows).length && !Object.keys(movies).length;
 
   return (
@@ -112,6 +129,31 @@ export default function LibraryScreen() {
                 { value: 'movies', label: `${t('common.movies')} · ${Object.keys(movies).length}` },
               ]}
             />
+            <View style={styles.tools}>
+              <View style={styles.search}>
+                <Icon name="search" size={16} color={palette.inkFaint} />
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder={t('library.filter')}
+                  placeholderTextColor={palette.inkFaint}
+                  autoCorrect={false}
+                  style={[styles.searchInput, noOutline]}
+                />
+              </View>
+              <PressableScale
+                depth={0.92}
+                style={styles.sort}
+                accessibilityLabel={t('library.sortBy')}
+                onPress={() => {
+                  haptics.select();
+                  setSort(SORTS[(SORTS.indexOf(sort) + 1) % SORTS.length]);
+                }}
+              >
+                <Icon name="settings" size={16} color={palette.ink} />
+                <Text style={styles.sortText}>{t(`library.sort.${sort}`)}</Text>
+              </PressableScale>
+            </View>
             {tab === 'shows' ? (
               <Chips
                 inset={gutter}
@@ -164,4 +206,9 @@ const useStyles = makeStyles(({ palette, fonts, type }) => ({
   title: { fontFamily: fonts.semibold, fontSize: 13, color: palette.ink },
   caption: { fontFamily: fonts.body, fontSize: 11.5, color: palette.inkSoft },
   none: { ...type.small, textAlign: 'center', marginTop: 40 },
+  tools: { flexDirection: 'row', gap: 8 },
+  search: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingHorizontal: 12, borderRadius: 20, backgroundColor: palette.surface },
+  searchInput: { flex: 1, height: 40, fontFamily: fonts.body, fontSize: 14, color: palette.ink },
+  sort: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: palette.surface },
+  sortText: { fontFamily: fonts.medium, fontSize: 13, color: palette.ink },
 }));

@@ -1,5 +1,10 @@
 {
-  "tabs": { "upNext": "À suivre", "calendar": "Calendrier", "library": "Bibliothèque", "you": "Vous" },
+  "tabs": {
+    "upNext": "À suivre",
+    "calendar": "Calendrier",
+    "library": "Bibliothèque",
+    "you": "Vous"
+  },
   "common": {
     "undo": "Annuler",
     "seeAll": "Tout voir",
@@ -97,7 +102,14 @@
     "watchlist": "À voir",
     "upcoming": "Bientôt",
     "watched": "Vus",
-    "none": "Rien ici pour l'instant."
+    "none": "Rien ici pour l'instant.",
+    "filter": "Filtrer",
+    "sortBy": "Trier",
+    "sort": {
+      "recent": "Récents",
+      "title": "A–Z",
+      "next": "Prochaines sorties"
+    }
   },
   "show": {
     "episodeN": "Épisode {{n}}",
@@ -116,7 +128,9 @@
     "watchSeason": "Marquer la saison vue",
     "unwatchSeason": "Démarquer la saison",
     "longPressHint": "Appui long sur une coche pour tout marquer jusqu'à cet épisode.",
-    "tba": "Date à venir"
+    "tba": "Date à venir",
+    "watchAll_one": "Marquer l'épisode diffusé comme vu",
+    "watchAll_other": "Marquer les {{count}} épisodes diffusés comme vus"
   },
   "movie": {
     "releases": "Sortie le",
@@ -143,7 +157,8 @@
     "removed": "{{title}} retiré",
     "dropped": "{{title}} abandonnée",
     "resumed": "{{title}} revient dans À suivre",
-    "upTo": "Vu jusqu'à {{code}}"
+    "upTo": "Vu jusqu'à {{code}}",
+    "watchedEp": "{{code}} vu"
   },
   "profile": {
     "title": "Vous",
@@ -176,6 +191,25 @@
     "importHint": "Fusionnée avec ce qui est déjà là",
     "exportFailed": "L'export a échoué",
     "imported": "{{shows}} séries et {{movies}} films importés",
-    "importFailed": "Ce fichier n'est pas une sauvegarde Palais Mental"
+    "importFailed": "Ce fichier n'est pas une sauvegarde Palais Mental",
+    "appearance": "Apparence",
+    "light": "Clair",
+    "dark": "Sombre"
+  },
+  "extras": {
+    "trailer": "Bande-annonce",
+    "whereToWatch": "Où regarder",
+    "stream": "Streaming",
+    "rent": "Location",
+    "buy": "Achat",
+    "justwatch": "Disponibilités JustWatch via TMDB.",
+    "similar": "Dans le même genre"
+  },
+  "history": {
+    "title": "Historique",
+    "hint": "Tout ce que vous avez regardé, jour par jour",
+    "film": "Film",
+    "emptyTitle": "Rien de regardé pour l'instant",
+    "emptyBody": "Les épisodes et films marqués comme vus apparaissent ici."
   }
 }

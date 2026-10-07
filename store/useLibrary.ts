@@ -39,7 +39,7 @@ interface LibraryState extends LibraryData {
   setLanguage: (language: LanguagePreference) => void;
 }
 
-const DEFAULT_SETTINGS: Settings = { notifications: true, haptics: true, tmdbKey: '' };
+const DEFAULT_SETTINGS: Settings = { notifications: true, haptics: true, tmdbKey: '', appearance: 'system' };
 
 const patchShow = (s: LibraryState, id: string, fn: (show: Show) => Show) =>
   s.shows[id] ? { shows: { ...s.shows, [id]: fn(s.shows[id]) } } : s;

@@ -26,7 +26,7 @@ export default function Glass({ children, radius = 22, style, contentStyle, stro
       <View style={[styles.clip, { borderRadius: radius }, flattenSize(contentStyle)]}>
         <BlurView
           intensity={Platform.OS === 'ios' ? glass.blur : glass.androidBlur}
-          tint="light"
+          tint={glass.tint}
           experimentalBlurMethod="dimezisBlurView"
           style={StyleSheet.absoluteFill}
         />

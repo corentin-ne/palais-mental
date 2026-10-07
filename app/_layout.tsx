@@ -6,6 +6,7 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
+import * as SplashScreen from 'expo-splash-screen';
 import {
   InstrumentSans_400Regular,
   InstrumentSans_500Medium,
@@ -19,6 +20,8 @@ import Toast from '@/components/ui/Toast';
 import { useTheme } from '@/constants/theme';
 import { useLanguageSync } from '@/hooks/useLanguageSync';
 import { startSync } from '@/lib/sync';
+
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 /** Tapping a release notification opens that show or film. */
 function useNotificationRouting() {
@@ -36,7 +39,7 @@ function useNotificationRouting() {
 }
 
 export default function RootLayout() {
-  const { palette } = useTheme();
+  const { palette, dark } = useTheme();
   useLanguageSync();
   useNotificationRouting();
   useEffect(() => startSync(), []);
@@ -49,17 +52,22 @@ export default function RootLayout() {
     InstrumentSerif_400Regular_Italic,
   });
 
+  useEffect(() => {
+    if (loaded || error) SplashScreen.hideAsync().catch(() => undefined);
+  }, [loaded, error]);
+
   // Hold on the background colour until the type is ready; on failure, system fonts take over.
   if (!loaded && !error) return <View style={{ flex: 1, backgroundColor: palette.bg }} />;
 
   return (
     <SafeBoundary>
-      <StatusBar style="dark" />
+      <StatusBar style={dark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.bg }, animation: 'slide_from_right' }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="search" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="show/[id]" />
         <Stack.Screen name="movie/[id]" />
+        <Stack.Screen name="history" />
       </Stack>
       <Toast />
     </SafeBoundary>

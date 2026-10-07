@@ -4,12 +4,13 @@ import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import DetailLayout, { CastRail, Synopsis } from '@/components/media/DetailLayout';
+import Extras, { Similar } from '@/components/media/Extras';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import { FadeIn, Pop } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
-import { MovieDetails, fetchMovie } from '@/lib/api';
+import { Extras as ExtrasData, MovieDetails, fetchMovie, fetchMovieExtras } from '@/lib/api';
 import { removeMovie } from '@/lib/actions';
 import { countdown, fullDate, runtime } from '@/lib/format';
 import { useLibrary } from '@/store/useLibrary';
@@ -25,6 +26,7 @@ export default function MovieScreen() {
   const tmdbKey = useLibrary((s) => s.settings.tmdbKey) || undefined;
   const [details, setDetails] = useState<MovieDetails>();
   const [error, setError] = useState(false);
+  const [extras, setExtras] = useState<ExtrasData>();
 
   const load = useCallback(() => {
     setError(false);
@@ -40,6 +42,13 @@ export default function MovieScreen() {
   useEffect(load, [load]);
 
   const movie = useMemo(() => tracked ?? details?.movie, [tracked, details]);
+  const source = movie?.source;
+  const sourceId = movie?.sourceId;
+  const imdbId = movie?.imdbId;
+  useEffect(() => {
+    if (!source || !sourceId) return;
+    fetchMovieExtras({ source, sourceId, imdbId }, { tmdbKey, lang: i18n.language }).then(setExtras);
+  }, [source, sourceId, imdbId, tmdbKey, i18n.language]);
   const upcoming = !!movie?.releaseDate && movie.releaseDate > Date.now();
   const watched = !!tracked?.watchedAt;
 
@@ -100,8 +109,10 @@ export default function MovieScreen() {
             )}
             {upcoming && !watched && <Text style={styles.hint}>{t('movie.remindHint')}</Text>}
           </FadeIn>
+          <Extras kind="movie" title={movie.title} year={movie.year} imdbId={movie.imdbId} extras={extras} />
           <Synopsis text={movie.overview} />
           <CastRail cast={details?.cast ?? []} />
+          <Similar kind="movie" extras={extras} />
         </>
       )}
     </DetailLayout>
@@ -113,10 +124,10 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   release: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   releaseLabel: { ...type.label },
   releaseDate: { fontFamily: fonts.semibold, fontSize: 14.5, color: palette.ink },
-  countdown: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: 'rgba(11,99,206,0.1)' },
+  countdown: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: palette.primaryTint },
   countdownText: { fontFamily: fonts.semibold, fontSize: 12, color: palette.primary },
   actions: { flexDirection: 'row', gap: 10 },
   hint: { ...type.small, fontSize: 12.5 },
-  reminder: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 50, borderRadius: 25, backgroundColor: 'rgba(11,99,206,0.1)' },
+  reminder: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 50, borderRadius: 25, backgroundColor: palette.primaryTint },
   reminderText: { fontFamily: fonts.semibold, fontSize: 15, color: palette.primary },
 }));

@@ -1,5 +1,10 @@
 {
-  "tabs": { "upNext": "Up next", "calendar": "Calendar", "library": "Library", "you": "You" },
+  "tabs": {
+    "upNext": "Up next",
+    "calendar": "Calendar",
+    "library": "Library",
+    "you": "You"
+  },
   "common": {
     "undo": "Undo",
     "seeAll": "See all",
@@ -97,7 +102,14 @@
     "watchlist": "To watch",
     "upcoming": "Coming soon",
     "watched": "Watched",
-    "none": "Nothing here yet."
+    "none": "Nothing here yet.",
+    "filter": "Filter",
+    "sortBy": "Sort",
+    "sort": {
+      "recent": "Recent",
+      "title": "A–Z",
+      "next": "Next out"
+    }
   },
   "show": {
     "episodeN": "Episode {{n}}",
@@ -116,7 +128,9 @@
     "watchSeason": "Mark season watched",
     "unwatchSeason": "Unmark season",
     "longPressHint": "Long-press a tick to mark everything up to that episode.",
-    "tba": "Date to be announced"
+    "tba": "Date to be announced",
+    "watchAll_one": "Mark the {{count}} aired episodes as watched",
+    "watchAll_other": "Mark all {{count}} aired episodes as watched"
   },
   "movie": {
     "releases": "Out on",
@@ -143,7 +157,8 @@
     "removed": "{{title}} removed",
     "dropped": "{{title}} dropped",
     "resumed": "{{title}} is back in Up next",
-    "upTo": "Watched up to {{code}}"
+    "upTo": "Watched up to {{code}}",
+    "watchedEp": "{{code}} watched"
   },
   "profile": {
     "title": "You",
@@ -176,6 +191,25 @@
     "importHint": "Merged with what's already here",
     "exportFailed": "Export failed",
     "imported": "Imported {{shows}} shows and {{movies}} films",
-    "importFailed": "That file isn't a Palais Mental backup"
+    "importFailed": "That file isn't a Palais Mental backup",
+    "appearance": "Appearance",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "extras": {
+    "trailer": "Trailer",
+    "whereToWatch": "Where to watch",
+    "stream": "Stream",
+    "rent": "Rent",
+    "buy": "Buy",
+    "justwatch": "Availability from JustWatch via TMDB.",
+    "similar": "More like this"
+  },
+  "history": {
+    "title": "History",
+    "hint": "Everything you watched, by day",
+    "film": "Film",
+    "emptyTitle": "Nothing watched yet",
+    "emptyBody": "Episodes and films you mark as watched appear here."
   }
 }

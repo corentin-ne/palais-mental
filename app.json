@@ -2,38 +2,63 @@
   "expo": {
     "name": "Palais Mental",
     "slug": "palais-mental",
-    "version": "0.8.0",
+    "version": "1.0.0",
     "scheme": "palaismental",
-    "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#EAF3FB",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.palaismental.app",
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true
-      }
+      },
+      "buildNumber": "100"
     },
     "android": {
       "package": "com.palaismental.app",
       "edgeToEdgeEnabled": true,
       "permissions": [
         "POST_NOTIFICATIONS"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B63CE"
+      },
+      "versionCode": 100
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/favicon.png",
+      "name": "Palais Mental"
     },
     "plugins": [
+      "expo-asset",
       "expo-router",
       "expo-localization",
-      "expo-asset",
       "expo-status-bar",
-      "expo-notifications"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "backgroundColor": "#EAF3FB",
+          "dark": {
+            "backgroundColor": "#061423"
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#0B63CE"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "icon": "./assets/icon.png"
   }
 }

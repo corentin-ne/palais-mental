@@ -34,7 +34,7 @@ interface Props {
  */
 export default function DetailLayout({ kind, title, poster, backdrop, meta, tags, loading, error, onRetry, children }: Props) {
   const { t } = useTranslation();
-  const { palette, type } = useTheme();
+  const { palette, type, glass } = useTheme();
   const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -63,9 +63,9 @@ export default function DetailLayout({ kind, title, poster, backdrop, meta, tags
           {art ? (
             <Image source={{ uri: art }} style={StyleSheet.absoluteFill} contentFit="cover" transition={350} blurRadius={backdrop ? 0 : 24} />
           ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: '#C9DDF1' }]} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.hero }]} />
           )}
-          <LinearGradient colors={['rgba(234,243,251,0)', 'rgba(234,243,251,0.15)', palette.screen]} locations={[0.35, 0.6, 1]} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={[palette.scrimClear, palette.scrimSoft, palette.screen]} locations={[0.35, 0.6, 1]} style={StyleSheet.absoluteFill} />
         </Animated.View>
 
         <View style={[styles.body, { width: content, paddingHorizontal: gutter, marginTop: -posterW * 0.9 }]}>
@@ -109,7 +109,7 @@ export default function DetailLayout({ kind, title, poster, backdrop, meta, tags
       </Animated.ScrollView>
 
       <Animated.View pointerEvents="none" style={[styles.bar, { height: insets.top + 52, opacity: barOpacity }]}>
-        <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={40} tint={glass.tint} style={StyleSheet.absoluteFill} />
         <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.glass }]} />
         <View style={[styles.barInner, { paddingTop: insets.top }]}>
           <Text style={[type.heading, { maxWidth: '70%' }]} numberOfLines={1}>
@@ -118,7 +118,7 @@ export default function DetailLayout({ kind, title, poster, backdrop, meta, tags
         </View>
       </Animated.View>
       <PressableScale onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={[styles.back, { top: insets.top + 6, left: gutter - 6 }]} accessibilityLabel={t('common.back')}>
-        <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={30} tint={glass.tint} style={StyleSheet.absoluteFill} />
         <Icon name="back" size={20} color={palette.ink} strokeWidth={2.2} />
       </PressableScale>
     </View>
@@ -197,7 +197,7 @@ const useStyles = makeStyles(({ palette, fonts, type }) => ({
   retry: { fontFamily: fonts.semibold, fontSize: 14, color: palette.primary },
   bar: { position: 'absolute', left: 0, right: 0, top: 0, overflow: 'hidden' },
   barInner: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  back: { position: 'absolute', width: 40, height: 40, borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.6)' },
+  back: { position: 'absolute', width: 40, height: 40, borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: palette.glass },
   face: { width: 64, height: 64, borderRadius: 32, overflow: 'hidden', backgroundColor: palette.fieldActive, alignItems: 'center', justifyContent: 'center' },
   initials: { fontFamily: fonts.semibold, fontSize: 18, color: palette.inkSoft },
   castName: { fontFamily: fonts.medium, fontSize: 12, color: palette.ink, textAlign: 'center' },

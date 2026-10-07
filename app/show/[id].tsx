@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import DetailLayout, { CastRail, Synopsis } from '@/components/media/DetailLayout';
+import Extras, { Similar } from '@/components/media/Extras';
 import Button from '@/components/ui/Button';
 import CheckButton from '@/components/ui/CheckButton';
 import PressableScale from '@/components/ui/PressableScale';
@@ -12,7 +13,7 @@ import { FadeIn, animateLayout } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
-import { ShowDetails, fetchShow } from '@/lib/api';
+import { Extras as ExtrasData, ShowDetails, fetchShow, fetchShowExtras, tvmazeIdByName } from '@/lib/api';
 import { removeShow, setDropped } from '@/lib/actions';
 import { countdown, fullDate, relativeDay, runtime } from '@/lib/format';
 import { episodeCode, hasAired, progressOf, seasonsOf, showState } from '@/lib/progress';
@@ -21,8 +22,17 @@ import { useLibrary } from '@/store/useLibrary';
 import { useUi } from '@/store/useUi';
 
 export default function ShowScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { t } = useTranslation();
+  const params = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { t, i18n } = useTranslation();
+  const raw = decodeURIComponent(String(params.id ?? ''));
+  // Recommendations arrive by name ("name:Severance"): find their TVmaze page, then swap in place.
+  const byName = raw.startsWith('name:') ? raw.slice(5) : undefined;
+  const id = byName ? '' : raw;
+  useEffect(() => {
+    if (!byName) return;
+    tvmazeIdByName(byName).then((found) => (found ? router.replace(`/show/${found}`) : router.back()));
+  }, [byName, router]);
   const { palette } = useTheme();
   const styles = useStyles();
   const haptics = useHaptics();
@@ -33,8 +43,10 @@ export default function ShowScreen() {
   const [error, setError] = useState(false);
   const [season, setSeason] = useState<number>();
   const [expanded, setExpanded] = useState<number>();
+  const [extras, setExtras] = useState<ExtrasData>();
 
   const load = useCallback(() => {
+    if (!id) return;
     setError(false);
     fetchShow(Number(id), tmdbKey)
       .then((d) => {
@@ -44,6 +56,11 @@ export default function ShowScreen() {
       .catch(() => setError(!useLibrary.getState().shows[id]));
   }, [id, tmdbKey]);
   useEffect(load, [load]);
+
+  const imdbId = tracked?.imdbId ?? details?.show.imdbId;
+  useEffect(() => {
+    fetchShowExtras(imdbId, { tmdbKey, lang: i18n.language }).then(setExtras);
+  }, [imdbId, tmdbKey, i18n.language]);
 
   // The tracked copy carries what you watched; a show you don't follow yet is shown as is.
   const show: Show | undefined = useMemo(
@@ -76,6 +93,7 @@ export default function ShowScreen() {
     haptics.success();
     useUi.getState().showToast(t('toast.upTo', { code: episodeCode(e) }));
   };
+  const lastAired = show ? [...show.episodes].filter((e) => hasAired(e)).sort((a, b) => b.season - a.season || b.number - a.number)[0] : undefined;
   const seasonAired = episodes.filter((e) => hasAired(e));
   const seasonDone = seasonAired.length > 0 && seasonAired.every((e) => show?.watched[e.id]);
   const toggleSeason = () => {
@@ -124,6 +142,11 @@ export default function ShowScreen() {
                 {progress.next && state !== 'dropped' && (
                   <Button label={t('show.watchedNext', { code: episodeCode(progress.next) })} icon="check" onPress={() => toggle(progress.next!)} style={{ marginTop: 6 }} />
                 )}
+                {progress.left > 1 && state !== 'dropped' && (
+                  <PressableScale onPress={() => watchUpTo(lastAired!)} style={{ alignSelf: 'center', paddingVertical: 4 }}>
+                    <Text style={styles.allLink}>{t('show.watchAll', { count: progress.left })}</Text>
+                  </PressableScale>
+                )}
                 {!progress.next && progress.upcoming?.airstamp && (
                   <Text style={styles.nextAir}>{t('show.nextAirs', { code: episodeCode(progress.upcoming), when: countdown(progress.upcoming.airstamp) })}</Text>
                 )}
@@ -151,6 +174,7 @@ export default function ShowScreen() {
             )}
           </FadeIn>
 
+          <Extras kind="show" title={show.title} year={show.year} imdbId={show.imdbId} extras={extras} />
           <Synopsis text={show.summary} />
 
           {seasons.length > 0 && (
@@ -179,8 +203,8 @@ export default function ShowScreen() {
                       }}
                       style={[styles.seasonChip, active && styles.seasonChipActive]}
                     >
-                      <Text style={[styles.seasonChipText, active && { color: palette.onInk }]}>{t('show.season', { n: s.season })}</Text>
-                      {done && <View style={[styles.doneDot, active && { backgroundColor: palette.onInk }]} />}
+                      <Text style={[styles.seasonChipText, active && { color: palette.screen }]}>{t('show.season', { n: s.season })}</Text>
+                      {done && <View style={[styles.doneDot, active && { backgroundColor: palette.screen }]} />}
                     </PressableScale>
                   );
                 })}
@@ -208,6 +232,7 @@ export default function ShowScreen() {
           )}
 
           <CastRail cast={details?.cast ?? []} />
+          <Similar kind="show" extras={extras} />
         </>
       )}
     </DetailLayout>
@@ -268,6 +293,7 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   track: { height: 6, borderRadius: 3, backgroundColor: palette.field, overflow: 'hidden' },
   fill: { height: 6, borderRadius: 3 },
   nextAir: { ...type.small, color: palette.primary },
+  allLink: { fontFamily: fonts.semibold, fontSize: 13.5, color: palette.primary },
   actions: { flexDirection: 'row', gap: 8, marginTop: 4 },
   sectionTitle: { ...type.title },
   seasonHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

@@ -171,6 +171,6 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   entryTitle: { fontFamily: fonts.semibold, fontSize: 15, color: palette.ink, letterSpacing: -0.2 },
   entryDetail: { fontFamily: fonts.body, fontSize: 13, color: palette.inkSoft },
   entryMeta: { fontFamily: fonts.medium, fontSize: 12, color: palette.primary },
-  badge: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: 'rgba(11,99,206,0.1)' },
+  badge: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: palette.primaryTint },
   badgeText: { fontFamily: fonts.semibold, fontSize: 11, color: palette.primary },
 }));

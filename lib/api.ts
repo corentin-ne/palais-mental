@@ -211,13 +211,13 @@ export async function fetchShow(tvmazeId: number, tmdbKey?: string): Promise<Sho
 const TMDB = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/';
 
-function tmdb<T = any>(path: string, key: string, lang = 'en'): Promise<T> {
+export function tmdb<T = any>(path: string, key: string, lang = 'en'): Promise<T> {
   const bearer = key.length > 40;
   const sep = path.includes('?') ? '&' : '?';
   const url = `${TMDB}${path}${sep}language=${lang}${bearer ? '' : `&api_key=${enc(key)}`}`;
   return getJson<T>(url, bearer ? { headers: { Authorization: `Bearer ${key}` } } : undefined);
 }
-const tmdbImg = (path?: string | null, size = 'w500') => (path ? `${TMDB_IMG}${size}${path}` : undefined);
+export const tmdbImg = (path?: string | null, size = 'w500') => (path ? `${TMDB_IMG}${size}${path}` : undefined);
 
 interface TmdbMovie {
   id: number;
@@ -473,3 +473,101 @@ export async function fetchMovie(id: string, opts: { tmdbKey?: string; lang: str
       .map((name) => ({ name })),
   };
 }
+
+// ------------------------------------------------------------------ Extras: trailer, where to watch, more like this
+export interface Provider {
+  name: string;
+  logo?: string;
+}
+export interface Extras {
+  /** YouTube video id of the official trailer (TMDB), else undefined: the page offers a search. */
+  trailerKey?: string;
+  providers: { stream: Provider[]; rent: Provider[]; buy: Provider[]; link?: string };
+  similar: SearchResult[];
+}
+const NO_EXTRAS: Extras = { providers: { stream: [], rent: [], buy: [] }, similar: [] };
+
+/** Viewing region from the interface language (FR → France, else US). */
+export const regionOf = (lang: string) => (lang === 'fr' ? 'FR' : 'US');
+
+interface TmdbVideo {
+  key?: string;
+  site?: string;
+  type?: string;
+  official?: boolean;
+}
+interface TmdbProviders {
+  results?: Record<string, { link?: string; flatrate?: { provider_name: string; logo_path?: string }[]; rent?: { provider_name: string; logo_path?: string }[]; buy?: { provider_name: string; logo_path?: string }[] }>;
+}
+
+function pickTrailer(videos?: TmdbVideo[]) {
+  const yt = (videos ?? []).filter((v) => v.site === 'YouTube' && v.key);
+  return (yt.find((v) => v.type === 'Trailer' && v.official) ?? yt.find((v) => v.type === 'Trailer') ?? yt.find((v) => v.type === 'Teaser') ?? yt[0])?.key;
+}
+
+function providersOf(json: TmdbProviders | undefined, region: string): Extras['providers'] {
+  const r = json?.results?.[region];
+  const map = (list?: { provider_name: string; logo_path?: string }[]) => (list ?? []).slice(0, 8).map((p) => ({ name: p.provider_name, logo: tmdbImg(p.logo_path, 'w92') }));
+  return { stream: map(r?.flatrate), rent: map(r?.rent), buy: map(r?.buy), link: r?.link };
+}
+
+async function tmdbIdFor(kind: 'movie' | 'tv', imdbId: string, key: string) {
+  const r = await tmdb<{ tv_results?: { id: number }[]; movie_results?: { id: number }[] }>(`/find/${imdbId}?external_source=imdb_id`, key);
+  return (kind === 'tv' ? r.tv_results : r.movie_results)?.[0]?.id;
+}
+
+/** Trailer, streaming services and similar films. Needs a TMDB key; without one the page shows search links. */
+export async function fetchMovieExtras(movie: { source: MovieSource; sourceId: string; imdbId?: string }, opts: { tmdbKey?: string; lang: string }): Promise<Extras> {
+  if (!opts.tmdbKey) return NO_EXTRAS;
+  try {
+    const id = movie.source === 'tmdb' ? movie.sourceId : movie.imdbId ? await tmdbIdFor('movie', movie.imdbId, opts.tmdbKey) : undefined;
+    if (!id) return NO_EXTRAS;
+    const m = await tmdb<{ videos?: { results?: TmdbVideo[] }; 'watch/providers'?: TmdbProviders; recommendations?: { results?: TmdbMovie[] } }>(
+      `/movie/${id}?append_to_response=videos,watch/providers,recommendations&include_video_language=${opts.lang},en`,
+      opts.tmdbKey,
+      opts.lang,
+    );
+    return {
+      trailerKey: pickTrailer(m.videos?.results),
+      providers: providersOf(m['watch/providers'], regionOf(opts.lang)),
+      similar: (m.recommendations?.results ?? []).filter((r) => r.poster_path).slice(0, 16).map(tmdbResult),
+    };
+  } catch {
+    return NO_EXTRAS;
+  }
+}
+
+/** Same for a show, found on TMDB through its IMDb id. Similar shows carry their name: they open through TVmaze. */
+export async function fetchShowExtras(imdbId: string | undefined, opts: { tmdbKey?: string; lang: string }): Promise<Extras> {
+  if (!opts.tmdbKey || !imdbId) return NO_EXTRAS;
+  try {
+    const id = await tmdbIdFor('tv', imdbId, opts.tmdbKey);
+    if (!id) return NO_EXTRAS;
+    const s = await tmdb<{ videos?: { results?: TmdbVideo[] }; 'watch/providers'?: TmdbProviders; recommendations?: { results?: { id: number; name: string; first_air_date?: string; poster_path?: string | null }[] } }>(
+      `/tv/${id}?append_to_response=videos,watch/providers,recommendations&include_video_language=${opts.lang},en`,
+      opts.tmdbKey,
+      opts.lang,
+    );
+    return {
+      trailerKey: pickTrailer(s.videos?.results),
+      providers: providersOf(s['watch/providers'], regionOf(opts.lang)),
+      similar: (s.recommendations?.results ?? [])
+        .filter((r) => r.poster_path)
+        .slice(0, 16)
+        .map((r) => ({ kind: 'show' as const, id: `name:${r.name}`, title: r.name, year: yearOf(r.first_air_date), poster: tmdbImg(r.poster_path, 'w342') })),
+    };
+  } catch {
+    return NO_EXTRAS;
+  }
+}
+
+/** TVmaze id for a show known only by name (recommendations from TMDB). */
+export async function tvmazeIdByName(name: string) {
+  const s = await quiet(getJson<{ id?: number }>(`${TVMAZE}/singlesearch/shows?q=${enc(name)}`), null);
+  return s?.id;
+}
+
+export const youtubeSearch = (title: string, year?: number) => `https://www.youtube.com/results?search_query=${enc(`${title} ${year ?? ''} trailer`.trim())}`;
+export const youtubeWatch = (key: string) => `https://www.youtube.com/watch?v=${key}`;
+export const justWatchSearch = (title: string, lang: string) => `https://www.justwatch.com/${lang === 'fr' ? 'fr/recherche' : 'us/search'}?q=${enc(title)}`;
+export const imdbPage = (imdbId: string) => `https://www.imdb.com/title/${imdbId}/`;

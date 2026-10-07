@@ -1,6 +1,7 @@
 import { ReactNode, useMemo, useState } from 'react';
 import { Linking, Platform, Switch, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'expo-router';
 
 import Button from '@/components/ui/Button';
 import Icon, { IconName } from '@/components/ui/Icon';
@@ -17,6 +18,7 @@ import { duration } from '@/lib/format';
 import { minutesWatched } from '@/lib/progress';
 import { refreshLibrary, requestNotifications, scheduleNotifications } from '@/lib/sync';
 import type { LanguagePreference } from '@/locales/i18n';
+import type { Settings } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
 import { useUi } from '@/store/useUi';
 
@@ -34,6 +36,7 @@ export default function ProfileScreen() {
   const setSettings = useLibrary((s) => s.setSettings);
   const setLanguage = useLibrary((s) => s.setLanguage);
   const toast = useUi((s) => s.showToast);
+  const router = useRouter();
 
   const stats = useMemo(() => {
     const showList = Object.values(shows);
@@ -77,6 +80,10 @@ export default function ProfileScreen() {
         <Stat index={3} icon="clock" text={duration(stats.filmMinutes)} label={t('profile.filmTime')} />
       </View>
 
+      <View style={[styles.group, { marginTop: 12 }]}>
+        <ActionRow icon="clock" label={t('history.title')} hint={t('history.hint')} onPress={() => router.push('/history')} />
+      </View>
+
       <Section title={t('profile.settings')}>
         <Group>
           <Row icon="bell" label={t('profile.notifications')} hint={Platform.OS === 'web' ? t('profile.notificationsWeb') : t('profile.notificationsHint')}>
@@ -98,6 +105,21 @@ export default function ProfileScreen() {
               <Switch value={settings.haptics} trackColor={{ true: palette.primary, false: palette.fieldActive }} thumbColor="#fff" onValueChange={(v) => setSettings({ haptics: v })} />
             </Row>
           )}
+          <View style={[styles.block, styles.blockLine]}>
+            <View style={styles.rowHead}>
+              <Icon name="eye" size={20} color={palette.ink} />
+              <Text style={styles.rowLabel}>{t('profile.appearance')}</Text>
+            </View>
+            <Segmented<Settings['appearance']>
+              value={settings.appearance}
+              onChange={(appearance) => setSettings({ appearance })}
+              options={[
+                { value: 'system', label: t('profile.system') },
+                { value: 'light', label: t('profile.light') },
+                { value: 'dark', label: t('profile.dark') },
+              ]}
+            />
+          </View>
           <View style={styles.block}>
             <View style={styles.rowHead}>
               <Icon name="globe" size={20} color={palette.ink} />
@@ -253,11 +275,12 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.hairline },
   rowHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   block: { padding: 16, gap: 12 },
+  blockLine: { borderBottomWidth: 1, borderBottomColor: palette.hairline },
   rowLabel: { fontFamily: fonts.medium, fontSize: 15, color: palette.ink },
   rowHint: { ...type.small, fontSize: 12.5, lineHeight: 17 },
   input: { flex: 1, height: 40, borderRadius: 12, paddingHorizontal: 12, backgroundColor: palette.field, borderWidth: 1, borderColor: 'transparent', fontFamily: fonts.body, fontSize: 14, color: palette.ink },
   link: { fontFamily: fonts.semibold, fontSize: 13, color: palette.primary },
-  on: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: 'rgba(47,158,106,0.12)' },
+  on: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: palette.successTint },
   onText: { fontFamily: fonts.semibold, fontSize: 11, color: palette.success },
   footnote: { ...type.small, fontSize: 12, marginTop: -4 },
 }));

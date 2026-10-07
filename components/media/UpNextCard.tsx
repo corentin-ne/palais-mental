@@ -13,6 +13,7 @@ import { useHaptics } from '@/hooks/useHaptics';
 import { episodeCode, Progress } from '@/lib/progress';
 import { Show } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
+import { useUi } from '@/store/useUi';
 
 /**
  * The next episode to watch for one show. Ticking it slides the next one in; the
@@ -35,6 +36,7 @@ export default function UpNextCard({ show, progress, width }: { show: Show; prog
       // The last episode out: the card leaves and the list closes the gap.
       if (progress.left <= 1) animateLayout();
       toggle(show.id, ep.id);
+      useUi.getState().showToast(t('toast.watchedEp', { code: episodeCode(ep) }), () => useLibrary.getState().setEpisodes(show.id, [ep.id], false));
       slide.setValue(0);
       Animated.spring(slide, { toValue: 1, useNativeDriver: true, damping: 16, stiffness: 220 }).start();
     });
@@ -75,9 +77,9 @@ export default function UpNextCard({ show, progress, width }: { show: Show; prog
 
 const useStyles = makeStyles(({ palette, fonts, shadow, radii }) => ({
   card: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 10, paddingRight: 12, borderRadius: radii.lg, backgroundColor: palette.surface, ...shadow.soft, shadowOpacity: 0.06 },
-  still: { borderRadius: radii.sm, overflow: 'hidden', backgroundColor: '#DCE8F4' },
+  still: { borderRadius: radii.sm, overflow: 'hidden', backgroundColor: palette.placeholder },
   posterFill: { position: 'absolute', top: '-40%', left: 0, right: 0 },
-  codeTag: { position: 'absolute', left: 6, bottom: 6, backgroundColor: 'rgba(10,37,64,0.72)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  codeTag: { position: 'absolute', left: 6, bottom: 6, backgroundColor: palette.codeTag, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   codeText: { fontFamily: fonts.semibold, fontSize: 10.5, color: '#fff', letterSpacing: 0.3 },
   info: { flex: 1, gap: 3 },
   show: { fontFamily: fonts.semibold, fontSize: 15.5, color: palette.ink, letterSpacing: -0.2 },

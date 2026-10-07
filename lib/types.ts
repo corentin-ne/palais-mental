@@ -64,4 +64,5 @@ export interface Settings {
   haptics: boolean;
   /** Optional TMDB v3 key or v4 read token: richer film data, backdrops and release dates. */
   tmdbKey: string;
+  appearance: 'system' | 'light' | 'dark';
 }

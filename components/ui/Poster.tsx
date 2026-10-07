@@ -6,13 +6,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Icon from './Icon';
 import { makeStyles, useTheme } from '@/constants/theme';
 
-const TINTS: [string, string][] = [
-  ['#CFE3F7', '#9CC3EC'],
-  ['#D9E6F2', '#AFC7E0'],
-  ['#D3EEF0', '#97CFD6'],
-  ['#E2DDF4', '#B9AEE3'],
-  ['#F3E3D3', '#E3BE98'],
-];
 const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0;
 
 interface Props {
@@ -34,7 +27,7 @@ export default function Poster({ uri, title, width, kind = 'show', radius, progr
   const [failed, setFailed] = useState(false);
   const r = radius ?? (width > 120 ? radii.md : radii.sm);
   const height = Math.round(width * 1.5);
-  const tint = TINTS[hash(title) % TINTS.length];
+  const tint = palette.posterTints[hash(title) % palette.posterTints.length];
   return (
     <View style={[{ width, height, borderRadius: r }, elevated && shadow.cover]}>
       <View style={[styles.clip, { borderRadius: r }]}>
@@ -50,7 +43,7 @@ export default function Poster({ uri, title, width, kind = 'show', radius, progr
           />
         ) : (
           <LinearGradient colors={tint} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, styles.generated]}>
-            <Icon name={kind === 'show' ? 'series' : 'movies'} size={width < 80 ? 14 : 18} color="rgba(10,37,64,0.5)" />
+            <Icon name={kind === 'show' ? 'series' : 'movies'} size={width < 80 ? 14 : 18} color={palette.inkFaint} />
             {width >= 80 && (
               <Text style={[styles.genTitle, { fontSize: Math.max(13, Math.min(22, width / 7)) }]} numberOfLines={4}>
                 {title}
@@ -58,7 +51,7 @@ export default function Poster({ uri, title, width, kind = 'show', radius, progr
             )}
           </LinearGradient>
         )}
-        {dim && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(234,243,251,0.55)' }]} />}
+        {dim && <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.dimVeil }]} />}
         {progress != null && progress > 0 && (
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${Math.round(progress * 100)}%`, backgroundColor: progress >= 1 ? palette.success : palette.primary }]} />
@@ -69,10 +62,10 @@ export default function Poster({ uri, title, width, kind = 'show', radius, progr
   );
 }
 
-const useStyles = makeStyles(({ fonts }) => ({
-  clip: { flex: 1, overflow: 'hidden', backgroundColor: '#DCE8F4' },
+const useStyles = makeStyles(({ fonts, palette }) => ({
+  clip: { flex: 1, overflow: 'hidden', backgroundColor: palette.placeholder },
   generated: { padding: 10, justifyContent: 'space-between' },
-  genTitle: { fontFamily: fonts.displayItalic, color: 'rgba(10,37,64,0.82)' },
+  genTitle: { fontFamily: fonts.displayItalic, color: palette.posterInk },
   track: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, backgroundColor: 'rgba(10,37,64,0.25)' },
   fill: { height: 4 },
 }));
