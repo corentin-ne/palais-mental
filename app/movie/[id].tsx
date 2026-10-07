@@ -7,6 +7,7 @@ import DetailLayout, { CastRail, Synopsis } from '@/components/media/DetailLayou
 import Extras, { Similar } from '@/components/media/Extras';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
+import StarRating from '@/components/ui/StarRating';
 import { FadeIn, Pop } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -108,6 +109,12 @@ export default function MovieScreen() {
               </View>
             )}
             {upcoming && !watched && <Text style={styles.hint}>{t('movie.remindHint')}</Text>}
+            {tracked && !(upcoming && !watched) && (
+              <View style={styles.rate}>
+                <Text style={styles.releaseLabel}>{t('rating.yours')}</Text>
+                <StarRating value={tracked.rating} onChange={(v) => useLibrary.getState().setMovieRating(id, v)} size={24} />
+              </View>
+            )}
           </FadeIn>
           <Extras kind="movie" title={movie.title} year={movie.year} imdbId={movie.imdbId} extras={extras} />
           <Synopsis text={movie.overview} />
@@ -127,6 +134,7 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   countdown: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: palette.primaryTint },
   countdownText: { fontFamily: fonts.semibold, fontSize: 12, color: palette.primary },
   actions: { flexDirection: 'row', gap: 10 },
+  rate: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   hint: { ...type.small, fontSize: 12.5 },
   reminder: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 50, borderRadius: 25, backgroundColor: palette.primaryTint },
   reminderText: { fontFamily: fonts.semibold, fontSize: 15, color: palette.primary },

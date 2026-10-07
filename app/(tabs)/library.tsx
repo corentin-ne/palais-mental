@@ -22,8 +22,8 @@ import { useLibrary } from '@/store/useLibrary';
 type Tab = 'shows' | 'movies';
 type ShowFilter = 'all' | ShowState;
 type MovieFilter = 'watchlist' | 'upcoming' | 'watched';
-type Sort = 'recent' | 'title' | 'next';
-const SORTS: Sort[] = ['recent', 'title', 'next'];
+type Sort = 'recent' | 'title' | 'next' | 'rating';
+const SORTS: Sort[] = ['recent', 'title', 'next', 'rating'];
 const norm = (s: string) => s.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 interface Tile {
@@ -58,6 +58,7 @@ export default function LibraryScreen() {
       .map((show) => ({ show, state: showState(show, now), progress: progressOf(show, now), activity: Math.max(show.addedAt, ...Object.values(show.watched)) }))
       .sort((a, b) => {
         if (sort === 'title') return a.show.title.localeCompare(b.show.title);
+        if (sort === 'rating') return (b.show.rating ?? 0) - (a.show.rating ?? 0) || b.activity - a.activity;
         if (sort === 'next') return (a.progress.upcoming?.airstamp ?? Infinity) - (b.progress.upcoming?.airstamp ?? Infinity) || a.show.title.localeCompare(b.show.title);
         return b.activity - a.activity;
       });
@@ -80,7 +81,9 @@ export default function LibraryScreen() {
         .filter((m) => !m.watchedAt && (!m.releaseDate || m.releaseDate <= now))
         .sort((a, b) => (sort === 'title' ? a.title.localeCompare(b.title) : sort === 'next' ? (b.releaseDate ?? 0) - (a.releaseDate ?? 0) : b.addedAt - a.addedAt)),
       upcoming: list.filter((m) => !m.watchedAt && m.releaseDate && m.releaseDate > now).sort((a, b) => a.releaseDate! - b.releaseDate!),
-      watched: list.filter((m) => m.watchedAt).sort((a, b) => (sort === 'title' ? a.title.localeCompare(b.title) : b.watchedAt! - a.watchedAt!)),
+      watched: list
+        .filter((m) => m.watchedAt)
+        .sort((a, b) => (sort === 'title' ? a.title.localeCompare(b.title) : sort === 'rating' ? (b.rating ?? 0) - (a.rating ?? 0) || b.watchedAt! - a.watchedAt! : b.watchedAt! - a.watchedAt!)),
     };
   }, [movies, sort]);
 

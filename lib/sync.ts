@@ -8,9 +8,13 @@ import * as Notifications from 'expo-notifications';
 
 import i18n from '@/locales/i18n';
 import { fetchMovie, fetchShow } from './api';
+import { autoSnapshot } from './backup';
+import { autoSyncAccounts } from './connect';
+import { refreshRelated, relationLabel, visibleRelated } from './related';
 import { episodeCode } from './progress';
 import { Episode, Movie, Show } from './types';
 import { useLibrary } from '@/store/useLibrary';
+import { RelatedRelease, useConnections } from '@/store/useConnections';
 
 const SHOW_EVERY = 6 * 3_600_000;
 const ENDED_EVERY = 7 * 86_400_000;
@@ -21,10 +25,11 @@ const MAX_SCHEDULED = 60;
 
 export type UpcomingEntry =
   | { kind: 'episode'; date: number; show: Show; episode: Episode }
-  | { kind: 'movie'; date: number; movie: Movie };
+  | { kind: 'movie'; date: number; movie: Movie }
+  | { kind: 'related'; date: number; related: RelatedRelease };
 
 /** Everything still to come, soonest first. Anything from today stays visible all day. */
-export function getUpcoming(shows: Record<string, Show>, movies: Record<string, Movie>, now = Date.now()): UpcomingEntry[] {
+export function getUpcoming(shows: Record<string, Show>, movies: Record<string, Movie>, now = Date.now(), related: RelatedRelease[] = []): UpcomingEntry[] {
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
   const from = start.getTime();
@@ -34,6 +39,7 @@ export function getUpcoming(shows: Record<string, Show>, movies: Record<string, 
     for (const episode of show.episodes) if (episode.airstamp && episode.airstamp >= from) out.push({ kind: 'episode', date: episode.airstamp, show, episode });
   }
   for (const movie of Object.values(movies)) if (!movie.watchedAt && movie.releaseDate && movie.releaseDate >= from) out.push({ kind: 'movie', date: movie.releaseDate, movie });
+  for (const r of related) if (r.date >= from) out.push({ kind: 'related', date: r.date, related: r });
   return out.sort((a, b) => a.date - b.date);
 }
 
@@ -114,8 +120,9 @@ export async function scheduleNotifications() {
       await Notifications.setNotificationChannelAsync(CHANNEL, { name: i18n.t('calendar.channel'), importance: Notifications.AndroidImportance.DEFAULT });
     }
     const now = Date.now();
-    const entries = getUpcoming(shows, movies, now)
-      .map((u) => ({ u, at: u.kind === 'movie' ? morningOf(u.date) : u.date }))
+    const related = settings.related ? visibleRelated(useConnections.getState().related.entries) : [];
+    const entries = getUpcoming(shows, movies, now, related)
+      .map((u) => ({ u, at: u.kind === 'episode' ? u.date : morningOf(u.date) }))
       .filter(({ at }) => at > now + 60_000)
       .slice(0, MAX_SCHEDULED);
     for (const { u, at } of entries) {
@@ -123,7 +130,13 @@ export async function scheduleNotifications() {
         content:
           u.kind === 'movie'
             ? { title: i18n.t('notify.movieTitle'), body: u.movie.title, data: { url: `/movie/${u.movie.id}` } }
-            : {
+            : u.kind === 'related'
+              ? {
+                  title: i18n.t(u.related.relation === 'sequel' ? 'notify.sequelTitle' : 'notify.relatedTitle'),
+                  body: `${u.related.title} · ${relationLabel(u.related)}`,
+                  data: { url: u.related.kind === 'movie' ? `/movie/imdb-${u.related.imdbId}` : `/show/name:${encodeURIComponent(u.related.title)}` },
+                }
+              : {
                 title: u.show.title,
                 body: i18n.t('notify.episode', { code: episodeCode(u.episode), name: u.episode.name }),
                 data: { url: `/show/${u.show.tvmazeId}` },
@@ -143,7 +156,14 @@ export function startSync() {
       handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
     });
   }
-  const run = () => refreshLibrary().then(scheduleNotifications);
+  const run = async () => {
+    if (!useConnections.persist.hasHydrated()) await new Promise<void>((resolve) => useConnections.persist.onFinishHydration(() => resolve()));
+    await autoSnapshot();
+    await refreshLibrary();
+    await scheduleNotifications();
+    await autoSyncAccounts();
+    await refreshRelated();
+  };
   // Wait for the persisted library before the first refresh.
   if (useLibrary.persist.hasHydrated()) run();
   const unhydrate = useLibrary.persist.onFinishHydration(run);
@@ -154,7 +174,13 @@ export function startSync() {
     clearTimeout(timer);
     timer = setTimeout(scheduleNotifications, 2000);
   });
+  const unsubRelated = useConnections.subscribe((s, prev) => {
+    if (s.related === prev.related) return;
+    clearTimeout(timer);
+    timer = setTimeout(scheduleNotifications, 2000);
+  });
   return () => {
+    unsubRelated();
     unhydrate();
     sub.remove();
     unsub();

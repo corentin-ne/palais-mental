@@ -29,6 +29,8 @@ export interface Show {
   watched: Record<string, number>;
   /** Dropped shows stay in the library but leave Up next and the calendar. */
   droppedAt?: number;
+  /** Your rating, 1–10 (half stars). */
+  rating?: number;
   addedAt: number;
   syncedAt: number;
 }
@@ -53,6 +55,8 @@ export interface Movie {
   director?: string;
   imdbId?: string;
   watchedAt?: number;
+  /** Your rating, 1–10 (half stars). */
+  rating?: number;
   addedAt: number;
   syncedAt: number;
 }
@@ -65,4 +69,6 @@ export interface Settings {
   /** Optional TMDB v3 key or v4 read token: richer film data, backdrops and release dates. */
   tmdbKey: string;
   appearance: 'system' | 'light' | 'dark';
+  /** Sequels and titles from the same universe in the calendar. */
+  related: boolean;
 }

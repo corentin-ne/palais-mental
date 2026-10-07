@@ -16,10 +16,12 @@ import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
 import { countdown, dayKey, fullDate, relativeDay, timeOf } from '@/lib/format';
 import { episodeCode } from '@/lib/progress';
+import { refreshRelated, relatedHref, relationLabel, visibleRelated } from '@/lib/related';
 import { UpcomingEntry, getUpcoming, notificationPermission, refreshLibrary, requestNotifications, scheduleNotifications } from '@/lib/sync';
+import { useConnections } from '@/store/useConnections';
 import { useLibrary } from '@/store/useLibrary';
 
-type Filter = 'all' | 'shows' | 'movies';
+type Filter = 'all' | 'shows' | 'movies' | 'related';
 const MAX = 200;
 
 /** Every upcoming episode and release among what you follow, day by day. */
@@ -33,6 +35,8 @@ export default function CalendarScreen() {
   const shows = useLibrary((s) => s.shows);
   const movies = useLibrary((s) => s.movies);
   const notificationsOn = useLibrary((s) => s.settings.notifications);
+  const relatedOn = useLibrary((s) => s.settings.related);
+  const relatedAll = useConnections((s) => s.related.entries);
   const [filter, setFilter] = useState<Filter>('all');
   const [permission, setPermission] = useState<'granted' | 'denied' | 'undetermined'>('granted');
   const [refreshing, setRefreshing] = useState(false);
@@ -41,9 +45,10 @@ export default function CalendarScreen() {
     notificationPermission().then(setPermission);
   }, []);
 
-  const all = useMemo(() => getUpcoming(shows, movies), [shows, movies]);
+  const related = useMemo(() => (relatedOn ? visibleRelated(relatedAll) : []), [relatedOn, relatedAll, shows, movies]);
+  const all = useMemo(() => getUpcoming(shows, movies, Date.now(), related), [shows, movies, related]);
   const days = useMemo(() => {
-    const list = all.filter((u) => filter === 'all' || (filter === 'shows' ? u.kind === 'episode' : u.kind === 'movie')).slice(0, MAX);
+    const list = all.filter((u) => filter === 'all' || u.kind === (filter === 'shows' ? 'episode' : filter === 'movies' ? 'movie' : 'related')).slice(0, MAX);
     const groups: { day: number; entries: UpcomingEntry[] }[] = [];
     for (const u of list) {
       const day = dayKey(u.date);
@@ -57,11 +62,13 @@ export default function CalendarScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refreshLibrary(true);
+    await refreshRelated(true);
     await scheduleNotifications();
     setRefreshing(false);
   }, []);
 
   const episodes = all.filter((u) => u.kind === 'episode').length;
+  const relatedCount = all.filter((u) => u.kind === 'related').length;
   let row = 0;
 
   return (
@@ -98,7 +105,8 @@ export default function CalendarScreen() {
           options={[
             { value: 'all', label: t('common.all'), count: all.length },
             { value: 'shows', label: t('common.shows'), count: episodes },
-            { value: 'movies', label: t('common.movies'), count: all.length - episodes },
+            { value: 'movies', label: t('common.movies'), count: all.length - episodes - relatedCount },
+            ...(relatedCount ? [{ value: 'related' as const, label: t('related.chip'), count: relatedCount }] : []),
           ]}
         />
       </View>
@@ -114,7 +122,7 @@ export default function CalendarScreen() {
             </FadeIn>
             <View style={styles.dayEntries}>
               {entries.map((u) => (
-                <FadeIn key={u.kind === 'episode' ? `e${u.episode.id}` : `m${u.movie.id}`} index={row++}>
+                <FadeIn key={u.kind === 'episode' ? `e${u.episode.id}` : u.kind === 'movie' ? `m${u.movie.id}` : `r${u.related.imdbId}`} index={row++}>
                   <Entry u={u} />
                 </FadeIn>
               ))}
@@ -130,6 +138,7 @@ function Entry({ u }: { u: UpcomingEntry }) {
   const { t } = useTranslation();
   const styles = useStyles();
   const router = useRouter();
+  if (u.kind === 'related') return <RelatedEntry u={u} />;
   const isEp = u.kind === 'episode';
   const title = isEp ? u.show.title : u.movie.title;
   const poster = isEp ? u.show.poster : u.movie.poster;
@@ -156,6 +165,33 @@ function Entry({ u }: { u: UpcomingEntry }) {
   );
 }
 
+/** A sequel or a title from the same universe: not followed yet, shown dashed. */
+function RelatedEntry({ u }: { u: Extract<UpcomingEntry, { kind: 'related' }> }) {
+  const { t } = useTranslation();
+  const styles = useStyles();
+  const router = useRouter();
+  const r = u.related;
+  return (
+    <PressableScale depth={0.98} style={[styles.entry, styles.entryRelated]} onPress={async () => router.push((await relatedHref(r)) as never)}>
+      <Poster uri={r.poster} title={r.title} width={46} kind={r.kind} elevated={false} radius={7} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={styles.entryTitle} numberOfLines={1}>
+          {r.title}
+        </Text>
+        <Text style={styles.entryDetail} numberOfLines={1}>
+          {relationLabel(r)}
+        </Text>
+        <Text style={styles.entryMeta} numberOfLines={1}>
+          {countdown(u.date)}
+        </Text>
+      </View>
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>{t(r.relation === 'sequel' ? 'related.sequel' : 'related.universe')}</Text>
+      </View>
+    </PressableScale>
+  );
+}
+
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   ask: { flexDirection: 'row', gap: 14, padding: 16, marginTop: 16, borderRadius: radii.lg, backgroundColor: palette.surface },
   askIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: palette.primary, alignItems: 'center', justifyContent: 'center' },
@@ -168,6 +204,7 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   dayDate: { fontFamily: fonts.body, fontSize: 13, color: palette.inkFaint },
   dayEntries: { flex: 1, gap: 8 },
   entry: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 10, borderRadius: radii.md, backgroundColor: palette.surface },
+  entryRelated: { borderWidth: 1, borderStyle: 'dashed', borderColor: palette.primary, backgroundColor: 'transparent' },
   entryTitle: { fontFamily: fonts.semibold, fontSize: 15, color: palette.ink, letterSpacing: -0.2 },
   entryDetail: { fontFamily: fonts.body, fontSize: 13, color: palette.inkSoft },
   entryMeta: { fontFamily: fonts.medium, fontSize: 12, color: palette.primary },

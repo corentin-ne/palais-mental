@@ -6,8 +6,8 @@ import type { LanguagePreference } from '@/locales/i18n';
 import { hasAired, sortEpisodes } from '@/lib/progress';
 import { Episode, Movie, Settings, Show } from '@/lib/types';
 
-export type ShowData = Omit<Show, 'watched' | 'addedAt' | 'droppedAt'>;
-export type MovieData = Omit<Movie, 'watchedAt' | 'addedAt'>;
+export type ShowData = Omit<Show, 'watched' | 'addedAt' | 'droppedAt' | 'rating'>;
+export type MovieData = Omit<Movie, 'watchedAt' | 'addedAt' | 'rating'>;
 
 export interface LibraryData {
   shows: Record<string, Show>;
@@ -22,7 +22,8 @@ interface LibraryState extends LibraryData {
   updateShow: (data: ShowData) => void;
   removeShow: (id: string) => Show | undefined;
   restoreShow: (show: Show) => void;
-  setEpisodes: (showId: string, episodeIds: number[], watched: boolean) => void;
+  /** `at` backdates newly watched episodes (imports); already watched ones keep their date. */
+  setEpisodes: (showId: string, episodeIds: number[], watched: boolean, at?: number) => void;
   toggleEpisode: (showId: string, episodeId: number) => boolean;
   /** Marks every aired episode up to and including `episode`. */
   watchUpTo: (showId: string, episode: Episode) => void;
@@ -32,14 +33,25 @@ interface LibraryState extends LibraryData {
   updateMovie: (data: MovieData) => void;
   removeMovie: (id: string) => Movie | undefined;
   restoreMovie: (movie: Movie) => void;
-  setMovieWatched: (id: string, watched: boolean) => void;
+  setMovieWatched: (id: string, watched: boolean, at?: number) => void;
+  setShowRating: (id: string, rating: number | undefined) => void;
+  setMovieRating: (id: string, rating: number | undefined) => void;
 
   importData: (data: LibraryData, mode: 'merge' | 'replace') => void;
   setSettings: (patch: Partial<Settings>) => void;
   setLanguage: (language: LanguagePreference) => void;
 }
 
-const DEFAULT_SETTINGS: Settings = { notifications: true, haptics: true, tmdbKey: '', appearance: 'system' };
+const DEFAULT_SETTINGS: Settings = { notifications: true, haptics: true, tmdbKey: '', appearance: 'system', related: true };
+const STORE_KEY = 'palais-mental/library';
+const STORE_VERSION = 2;
+
+/** Your marks without the refetchable metadata (episode lists): small enough to keep copies of. */
+export function compactLibrary(data: LibraryData): LibraryData {
+  const shows: Record<string, Show> = {};
+  for (const [id, show] of Object.entries(data.shows ?? {})) shows[id] = { ...show, episodes: [], syncedAt: 0 };
+  return { shows, movies: data.movies ?? {} };
+}
 
 const patchShow = (s: LibraryState, id: string, fn: (show: Show) => Show) =>
   s.shows[id] ? { shows: { ...s.shows, [id]: fn(s.shows[id]) } } : s;
@@ -70,11 +82,11 @@ export const useLibrary = create<LibraryState>()(
         return show;
       },
       restoreShow: (show) => set((s) => ({ shows: { ...s.shows, [show.id]: show } })),
-      setEpisodes: (showId, ids, watched) =>
+      setEpisodes: (showId, ids, watched, at) =>
         set((s) =>
           patchShow(s, showId, (show) => {
             const next = { ...show.watched };
-            const now = Date.now();
+            const now = at ?? Date.now();
             for (const id of ids) {
               if (watched) next[id] ??= now;
               else delete next[id];
@@ -111,8 +123,10 @@ export const useLibrary = create<LibraryState>()(
         return movie;
       },
       restoreMovie: (movie) => set((s) => ({ movies: { ...s.movies, [movie.id]: movie } })),
-      setMovieWatched: (id, watched) =>
-        set((s) => (s.movies[id] ? { movies: { ...s.movies, [id]: { ...s.movies[id], watchedAt: watched ? Date.now() : undefined } } } : s)),
+      setMovieWatched: (id, watched, at) =>
+        set((s) => (s.movies[id] ? { movies: { ...s.movies, [id]: { ...s.movies[id], watchedAt: watched ? (at ?? Date.now()) : undefined } } } : s)),
+      setShowRating: (id, rating) => set((s) => patchShow(s, id, (show) => ({ ...show, rating }))),
+      setMovieRating: (id, rating) => set((s) => (s.movies[id] ? { movies: { ...s.movies, [id]: { ...s.movies[id], rating } } } : s)),
 
       importData: (data, mode) =>
         set((s) => {
@@ -120,12 +134,12 @@ export const useLibrary = create<LibraryState>()(
           const shows = { ...s.shows };
           for (const [id, show] of Object.entries(data.shows)) {
             const mine = shows[id];
-            shows[id] = mine ? { ...show, ...mine, watched: { ...show.watched, ...mine.watched } } : show;
+            shows[id] = mine ? { ...show, ...mine, rating: mine.rating ?? show.rating, watched: { ...show.watched, ...mine.watched } } : show;
           }
           const movies = { ...s.movies };
           for (const [id, movie] of Object.entries(data.movies)) {
             const mine = movies[id];
-            movies[id] = mine ? { ...movie, ...mine, watchedAt: mine.watchedAt ?? movie.watchedAt } : movie;
+            movies[id] = mine ? { ...movie, ...mine, rating: mine.rating ?? movie.rating, watchedAt: mine.watchedAt ?? movie.watchedAt } : movie;
           }
           return { shows, movies };
         }),
@@ -133,12 +147,18 @@ export const useLibrary = create<LibraryState>()(
       setLanguage: (language) => set({ language }),
     }),
     {
-      name: 'palais-mental/library',
-      version: 1,
+      name: STORE_KEY,
+      version: STORE_VERSION,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => ({ shows: s.shows, movies: s.movies, settings: s.settings, language: s.language }),
       // v0 was the 3D palace: nothing in it maps to tracked shows, so start clean.
-      migrate: (persisted, version) => (version < 1 ? {} : persisted) as LibraryState,
+      // v1 → v2 only adds optional fields: the library is kept as is, with a copy saved first.
+      migrate: async (persisted, version) => {
+        if (version < 1) return {} as LibraryState;
+        const p = persisted as Partial<LibraryData>;
+        await AsyncStorage.setItem(`${STORE_KEY}@v${version}`, JSON.stringify(compactLibrary({ shows: p.shows ?? {}, movies: p.movies ?? {} }))).catch(() => undefined);
+        return persisted as LibraryState;
+      },
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<LibraryState>;
         return { ...current, ...p, settings: { ...DEFAULT_SETTINGS, ...p.settings } };

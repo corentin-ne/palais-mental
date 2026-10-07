@@ -34,7 +34,10 @@ export type IconName =
   | 'bell'
   | 'user'
   | 'undo'
-  | 'chevronRight';
+  | 'chevronRight'
+  | 'star'
+  | 'starFill'
+  | 'link';
 
 interface Props {
   name: IconName;
@@ -196,6 +199,17 @@ function renderIcon(name: IconName, s: object, color: string) {
         <>
           <Rect {...s} x={4} y={5.5} width={16} height={14.5} rx={3} />
           <Path {...s} d="M4 10h16M8.5 3.5v4M15.5 3.5v4" />
+        </>
+      );
+    case 'star':
+      return <Path {...s} d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" />;
+    case 'starFill':
+      return <Path {...s} fill={color} d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" />;
+    case 'link':
+      return (
+        <>
+          <Path {...s} d="M10 14a4.2 4.2 0 0 0 6 0l3-3a4.2 4.2 0 0 0-6-6l-1 1" />
+          <Path {...s} d="M14 10a4.2 4.2 0 0 0-6 0l-3 3a4.2 4.2 0 0 0 6 6l1-1" />
         </>
       );
     case 'bell':

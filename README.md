@@ -24,7 +24,10 @@ npm run typecheck
 - **Trailer, where to watch, more like this.** Trailers open on YouTube, streaming/rent/buy services for your country, and similar titles (with a TMDB key; search links otherwise). IMDb link on every title.
 - **History.** Every episode and film you watched, day by day.
 - **Light and dark.** Follows the system, or pick one in **You → Settings**. English and French.
-- **Your data.** Export a full JSON backup (re-importable, merged on import) or CSV sheets of every episode and film.
+- **Your data.** Export a full JSON backup (re-importable, merged on import) or CSV sheets of every episode and film. Automatic copies are kept on the phone every few days and can be merged back from **You → Your data**. Updates never reset the library: store migrations keep every entry and save a copy first.
+- **Connections.** Letterboxd, MyAnimeList and AniList by username (public profiles, no password or API key), plus Letterboxd and IMDb export CSVs. Syncing is additive: titles missing here are added, episodes and films watched there are ticked here, ratings fill in, nothing is removed. The other way goes through each service's import page: **Export what's missing** writes a Letterboxd CSV or a MyAnimeList XML (also read by AniList) with only what that service doesn't have.
+- **Sequels and universes.** From Wikidata: sequels, the same film series, franchise or fictional universe (MCU, Star Wars…) as anything in your library show up in the calendar (dashed) with a release-day notification, and recent ones in **Up next → Out now in your universes**.
+- **Ratings.** Half-star ratings on films and shows, imported from other services, exported to Letterboxd and in the CSVs; sort the library by rating.
 
 ## Data sources
 

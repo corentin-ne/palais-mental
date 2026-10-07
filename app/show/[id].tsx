@@ -9,6 +9,7 @@ import Extras, { Similar } from '@/components/media/Extras';
 import Button from '@/components/ui/Button';
 import CheckButton from '@/components/ui/CheckButton';
 import PressableScale from '@/components/ui/PressableScale';
+import StarRating from '@/components/ui/StarRating';
 import { FadeIn, animateLayout } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -150,6 +151,10 @@ export default function ShowScreen() {
                 {!progress.next && progress.upcoming?.airstamp && (
                   <Text style={styles.nextAir}>{t('show.nextAirs', { code: episodeCode(progress.upcoming), when: countdown(progress.upcoming.airstamp) })}</Text>
                 )}
+                <View style={styles.rate}>
+                  <Text style={styles.rateLabel}>{t('rating.yours')}</Text>
+                  <StarRating value={tracked.rating} onChange={(v) => useLibrary.getState().setShowRating(id, v)} size={24} />
+                </View>
                 <View style={styles.actions}>
                   <Button
                     label={state === 'dropped' ? t('show.resume') : t('show.drop')}
@@ -286,6 +291,8 @@ function EpisodeRow({
 }
 
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
+  rate: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+  rateLabel: { ...type.label },
   panel: { marginTop: 22, padding: 16, gap: 10, borderRadius: radii.lg, backgroundColor: palette.surface },
   progressHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   progressText: { fontFamily: fonts.medium, fontSize: 14.5, color: palette.ink },

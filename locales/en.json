@@ -28,7 +28,8 @@
     "title": "Everything you watch, in one place",
     "body": "Follow shows and films, tick episodes as you go, and know the day anything new comes out.",
     "cta": "Find a show or film",
-    "import": "Restore a backup"
+    "import": "Restore a backup",
+    "connect": "Bring your Letterboxd or anime lists"
   },
   "search": {
     "title": "Search",
@@ -66,7 +67,9 @@
   },
   "notify": {
     "movieTitle": "Out today",
-    "episode": "{{code}} is out · {{name}}"
+    "episode": "{{code}} is out · {{name}}",
+    "sequelTitle": "A sequel is out",
+    "relatedTitle": "New in a universe you follow"
   },
   "date": {
     "today": "Today",
@@ -108,7 +111,8 @@
     "sort": {
       "recent": "Recent",
       "title": "A–Z",
-      "next": "Next out"
+      "next": "Next out",
+      "rating": "Rating"
     }
   },
   "show": {
@@ -194,7 +198,11 @@
     "importFailed": "That file isn't a Palais Mental backup",
     "appearance": "Appearance",
     "light": "Light",
-    "dark": "Dark"
+    "dark": "Dark",
+    "snapshotsHint": "Automatic copies kept on this phone. Restoring merges them in: nothing logged since is lost.",
+    "snapshot": "Copy from {{date}}",
+    "snapshotCounts": "{{shows}} shows · {{movies}} films",
+    "snapshotRestored": "Copy merged back in"
   },
   "extras": {
     "trailer": "Trailer",
@@ -211,5 +219,51 @@
     "film": "Film",
     "emptyTitle": "Nothing watched yet",
     "emptyBody": "Episodes and films you mark as watched appear here."
+  },
+  "rating": {
+    "label": "Your rating",
+    "yours": "Your rating",
+    "stars_one": "{{count}} star",
+    "stars_other": "{{count}} stars"
+  },
+  "related": {
+    "chip": "Universes",
+    "sequel": "Sequel",
+    "universe": "Universe",
+    "sequelTo": "Sequel to {{title}}",
+    "sameUniverse": "Same universe as {{title}}",
+    "outNow": "Out now in your universes",
+    "setting": "Sequels and universes",
+    "settingHint": "Sequels and titles from the same universe (MCU, Star Wars…) as what you watch, in the calendar"
+  },
+  "connect": {
+    "title": "Connections",
+    "rowHint": "Letterboxd, MyAnimeList, AniList, IMDb",
+    "intro": "Just a username: public profiles are read, no password or API key. Syncing only adds: what is missing here is added, what you watched there is ticked here, nothing is removed. To send what is missing the other way, export a file and import it on the service.",
+    "web": "In a browser these sites refuse to be read: use the phone app.",
+    "letterboxdHint": "Your latest diary entries (public profile)",
+    "malHint": "Your anime list (public list)",
+    "anilistHint": "Your anime list (public profile)",
+    "username": "Username",
+    "connect": "Connect",
+    "sync": "Sync now",
+    "export": "Export what’s missing",
+    "disconnect": "Disconnect",
+    "error": "Not reachable",
+    "lastSync": "Last sync {{when}} · {{changes}} changes",
+    "exportLetterboxd": "CSV of the films you watched that Letterboxd doesn’t have. Import it at letterboxd.com/import.",
+    "exportAnime": "MyAnimeList XML of your anime missing there. Import it at myanimelist.net/import.php or in AniList settings › Import.",
+    "auto": "Sync automatically",
+    "autoHint": "Connected accounts are read again when you open the app, twice a day at most.",
+    "files": "Import export files",
+    "filesHint": "Letterboxd (diary.csv, watched.csv, ratings.csv, watchlist.csv from Settings › Data › Export) and IMDb (ratings or watchlist CSV). Several at once is fine.",
+    "pickFiles": "Choose files",
+    "progress": "Matching {{done}} of {{total}}…",
+    "synced": "{{added}} added · {{updated}} updated",
+    "failed": "Couldn’t read it. Check the username and that the profile is public.",
+    "exported": "{{count}} titles exported",
+    "unmatched_one": "{{count}} title not found",
+    "unmatched_other": "{{count}} titles not found",
+    "unmatchedHint": "These couldn’t be matched to TVmaze or a film source. They are retried in a few days."
   }
 }

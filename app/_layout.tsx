@@ -68,6 +68,7 @@ export default function RootLayout() {
         <Stack.Screen name="show/[id]" />
         <Stack.Screen name="movie/[id]" />
         <Stack.Screen name="history" />
+        <Stack.Screen name="connections" />
       </Stack>
       <Toast />
     </SafeBoundary>

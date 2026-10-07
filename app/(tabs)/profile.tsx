@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { Linking, Platform, Switch, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
@@ -13,8 +13,9 @@ import { makeStyles, noOutline, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
 import { validateTmdbKey } from '@/lib/api';
-import { ExportKind, exportData, pickBackup } from '@/lib/backup';
-import { duration } from '@/lib/format';
+import { ExportKind, Snapshot, autoSnapshot, exportData, listSnapshots, pickBackup, restoreSnapshot } from '@/lib/backup';
+import { refreshRelated } from '@/lib/related';
+import { duration, fullDate } from '@/lib/format';
 import { minutesWatched } from '@/lib/progress';
 import { refreshLibrary, requestNotifications, scheduleNotifications } from '@/lib/sync';
 import type { LanguagePreference } from '@/locales/i18n';
@@ -82,6 +83,7 @@ export default function ProfileScreen() {
 
       <View style={[styles.group, { marginTop: 12 }]}>
         <ActionRow icon="clock" label={t('history.title')} hint={t('history.hint')} onPress={() => router.push('/history')} />
+        <ActionRow icon="link" label={t('connect.title')} hint={t('connect.rowHint')} onPress={() => router.push('/connections')} />
       </View>
 
       <Section title={t('profile.settings')}>
@@ -105,6 +107,18 @@ export default function ProfileScreen() {
               <Switch value={settings.haptics} trackColor={{ true: palette.primary, false: palette.fieldActive }} thumbColor="#fff" onValueChange={(v) => setSettings({ haptics: v })} />
             </Row>
           )}
+          <Row icon="movies" label={t('related.setting')} hint={t('related.settingHint')}>
+            <Switch
+              value={settings.related}
+              trackColor={{ true: palette.primary, false: palette.fieldActive }}
+              thumbColor="#fff"
+              onValueChange={(v) => {
+                haptics.select();
+                setSettings({ related: v });
+                if (v) refreshRelated(true);
+              }}
+            />
+          </Row>
           <View style={[styles.block, styles.blockLine]}>
             <View style={styles.rowHead}>
               <Icon name="eye" size={20} color={palette.ink} />
@@ -150,6 +164,7 @@ export default function ProfileScreen() {
           <ActionRow icon="movies" label={t('profile.exportMovies')} onPress={() => onExport('movies-csv')} />
           <ActionRow icon="upload" label={t('profile.import')} hint={t('profile.importHint')} onPress={onImport} />
         </Group>
+        <Snapshots />
       </Section>
     </Screen>
   );
@@ -200,6 +215,37 @@ function ActionRow({ icon, label, hint, onPress }: { icon: IconName; label: stri
         <Icon name="chevronRight" size={16} color={palette.inkFaint} />
       </Row>
     </PressableScale>
+  );
+}
+
+/** Copies kept on the device every few days: merged back in, never replacing anything. */
+function Snapshots() {
+  const { t } = useTranslation();
+  const styles = useStyles();
+  const [list, setList] = useState<Snapshot[]>([]);
+  useEffect(() => {
+    autoSnapshot().then(listSnapshots).then(setList);
+  }, []);
+  if (!list.length) return null;
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={styles.footnote}>{t('profile.snapshotsHint')}</Text>
+      <Group>
+        {list.map((s) => (
+          <ActionRow
+            key={s.at}
+            icon="undo"
+            label={t('profile.snapshot', { date: fullDate(s.at) })}
+            hint={t('profile.snapshotCounts', { shows: s.shows, movies: s.movies })}
+            onPress={async () => {
+              const ok = await restoreSnapshot(s.at);
+              useUi.getState().showToast(t(ok ? 'profile.snapshotRestored' : 'profile.importFailed'));
+              if (ok) refreshLibrary();
+            }}
+          />
+        ))}
+      </Group>
+    </View>
   );
 }
 

@@ -13,7 +13,7 @@ import { Episode, Movie, MovieSource, Show } from './types';
 const TTL = 5 * 60_000;
 const cache = new Map<string, { at: number; value: Promise<unknown> }>();
 
-async function getJson<T = any>(url: string, init?: RequestInit): Promise<T> {
+export async function getJson<T = any>(url: string, init?: RequestInit): Promise<T> {
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < TTL) return hit.value as Promise<T>;
   const value = fetch(url, { ...init, headers: { Accept: 'application/json', ...init?.headers } }).then((r) => {
@@ -25,7 +25,27 @@ async function getJson<T = any>(url: string, init?: RequestInit): Promise<T> {
   return value as Promise<T>;
 }
 
-const quiet = async <T,>(p: Promise<T>, fallback: T): Promise<T> => {
+/** Plain text (RSS, CSV) with the same in-memory cache. */
+export function getText(url: string, init?: RequestInit): Promise<string> {
+  const hit = cache.get(url);
+  if (hit && Date.now() - hit.at < TTL) return hit.value as Promise<string>;
+  const value = fetch(url, init).then((r) => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.text();
+  });
+  cache.set(url, { at: Date.now(), value });
+  value.catch(() => cache.delete(url));
+  return value;
+}
+
+/** JSON without caching (POST bodies, paged account lists). */
+export async function postJson<T = any>(url: string, body: string, headers: Record<string, string>): Promise<T> {
+  const r = await fetch(url, { method: 'POST', body, headers: { Accept: 'application/json', ...headers } });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+export const quiet = async <T,>(p: Promise<T>, fallback: T): Promise<T> => {
   try {
     return await p;
   } catch {
@@ -55,7 +75,7 @@ export const stripHtml = (s?: string | null) =>
         .trim() || undefined
     : undefined;
 const https = (u?: string | null) => u?.replace(/^http:\/\//, 'https://') ?? undefined;
-const norm = (s: string) =>
+export const norm = (s: string) =>
   s
     .toLocaleLowerCase()
     .normalize('NFD')
@@ -571,3 +591,16 @@ export const youtubeSearch = (title: string, year?: number) => `https://www.yout
 export const youtubeWatch = (key: string) => `https://www.youtube.com/watch?v=${key}`;
 export const justWatchSearch = (title: string, lang: string) => `https://www.justwatch.com/${lang === 'fr' ? 'fr/recherche' : 'us/search'}?q=${enc(title)}`;
 export const imdbPage = (imdbId: string) => `https://www.imdb.com/title/${imdbId}/`;
+
+/** One IMDb title (film or show) by its tt id: title, year and poster, keyless. */
+export async function imdbTitle(imdbId: string): Promise<SearchResult | undefined> {
+  const json = await quiet(getJson<{ d?: ImdbSuggestion[] }>(`https://v3.sg.media-imdb.com/suggestion/t/${enc(imdbId)}.json`), null);
+  const d = json?.d?.find((x) => x.id === imdbId);
+  return d?.l ? { kind: 'movie', id: `imdb-${imdbId}`, title: d.l, year: d.y, poster: imdbArt(d.i?.imageUrl), subtitle: d.s } : undefined;
+}
+
+/** TVmaze id of a show known by its IMDb id. */
+export async function tvmazeIdByImdb(imdbId: string) {
+  const s = await quiet(getJson<{ id?: number }>(`${TVMAZE}/lookup/shows?imdb=${enc(imdbId)}`), null);
+  return s?.id;
+}
