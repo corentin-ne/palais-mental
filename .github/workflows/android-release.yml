@@ -1,7 +1,7 @@
 name: Android release
 
 # Builds an installable APK and attaches it to a GitHub release.
-#  - push to main  → (re)publishes the pre-release "v<package.json version>-alpha"
+#  - push to main  → publishes "v<package.json version>" (a pre-release when the version has a "-")
 #  - push a v* tag → publishes that tag (pre-release when it contains "-")
 on:
   push:
@@ -58,7 +58,7 @@ jobs:
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             echo "name=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
           else
-            echo "name=v$(node -p "require('./package.json').version")-alpha" >> "$GITHUB_OUTPUT"
+            echo "name=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Name the artifact
