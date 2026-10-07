@@ -6,6 +6,7 @@ name: Android release
 on:
   push:
     branches: [main]
+    paths-ignore: ['.github/workflows/prune-branches.yml']
     tags: ['v*']
   workflow_dispatch:
 

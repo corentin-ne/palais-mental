@@ -1,7 +1,11 @@
 name: Prune merged branches
 
-# Run by hand: deletes every branch already fully merged into main. Unmerged branches are kept.
+# Deletes every branch already fully merged into main (unmerged branches are kept).
+# Runs when this file changes on main, or by hand.
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/prune-branches.yml']
   workflow_dispatch:
 
 permissions:
@@ -22,7 +26,7 @@ jobs:
             [ "$b" = "main" ] || [ "$b" = "HEAD" ] || [ "$b" = "origin" ] && continue
             if git merge-base --is-ancestor "$ref" origin/main; then
               echo "Deleting $b (merged)"
-              git push origin --delete "$b"
+              git push origin --delete "$b" || echo "Could not delete $b (the repository default branch cannot be deleted)"
             else
               echo "Keeping $b (not merged into main)"
             fi
