@@ -2,13 +2,13 @@ import { useMemo } from 'react';
 import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import { usePalaceStore } from '@/store/usePalaceStore';
+import { useLibrary } from '@/store/useLibrary';
 
 const quiet = () => undefined;
 
 /** Haptic vocabulary of the app; silent on web or when the user turned haptics off. */
 export function useHaptics() {
-  const enabled = usePalaceStore((s) => s.settings.haptics) && Platform.OS !== 'web';
+  const enabled = useLibrary((s) => s.settings.haptics) && Platform.OS !== 'web';
   return useMemo(
     () =>
       enabled

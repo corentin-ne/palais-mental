@@ -1,102 +1,67 @@
-export const CATEGORIES = ['movies', 'series', 'music', 'books', 'boardgames', 'videogames'] as const;
-export type CategoryId = (typeof CATEGORIES)[number];
+/** A tracked episode. Specials are left out; `airstamp` is absent while the date is unknown. */
+export interface Episode {
+  id: number;
+  season: number;
+  number: number;
+  name: string;
+  airstamp?: number;
+  runtime?: number;
+  image?: string;
+}
 
-export interface BaseItem {
+/** A series followed through TVmaze. */
+export interface Show {
   id: string;
-  category: CategoryId;
+  tvmazeId: number;
   title: string;
-  createdAt: number;
-  updatedAt?: number;
-  /** Director, showrunner, artist, author, designer or studio — label depends on category. */
-  creator?: string;
+  poster?: string;
+  backdrop?: string;
   year?: number;
-  /** 0 (unrated) to 5, in half steps. */
-  rating?: number;
-  note?: string;
-  /** Artwork from the catalog (poster, book cover, album art, box art). */
-  coverUrl?: string;
-  /** Dominant colour of the artwork (#rrggbb), used to tint the object in the palace. */
-  coverColor?: string;
-  /** Where the metadata came from, so a second log of the same title is recognized. */
-  source?: ItemSource;
-  /** Release date of the work (ms). In the future → the item is awaited, and you get notified. */
-  releaseDate?: number;
-  /** Series: next episode on air, refreshed from TVmaze. */
-  nextEpisode?: { date: number; season: number; number: number; name?: string };
-  /** Series with a TVmaze id can be followed for new episodes. */
-  tvmazeId?: number;
-  /**
-   * Hero Swap flag. `false` while the item is still owned by the HeroItemSpawner
-   * (materializing / flying); the shelf InstancedMesh only renders settled items.
-   */
-  settled: boolean;
+  network?: string;
+  /** TVmaze status: Running, Ended, To Be Determined, In Development. */
+  status?: string;
+  genres: string[];
+  summary?: string;
+  runtime?: number;
+  imdbId?: string;
+  episodes: Episode[];
+  /** Episode id → when it was marked watched (ms). */
+  watched: Record<string, number>;
+  /** Dropped shows stay in the library but leave Up next and the calendar. */
+  droppedAt?: number;
+  addedAt: number;
+  syncedAt: number;
 }
 
-/** One season = one disc. `watched / episodeCount` is the disc's pie fraction. */
-export interface Season {
-  episodeCount: number;
-  watched: number;
-}
+/** Where a film's metadata comes from. TMDB when a key is set, else keyless sources. */
+export type MovieSource = 'tmdb' | 'imdb' | 'itunes';
 
-export interface SeriesItem extends BaseItem {
-  category: 'series';
-  /** Seasons before the first tracked one (a series logged from season 3 has offset 2). */
-  seasonOffset?: number;
-  seasons: Season[];
-}
-
-export interface StandardItem extends BaseItem {
-  category: Exclude<CategoryId, 'series'>;
-}
-
-export type PalaceItem = SeriesItem | StandardItem;
-
-/** A queued center-screen reward. Processed strictly one at a time. */
-export type HeroEvent =
-  | { id: string; kind: 'item'; itemId: string }
-  | {
-      id: string;
-      kind: 'episode';
-      itemId: string;
-      seasonIndex: number;
-      /** 0-based index of the slice that materializes. */
-      episodeIndex: number;
-      episodeCount: number;
-      completesSeason: boolean;
-    };
-
-/** 'window' is the idle home view: eye level, facing the sunlit window. */
-export type CameraFocus = 'window' | CategoryId;
-
-/** Editable metadata of any item. */
-export type ItemDetails = Pick<BaseItem, 'title' | 'creator' | 'year' | 'rating' | 'note' | 'coverUrl'>;
-
-export type CatalogProvider =
-  | 'openlibrary'
-  | 'googlebooks'
-  | 'itunes'
-  | 'tvmaze'
-  | 'musicbrainz'
-  | 'deezer'
-  | 'steam'
-  | 'wikipedia'
-  | 'wikidata'
-  | 'imdb'
-  | 'jikan'
-  | 'gog'
-  | 'bgg'
-  | 'gutendex'
-  | 'manual';
-export interface ItemSource {
-  provider: CatalogProvider;
+export interface Movie {
+  /** `${source}-${sourceId}`, also the route parameter. */
   id: string;
+  source: MovieSource;
+  sourceId: string;
+  title: string;
+  poster?: string;
+  backdrop?: string;
+  year?: number;
+  /** Release date (ms). In the future → shown in the calendar and notified. */
+  releaseDate?: number;
+  runtime?: number;
+  overview?: string;
+  genres: string[];
+  director?: string;
+  imdbId?: string;
+  watchedAt?: number;
+  addedAt: number;
+  syncedAt: number;
 }
 
+export type ShowState = 'watching' | 'notStarted' | 'upToDate' | 'finished' | 'dropped';
 
-export interface PalaceSettings {
-  /** Dust, cloud drift and beam shimmer after interactions. */
-  ambient: boolean;
-  haptics: boolean;
-  /** Local notifications for releases and new episodes. */
+export interface Settings {
   notifications: boolean;
+  haptics: boolean;
+  /** Optional TMDB v3 key or v4 read token: richer film data, backdrops and release dates. */
+  tmdbKey: string;
 }

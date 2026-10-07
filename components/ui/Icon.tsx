@@ -1,10 +1,20 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { useTheme } from '@/constants/theme';
-import { CategoryId } from '@/lib/types';
 
 export type IconName =
-  | CategoryId
+  | 'movies'
+  | 'series'
+  | 'play'
+  | 'pause'
+  | 'download'
+  | 'upload'
+  | 'key'
+  | 'globe'
+  | 'eye'
+  | 'clock'
+  | 'home'
+  | 'more'
   | 'window'
   | 'plus'
   | 'close'
@@ -63,44 +73,57 @@ function renderIcon(name: IconName, s: object, color: string) {
           <Path {...s} d="M10.2 10.6v4.8l4-2.4z" />
         </>
       );
-    case 'music':
-      return (
-        <>
-          <Circle {...s} cx={12} cy={12} r={9} />
-          <Circle {...s} cx={12} cy={12} r={3} />
-          <Path {...s} d="M12 5.5a6.5 6.5 0 0 1 6.5 6.5" opacity={0.55} />
-        </>
-      );
-    case 'books':
-      return (
-        <>
-          <Path {...s} d="M12 6.6C10.4 5.1 7.9 4.5 4 4.5v13.4c3.9 0 6.4.6 8 2.1 1.6-1.5 4.1-2.1 8-2.1V4.5c-3.9 0-6.4.6-8 2.1z" />
-          <Path {...s} d="M12 6.6V20" />
-        </>
-      );
-    case 'boardgames':
-      return (
-        <>
-          <Rect {...s} x={3.5} y={3.5} width={17} height={17} rx={4.5} />
-          <Circle cx={8.3} cy={8.3} r={1.35} fill={color} />
-          <Circle cx={12} cy={12} r={1.35} fill={color} />
-          <Circle cx={15.7} cy={15.7} r={1.35} fill={color} />
-        </>
-      );
-    case 'videogames':
-      return (
-        <>
-          <Path {...s} d="M7.2 7.5h9.6a4 4 0 0 1 3.9 3.1l1 4.3a2.6 2.6 0 0 1-4.4 2.3l-1.9-2h-6.8l-1.9 2a2.6 2.6 0 0 1-4.4-2.3l1-4.3a4 4 0 0 1 3.9-3.1z" />
-          <Path {...s} d="M8 10.3v3.2M6.4 11.9h3.2" />
-          <Circle cx={15.4} cy={11.2} r={1} fill={color} />
-          <Circle cx={17.2} cy={13} r={1} fill={color} />
-        </>
-      );
     case 'window':
       return (
         <>
           <Path {...s} d="M5.5 20.5V10a6.5 6.5 0 0 1 13 0v10.5z" />
           <Path {...s} d="M12 3.5v17M5.5 12.5h13" />
+        </>
+      );
+    case 'play':
+      return <Path {...s} d="M8 5.5v13l10.5-6.5z" />;
+    case 'pause':
+      return <Path {...s} d="M9 5.5v13M15 5.5v13" />;
+    case 'download':
+      return <Path {...s} d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14" />;
+    case 'upload':
+      return <Path {...s} d="M12 15V4M7.5 8.5L12 4l4.5 4.5M5 19.5h14" />;
+    case 'key':
+      return (
+        <>
+          <Circle {...s} cx={8} cy={15} r={4} />
+          <Path {...s} d="M11 12l8.5-8.5M16.5 6.5l2.5 2.5M14.5 8.5l2 2" />
+        </>
+      );
+    case 'globe':
+      return (
+        <>
+          <Circle {...s} cx={12} cy={12} r={8.5} />
+          <Path {...s} d="M3.5 12h17M12 3.5c2.4 2.4 3.5 5.2 3.5 8.5s-1.1 6.1-3.5 8.5c-2.4-2.4-3.5-5.2-3.5-8.5s1.1-6.1 3.5-8.5z" />
+        </>
+      );
+    case 'eye':
+      return (
+        <>
+          <Path {...s} d="M2.8 12S6.2 5.5 12 5.5 21.2 12 21.2 12 17.8 18.5 12 18.5 2.8 12 2.8 12z" />
+          <Circle {...s} cx={12} cy={12} r={2.8} />
+        </>
+      );
+    case 'clock':
+      return (
+        <>
+          <Circle {...s} cx={12} cy={12} r={8.5} />
+          <Path {...s} d="M12 7.5V12l3 2" />
+        </>
+      );
+    case 'home':
+      return <Path {...s} d="M4.5 10.5L12 4l7.5 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-3.5v-6h-5v6H6A1.5 1.5 0 0 1 4.5 19z" />;
+    case 'more':
+      return (
+        <>
+          <Circle cx={6} cy={12} r={1.5} fill={color} />
+          <Circle cx={12} cy={12} r={1.5} fill={color} />
+          <Circle cx={18} cy={12} r={1.5} fill={color} />
         </>
       );
     case 'plus':

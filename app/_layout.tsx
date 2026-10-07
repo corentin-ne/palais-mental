@@ -1,9 +1,11 @@
 import '@/locales/i18n';
 
-import { View } from 'react-native';
-import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { Platform, View } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
+import * as Notifications from 'expo-notifications';
 import {
   InstrumentSans_400Regular,
   InstrumentSans_500Medium,
@@ -13,12 +15,31 @@ import {
 import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
 
 import SafeBoundary from '@/components/ui/SafeBoundary';
-import { makeStyles, useTheme } from '@/constants/theme';
+import Toast from '@/components/ui/Toast';
+import { useTheme } from '@/constants/theme';
 import { useLanguageSync } from '@/hooks/useLanguageSync';
+import { startSync } from '@/lib/sync';
+
+/** Tapping a release notification opens that show or film. */
+function useNotificationRouting() {
+  const router = useRouter();
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const open = (r: Notifications.NotificationResponse | null) => {
+      const url = r?.notification.request.content.data?.url;
+      if (typeof url === 'string') router.push(url as never);
+    };
+    Notifications.getLastNotificationResponseAsync().then(open).catch(() => undefined);
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    return () => sub.remove();
+  }, [router]);
+}
 
 export default function RootLayout() {
   const { palette } = useTheme();
   useLanguageSync();
+  useNotificationRouting();
+  useEffect(() => startSync(), []);
   const [loaded, error] = useFonts({
     InstrumentSans_400Regular,
     InstrumentSans_500Medium,
@@ -28,13 +49,19 @@ export default function RootLayout() {
     InstrumentSerif_400Regular_Italic,
   });
 
-  // Hold on the room's ground colour until the type is ready; on failure, system fonts take over.
+  // Hold on the background colour until the type is ready; on failure, system fonts take over.
   if (!loaded && !error) return <View style={{ flex: 1, backgroundColor: palette.bg }} />;
 
   return (
     <SafeBoundary>
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.bg } }} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.bg }, animation: 'slide_from_right' }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="search" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="show/[id]" />
+        <Stack.Screen name="movie/[id]" />
+      </Stack>
+      <Toast />
     </SafeBoundary>
   );
 }

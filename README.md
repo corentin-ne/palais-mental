@@ -1,8 +1,8 @@
 # Palais Mental
 
-A mental palace for the films, series, albums, books, board games and video games that stayed with you. Each one becomes an object in a 3D room. Each collection has its own piece of furniture, and the furniture changes shape as the collection grows.
+Track the shows and films you watch, and know the day anything new comes out. A calmer, faster take on TV Time: no ratings, no feed, no clutter.
 
-Universal Expo app (iOS, Android, Web) · Expo Router · React Three Fiber · Zustand · i18next (EN/FR)
+Universal Expo app (iOS, Android, Web) · Expo Router · Zustand · i18next (EN/FR)
 
 ## Getting started
 
@@ -10,112 +10,46 @@ Universal Expo app (iOS, Android, Web) · Expo Router · React Three Fiber · Zu
 npm install
 npm run android   # or: npm run ios / npm run web
 npm run typecheck
-npm test          # catalog parsers and cover colours, with fixtures
 ```
 
-**Test on a phone without a dev setup:** download the APK from the latest [GitHub release](../../releases). Every `v*` tag is built by `.github/workflows/android-release.yml`.
+**Test on a phone without a dev setup:** download the APK from the latest [GitHub release](../../releases). Every push to `main` is built by `.github/workflows/android-release.yml`.
 
-## What you can do
+## What it does
 
-- **Palace (home).** A tropical lagoon: clear turquoise water over white sand and coral, in free view: drag to look all the way round, tap to ripple it. Everything you log falls into the water as a drop, anywhere you can see. The tab bar is the only interface on top. Each collection is an island on the horizon that grows with it; dolphins, leaping fish and gulls come by now and then.
-- **Add in a few taps.** Tap **+**, type a few letters, tap the right cover. Metadata and artwork come from free, keyless catalogs, queried in parallel and merged (a later source fills a missing cover or year):
-  - films: iTunes, IMDb suggestions, MyAnimeList (Jikan), Wikidata and Wikipedia
-  - series: TVmaze (seasons, episode counts, next episodes), IMDb suggestions, iTunes, MyAnimeList and Wikidata
-  - albums: iTunes, Deezer, MusicBrainz with the Cover Art Archive, and Wikipedia
-  - books: Google Books, Open Library, Apple Books, MyAnimeList (manga), Gutendex and Wikidata
-  - video games: Steam, GOG, IMDb suggestions, Wikipedia and Wikidata
-  - board games: BoardGameGeek, Wikipedia and Wikidata
+- **Up next.** The next episode of every show you're watching, with its still, progress and one tick to mark it watched; the next one slides in. Below: what's airing soon, shows you haven't started, and films waiting on your watchlist.
+- **Calendar.** Every upcoming episode and film release you follow, day by day, with premieres and new seasons flagged. Local notifications when an episode airs or a film comes out (phones).
+- **Library.** Shows by state (watching, not started, up to date, finished, dropped) and films (to watch, coming soon, watched), as a poster wall with progress bars.
+- **Detail pages.** Parallax backdrop, synopsis, cast, seasons and episodes. Tick an episode, long-press a tick to mark everything up to it, or mark a whole season. Drop a show and resume it later.
+- **Search.** One field for shows and films, add straight from the results. Before you type: what's on tonight and popular films.
+- **Your data.** Export a full JSON backup (re-importable, merged on import) or CSV sheets of every episode and film.
 
-  Manual entry is always one row away. The same request made by several collections (the "Everything" search) goes out once.
-- **Artwork everywhere.** Objects without a cover are looked up in the background. Tap the cover in an object's sheet to choose among every artwork the catalogs know. On the web, each object takes the dominant colour of its cover on the shelf.
-- **Library.** The whole collection as a wall of covers, with search, filters and sorting.
-- **Soon.** The only place where time appears: new episodes of your series (followed through TVmaze) and release days of things you added before they came out, with optional local notifications.
-- **You.** Your collections, your favourites, and settings.
+## Data sources
 
-## Design principles
+| What | Source | Key |
+|---|---|---|
+| Shows, episodes, air times, artwork, cast | TVmaze | none |
+| Films (search, posters) | IMDb suggestions + iTunes | none |
+| Film release dates, runtime, director, summary | Wikidata + Wikipedia, iTunes | none |
+| Richer films: backdrops, cast, trending, exact dates; show backdrops TVmaze lacks | TMDB | optional, set in **You → Sources** |
 
-- **No scores.** No journal, dates, streaks, progress bars or unlock messages. The furniture evolving is the only sign of growth.
-- **Minimal interface.** The room is the menu; the interface is a row of chips, one card and the **+** button.
-- **Marine look.** Pale sky-blue paper, deep navy ink and ocean-blue actions, with the cover art as the colour. Instrument Sans for the interface, Instrument Serif for accents.
-- **Motion.** Springs everywhere: furniture morphs between stages, objects pop out of a pearl of light, camera moves are short and decisive.
-
-## The water
-
-- **Water.** One full-screen pass: a ray from the eye meets the water, the normal comes from a calm swell (each wave fades once it is smaller than a few pixels, so the distance stays smooth) plus a wave-equation ripple field. The refracted ray lands on white sand combed by the tide with clusters of coral heads, lit by caustics; the water absorbs reds first, so the sand turns turquoise and the lagoon deepens to blue. Far out, turquoise lagoons ring the islands. The reflected ray sees the sky: azure overhead, aqua at the horizon, a peach glow toward the sun, a lavender blush opposite, cumulus with lit rims and cirrus veils.
-- **Free view.** The camera orbits the centre of the water; drags turn it all the way round and tilt it, with momentum when you let go.
-- **Islands.** One per collection: a green volcanic peak with jungle crowns and palms, a white beach and surf, drawn in the sky shader so they also reflect in the water. Each grows smoothly with its collection.
-- **Drops.** A logged item gathers in the air over a random spot of the water in view, holding its cover, then falls with its focused light and shadow on the pebbles, and melts in: splash, a jet that falls back, and a bloom of its colour. Episodes fall as smaller drops.
-- **Visitors.** A school of yellow, blue, orange and pink reef fish drifting over the sand, dolphins, a shoal of small fish skipping out of the water, gulls wheeling overhead, where you are looking.
-- **Fluid.** The loop runs only while the Palace tab is on screen; the pixel ratio steps down when frames run long and back up when there is headroom. Phones without half-float render targets keep everything but the ripples.
-- **Tuning.** `config/ocean.ts`: camera, sun, sky, island placement and growth, drop timing, how often animals visit.
-
-The room below is no longer on screen; its code stays in `components/3d/` for now.
-
-## The 3D palace (room)
-
-- **Room.** One cornerless lathe surface (floor, cove, round wall, dome) with an arched window cut in the shader. The floor is procedural light-oak parquet (per-plank tone, grain, knots, seams) finished with an oak skirting; the walls are lime plaster. Around it: a lacquered TV console with fluted doors (films, series and games stand beside it), a 2000s silver mini hi-fi on an oak bench (music stands beside it), sheer curtains on a brass rod, a window seat, a paper lantern, a reading corner (bouclé armchair, floor lamp, side table), a coffee table on the rug, framed prints drawn by a shader, and plants.
-- **Furniture.** Each collection stands on the flat floor in front of the curved wall, in cream lacquer, pastel back panels, oak planks and brass. It evolves with the collection:
-
-  | Objects | Shape |
-  |---|---|
-  | 0–5 | pedestal with an arched backdrop |
-  | 6–15 | console on brass legs |
-  | 16–35 | bookcase with bays and light lines |
-  | 36–71 | cabinet crowned by an arch |
-  | 72+ | wall unit flanked by arched towers |
-
-  A vase, then a plant, then candles gather on top as it evolves. Parts keep stable ids across stages and are driven by springs, so an evolution morphs instead of swapping models. Each part is rebuilt at its exact size, so rounded corners never stretch.
-- **Objects.** Two parts per object (a tinted body plus vertex-coloured trims), drawn with two instanced draw calls per collection. Every object has its own stable proportions, so a shelf never looks uniform:
-  - books: paperbacks and hardcovers of varied thickness and height
-  - music: CD jewel cases, with the odd double-disc fatbox
-  - films: DVDs, Blu-rays and steelbooks
-  - board games: one box size (variants are configurable)
-  - video games: standard, slim and handheld cases
-  - series: the box gets thicker with every season
-
-  Furniture packs objects by their real thickness, bay by bay.
-- **Arrival.** A new object is born in the centre of the screen: light spirals into a small pearl, the pearl collapses, and the object unwinds out of it with an elastic pop and a ring of light, showing its real cover, then flies to its slot. The furniture gives a small bounce as it lands.
-- **Light.** Beyond the sun through the window: a warm light in the dome and a cool rim, a soft beam on every piece of furniture with a pool of light on the floor and a halo on the wall behind it, light washing down each shelf's back panel, resin and jelly glowing from within, the TV's bias light, halos around the lamp and lantern, caustics from the glass table on the rug, and leaf-dappled sunlight drifting over the walls. All of it except the two lights is additive shading, nearly free to draw.
-- **Rendering.** `frameloop="demand"`: an idle palace draws nothing. Ambient dust and cloud drift run only briefly after an interaction. Web adds ambient occlusion and bloom on true highlights.
-
-## Customising
-
-Every tunable lives in `config/`; the rest of the code reads from it.
-
-| File | What you change there |
-|---|---|
-| `config/room.ts` | room size and growth, window, sun, where each collection stands (fixed angle or beside the TV, the hi-fi or another collection) |
-| `config/collections.ts` | object sizes and shape variants, palettes, finishes, how densely furniture packs them |
-| `config/furniture.ts` | stage thresholds and proportions, corner softness, the finish of each part |
-| `config/finishes.ts` | clay, satin, glossy, glass, frosted, jelly and metal: roughness, clearcoat, sheen, transmission, tint depth |
-| `config/decor.ts` | which room pieces exist, where they stand, their colours |
-| `config/lighting.ts` | ceiling and rim lights, beams, floor pools, wall and shelf washes, glowing resin, TV bias light, lamp and lantern halos, caustics, sun dappling the walls, bloom, vignette, ambient occlusion |
-| `config/look.ts` | light, sky, walls, floor and textile colours |
-| `config/motion.ts` | camera lens and flight timing, arrival timing |
-| `config/catalog.ts` | which sources each collection searches, in which order, and limits |
-
-Every material is built from a finish in `config/finishes.ts` (clay, satin, glossy, glass, frosted, jelly, metal) by `lib/finishes.ts`: soft sculpted-toy shading with clearcoat and sheen, and real transmission for glass, frosted resin and jelly on the web (alpha transparency on native unless `nativeTransmission` is on). Collections pick their finishes in `config/collections.ts`, furniture parts in `config/furniture.ts`.
-
-Surfaces also get quiet procedural textures (wood grain, linen weave, bouclé, plaster, paper) from `lib/materialPatches.ts`; call `withSurface(material, kind)` on any standard material.
+Shows still airing refresh every 6 hours, ended shows weekly, awaited films daily, plus pull-to-refresh.
 
 ## Structure
 
 ```
-app/(tabs)/              index (palace) · library · soon · profile (You) · _layout (tabs, sheets, release sync)
-config/                  every tunable (see Customising)
-components/3d/           MentalPalace, CameraRig, CategoryFurniture, FurnitureTop, FeaturedCover, CoverFace, HeroItemSpawner, InspectItem
-components/3d/decor/     TV console, hi-fi, reading corner, coffee table, lantern, curtains, prints, plants (+ shared materials, placement)
-components/3d/environment/ room shell, sky, sun shafts, dust, RoomDecor (composes the decor from config)
-components/ui/           LogFlow (search → confirm), ItemSheet, TabBar, Toast, Motion, CoverArt, Glass, Sheet, Controls, Icon…
-lib/catalog.ts           free catalog providers + pure, tested parsers + merge + cover matching
-lib/covers.ts            background artwork lookup and cover colours
-lib/coverColor.ts        dominant colour of a cover (web)
-lib/releases.ts          next episodes, awaited releases, local notifications
-lib/furnitureGeometry.ts soft furniture parts (rounded blocks, capsules, arches)
-lib/palaceLayout.ts      round room, zones, furniture stages, parts and packing
-store/usePalaceStore.ts  collection + settings (persisted, schema v4)
+app/
+  _layout.tsx            fonts, i18n, sync, notification routing, toast
+  (tabs)/                Up next · Calendar · Library · You (+ search button in the tab bar)
+  search.tsx             modal search
+  show/[id].tsx          show detail (TVmaze id)
+  movie/[id].tsx         film detail (tmdb-… / imdb-… / itunes-…)
+components/
+  media/                 detail layout, Up next card, poster rail
+  ui/                    glass, buttons, chips, segmented, check, poster, motion, toast
+lib/
+  api.ts                 TVmaze, TMDB, IMDb, iTunes, Wikidata
+  progress.ts            pure show-progress logic
+  sync.ts                refresh, calendar entries, notifications
+  backup.ts              JSON / CSV export, import
+store/useLibrary.ts      persisted library (AsyncStorage)
 ```
-
-## Versioning
-
-Commits follow `vX.Y.Z - <description>`. Tags `vX.Y.Z[-alpha]` produce a GitHub release with an Android APK.

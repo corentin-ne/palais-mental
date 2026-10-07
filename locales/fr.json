@@ -1,194 +1,181 @@
 {
-  "app": {
-    "title": "Palais Mental",
-    "items_one": "{{count}} souvenir",
-    "items_other": "{{count}} souvenirs",
-    "level": "Niveau {{level}}"
-  },
-  "nav": {
-    "window": "Horizon",
-    "settings": "Réglages",
-    "library": "Bibliothèque",
-    "add": "Ajouter un souvenir"
-  },
-  "categories": {
+  "tabs": { "upNext": "À suivre", "calendar": "Calendrier", "library": "Bibliothèque", "you": "Vous" },
+  "common": {
+    "undo": "Annuler",
+    "seeAll": "Tout voir",
+    "all": "Tout",
+    "shows": "Séries",
     "movies": "Films",
-    "series": "Séries",
-    "music": "Musique",
-    "books": "Livres",
-    "boardgames": "Jeux de société",
-    "videogames": "Jeux vidéo"
-  },
-  "creator": {
-    "movies": "Réalisation",
-    "series": "Création",
-    "music": "Artiste",
-    "books": "Auteur·rice",
-    "boardgames": "Auteur·rice",
-    "videogames": "Studio"
-  },
-  "log": {
-    "titleLabel": "Titre",
-    "titlePlaceholder": "ex. {{example}}",
-    "year": "Année",
-    "rating": "Note",
-    "note": "Mot",
-    "notePlaceholder": "Que voulez-vous en retenir ?",
-    "submit": "Ajouter au palais",
-    "back": "Retour",
     "cancel": "Annuler",
-    "searchAll": "Films, séries, livres, albums, jeux…",
-    "search": {
-      "movies": "Chercher un film",
-      "series": "Chercher une série",
-      "music": "Chercher un album",
-      "books": "Chercher un livre",
-      "boardgames": "Chercher un jeu de société",
-      "videogames": "Chercher un jeu vidéo"
-    },
-    "noResults": "Rien trouvé dans le catalogue.",
-    "addManually": "Ajouter « {{title}} » vous-même",
-    "addManuallyHint": "Saisir les détails à la main",
-    "episodesCount_one": "{{count}} épisode",
-    "episodesCount_other": "{{count}} épisodes",
-    "inPalace": "Déjà dans votre palais",
-    "searchHint": "Commencez à taper un titre.",
-    "confirmTitle": "Nouvel objet",
-    "wholeSeason": "Saison entière",
-    "stillWatching": "En cours",
     "clear": "Effacer",
-    "recentSearches": "Recherches récentes",
-    "comingOn": "Sortie le {{date}}",
-    "alreadyTitle": "Déjà là",
-    "alreadyBody": "Celui-ci a déjà sa place dans votre palais.",
-    "openIt": "L'ouvrir",
-    "awaitTitle": "Pas encore sorti",
-    "awaitBody": "Sortie le {{date}}. Il prend sa place dès maintenant, et vous serez prévenu ce jour-là.",
-    "await": "L'attendre"
+    "save": "Enregistrer",
+    "remove": "Retirer",
+    "retry": "Réessayer",
+    "back": "Retour"
   },
-  "item": {
-    "remove": "Retirer du palais",
-    "close": "Fermer",
-    "notePlaceholder": "Ajouter un mot…",
-    "yearPlaceholder": "Année",
-    "outOn": "Sortie {{date}}",
-    "nextEpisode": "Prochain : {{code}}",
-    "willNotify": "Vous serez prévenu ce jour-là",
-    "changeArtwork": "Changer l’illustration"
+  "greeting": {
+    "night": "Une séance de nuit ?",
+    "morning": "Bonjour.",
+    "afternoon": "Bon après-midi.",
+    "evening": "Bonsoir."
   },
-  "series": {
-    "progress": "S{{season}} · {{watched}}/{{total}}",
-    "season": "Saison {{season}}",
-    "episodes": "{{watched}} épisodes sur {{total}}",
-    "completed": "Toutes les saisons terminées",
-    "logEpisode": "Ajouter un épisode",
-    "newSeason": "Ajouter la saison {{season}}",
-    "episodesLabel": "Épisodes",
-    "continue": "Reprendre"
+  "welcome": {
+    "title": "Tout ce que vous regardez, au même endroit",
+    "body": "Suivez séries et films, cochez les épisodes au fil de l'eau et sachez le jour où quelque chose de nouveau sort.",
+    "cta": "Trouver une série ou un film",
+    "import": "Restaurer une sauvegarde"
   },
-  "focus": {
-    "count_one": "{{count}} objet",
-    "count_other": "{{count}} objets",
-    "empty": "Cette niche est encore vide. Touchez + pour y ajouter le premier.",
-    "open": "Bibliothèque"
+  "search": {
+    "title": "Rechercher",
+    "placeholder": "Séries et films",
+    "onTonight": "Ce soir",
+    "popularFilms": "Films populaires",
+    "none": "Aucun résultat pour « {{q}} ».",
+    "add": "Ajouter",
+    "added": "Dans votre bibliothèque"
+  },
+  "upNext": {
+    "title": "À suivre",
+    "left_one": "{{count}} restant",
+    "left_other": "{{count}} restants",
+    "episodes_one": "{{count}} épisode",
+    "episodes_other": "{{count}} épisodes",
+    "caughtUp": "Vous êtes à jour.",
+    "comingUp": "Bientôt",
+    "notStarted": "Pas encore commencées",
+    "watchlist": "Films à voir"
+  },
+  "calendar": {
+    "title": "Calendrier",
+    "subtitle": "Nouveaux épisodes et sorties que vous suivez",
+    "channel": "Nouveaux épisodes et sorties",
+    "inTheaters": "Jour de sortie",
+    "release": "Sortie",
+    "premiere": "Première",
+    "newSeason": "Nouvelle saison",
+    "askTitle": "Soyez prévenu dès la diffusion",
+    "askBody": "Une notification quand un nouvel épisode est diffusé ou qu'un film sort. Rien d'autre.",
+    "askCta": "Activer",
+    "emptyTitle": "Rien de prévu pour l'instant",
+    "emptyBody": "Suivez des séries en cours ou des films pas encore sortis : leurs dates apparaîtront ici."
+  },
+  "notify": {
+    "movieTitle": "Sort aujourd'hui",
+    "episode": "{{code}} est disponible · {{name}}"
+  },
+  "date": {
+    "today": "Aujourd'hui",
+    "tomorrow": "Demain",
+    "yesterday": "Hier",
+    "inDays_one": "dans {{count}} jour",
+    "inDays_other": "dans {{count}} jours",
+    "inWeeks_one": "dans {{count}} semaine",
+    "inWeeks_other": "dans {{count}} semaines",
+    "inMonths_one": "dans {{count}} mois",
+    "inMonths_other": "dans {{count}} mois",
+    "daysHours": "{{d}} j {{h}} h",
+    "hoursMinutes": "{{h}} h {{m}} min"
+  },
+  "state": {
+    "all": "Toutes",
+    "watching": "En cours",
+    "notStarted": "Pas commencées",
+    "upToDate": "À jour",
+    "finished": "Terminées",
+    "dropped": "Abandonnées"
+  },
+  "status": {
+    "Running": "En diffusion",
+    "Ended": "Terminée",
+    "To Be Determined": "En attente de renouvellement",
+    "In Development": "En développement"
   },
   "library": {
-    "all": "Tout",
-    "search": "Titres, personnes, notes…",
-    "sortAlpha": "A–Z",
-    "sortRating": "Note",
-    "empty": "Rien pour l'instant.",
-    "noResults": "Aucun résultat pour « {{q}} ».",
-    "title": "Collection",
-    "sortAdded": "Ajout",
-    "soon": "Bientôt",
-    "addFirst": "Ajouter le premier"
+    "title": "Bibliothèque",
+    "emptyTitle": "Votre bibliothèque est vide",
+    "emptyBody": "Les séries et films que vous ajoutez se rassembleront ici.",
+    "watchlist": "À voir",
+    "upcoming": "Bientôt",
+    "watched": "Vus",
+    "none": "Rien ici pour l'instant."
   },
-  "settings": {
-    "title": "Réglages",
-    "language": "Langue",
-    "ambient": "Lumière et poussière",
-    "ambientHint": "La poussière danse dans les rayons quand vous touchez la pièce.",
-    "haptics": "Retour haptique",
-    "palace": "Votre palais",
-    "level": "Pièce niveau {{level}}",
-    "reset": "Réinitialiser le palais",
-    "resetConfirm": "Effacer tous les souvenirs ? C'est irréversible.",
-    "resetYes": "Réinitialiser",
-    "cancel": "Annuler",
-    "version": "Version {{version}}",
-    "notifications": "Notifications de sortie",
-    "notificationsHint": "Nouveaux épisodes et jours de sortie de ce qui est dans votre palais."
+  "show": {
+    "episodeN": "Épisode {{n}}",
+    "markWatched": "Marquer comme vu",
+    "progress": "{{watched}} épisodes vus sur {{aired}}",
+    "notAired": "Aucun épisode diffusé",
+    "watchedNext": "Vu {{code}}",
+    "nextAirs": "{{code}} diffusé {{when}}",
+    "drop": "Abandonner",
+    "resume": "Reprendre",
+    "follow": "Suivre",
+    "followHint": "Suivez la série pour garder votre progression et retrouver les nouveaux épisodes dans À suivre.",
+    "followHintNext": "Prochain épisode : {{when}}. Suivez la série pour être prévenu.",
+    "episodes": "Épisodes",
+    "season": "Saison {{n}}",
+    "watchSeason": "Marquer la saison vue",
+    "unwatchSeason": "Démarquer la saison",
+    "longPressHint": "Appui long sur une coche pour tout marquer jusqu'à cet épisode.",
+    "tba": "Date à venir"
   },
-  "language": {
-    "system": "Auto",
-    "en": "English",
-    "fr": "Français"
+  "movie": {
+    "releases": "Sortie le",
+    "released": "Sorti le",
+    "watched": "Vu",
+    "markWatched": "Marquer comme vu",
+    "remind": "Me prévenir",
+    "addWatchlist": "Ajouter à voir",
+    "seenIt": "Déjà vu",
+    "reminderSet": "Rappel activé",
+    "remindHint": "Il apparaîtra dans votre calendrier, avec une notification le jour de sa sortie."
   },
-  "examples": {
-    "movies": "In the Mood for Love",
-    "series": "The Leftovers",
-    "music": "Kind of Blue",
-    "books": "Les Villes invisibles",
-    "boardgames": "Azul",
-    "videogames": "Outer Wilds"
-  },
-  "creatorExamples": {
-    "movies": "Wong Kar-wai",
-    "series": "Damon Lindelof",
-    "music": "Miles Davis",
-    "books": "Italo Calvino",
-    "boardgames": "Michael Kiesling",
-    "videogames": "Mobius Digital"
-  },
-  "tabs": {
-    "library": "Collection",
-    "palace": "Palais",
-    "you": "Vous",
-    "soon": "Bientôt"
+  "detail": {
+    "error": "Impossible de charger cette page. Vérifiez votre connexion.",
+    "more": "Plus",
+    "less": "Moins",
+    "cast": "Distribution"
   },
   "toast": {
-    "see": "Voir",
-    "placed": "« {{title}} » a trouvé sa place",
-    "awaited": "En attente de « {{title}} »",
-    "removed": "« {{title}} » retiré",
-    "undo": "Annuler"
+    "followed": "Vous suivez {{title}}",
+    "addedMovie": "{{title}} ajouté à voir",
+    "awaitMovie": "On vous prévient à la sortie de {{title}}",
+    "watchedMovie": "{{title}} marqué comme vu",
+    "removed": "{{title}} retiré",
+    "dropped": "{{title}} abandonnée",
+    "resumed": "{{title}} revient dans À suivre",
+    "upTo": "Vu jusqu'à {{code}}"
   },
-  "soon": {
-    "title": "Bientôt",
-    "subtitle": "Sorties et nouveaux épisodes, uniquement de votre palais",
-    "thisWeek": "Cette semaine",
-    "later": "Plus tard",
-    "today": "aujourd'hui",
-    "tomorrow": "demain",
-    "episodeCode": "S{{season}} · É{{episode}}",
-    "release": {
-      "movies": "Film",
-      "series": "Première de la série",
-      "music": "Album",
-      "books": "Livre",
-      "boardgames": "Jeu de société",
-      "videogames": "Jeu"
-    },
-    "askTitle": "Savoir le jour de la sortie",
-    "askBody": "Une notification discrète le jour J, rien d'autre. Pas de compte, pas de pub.",
-    "askCta": "Activer",
-    "emptyTitle": "Rien d'annoncé pour l'instant",
-    "emptyBody": "Les séries ajoutées sont suivies automatiquement, et tout ce qui n'est pas encore sorti attend ici.",
-    "emptyCta": "Trouver une série",
-    "channel": "Sorties",
-    "outToday": "Sort aujourd'hui",
-    "newEpisode": "Nouvel épisode",
-    "inDays_one": "dans {{count}} jour",
-    "inDays_other": "dans {{count}} jours"
-  },
-  "you": {
+  "profile": {
     "title": "Vous",
-    "subtitle": "Votre palais mental",
-    "objects_one": "objet dans votre palais",
-    "objects_other": "objets dans votre palais",
-    "avg": "{{avg}} ★ en moyenne",
-    "collections": "Collections",
-    "favourites": "Coups de cœur"
+    "episodes": "Épisodes vus",
+    "showTime": "Temps en séries",
+    "films": "Films vus",
+    "filmTime": "Temps en films",
+    "settings": "Réglages",
+    "notifications": "Notifications de sortie",
+    "notificationsHint": "Nouveaux épisodes et jours de sortie",
+    "notificationsWeb": "Disponible dans l'application mobile",
+    "haptics": "Retours haptiques",
+    "language": "Langue",
+    "system": "Système",
+    "sources": "Sources",
+    "sourcesNote": "Les séries viennent de TVmaze. Les films d'IMDb, iTunes, Wikidata et Wikipédia, ou de TMDB avec une clé.",
+    "tmdb": "Clé TMDB",
+    "active": "Active",
+    "tmdbHint": "Facultatif. Une clé TMDB gratuite ajoute les visuels des films, la distribution, les tendances et les dates de sortie exactes.",
+    "tmdbPlaceholder": "Clé API ou jeton d'accès",
+    "tmdbBad": "TMDB n'a pas accepté cette clé.",
+    "tmdbGet": "Obtenir une clé gratuite",
+    "tmdbSaved": "TMDB connecté",
+    "data": "Vos données",
+    "exportJson": "Exporter une sauvegarde",
+    "exportJsonHint": "Tout, dans un fichier JSON réimportable",
+    "exportShows": "Exporter les séries (CSV)",
+    "exportMovies": "Exporter les films (CSV)",
+    "import": "Importer une sauvegarde",
+    "importHint": "Fusionnée avec ce qui est déjà là",
+    "exportFailed": "L'export a échoué",
+    "imported": "{{shows}} séries et {{movies}} films importés",
+    "importFailed": "Ce fichier n'est pas une sauvegarde Palais Mental"
   }
 }

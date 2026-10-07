@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import Glass from './Glass';
@@ -9,22 +8,17 @@ import Icon from './Icon';
 import PressableScale from './PressableScale';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
-import { Toast as ToastModel, useUiStore } from '@/store/useUiStore';
-import { usePalaceStore } from '@/store/usePalaceStore';
+import { Toast as ToastModel, useUi } from '@/store/useUi';
 
-/**
- * Short confirmation with at most one follow-up: "See it" (jump to the object in the
- * palace) or "Undo" (removal is undone here rather than confirmed up front).
- */
+/** Short confirmation, with Undo when the action can be taken back (nothing asks "are you sure?"). */
 export default function Toast() {
   const { t } = useTranslation();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const haptics = useHaptics();
   const { palette } = useTheme();
   const styles = useStyles();
-  const toast = useUiStore((s) => s.toast);
-  const hide = useUiStore((s) => s.hideToast);
+  const toast = useUi((s) => s.toast);
+  const hide = useUi((s) => s.hideToast);
   const y = useRef(new Animated.Value(0)).current;
   const [shown, setShown] = useState<ToastModel | null>(null);
 
@@ -36,27 +30,16 @@ export default function Toast() {
     setShown(toast);
     y.setValue(0);
     Animated.spring(y, { toValue: 1, useNativeDriver: true, damping: 16, stiffness: 240 }).start();
-    const timer = setTimeout(hide, toast.action?.kind === 'undo' ? 5500 : 4200);
+    const timer = setTimeout(hide, toast.undo ? 5500 : 3200);
     return () => clearTimeout(timer);
   }, [toast, hide, y]);
 
   if (!shown) return null;
-  const action = shown.action;
-
-  const onAction = () => {
+  const undo = shown.undo;
+  const onUndo = () => {
     hide();
-    if (!action) return;
-    if (action.kind === 'undo') {
-      usePalaceStore.getState().undoDelete();
-      haptics.tap();
-      return;
-    }
-    const item = usePalaceStore.getState().items[action.itemId];
-    if (!item) return;
-    usePalaceStore.getState().setFocus(item.category);
-    router.navigate('/');
-    // Let the camera start turning, then lift the object out to present it.
-    setTimeout(() => usePalaceStore.getState().selectItem(item.id, { inspect: true }), 350);
+    undo?.();
+    haptics.tap();
   };
 
   return (
@@ -75,14 +58,14 @@ export default function Toast() {
       ]}
     >
       <Glass radius={22} strong contentStyle={styles.inner}>
-        <Icon name={action?.kind === 'undo' ? 'trash' : 'check'} size={18} strokeWidth={2.2} color={palette.ink} />
+        <Icon name="check" size={18} strokeWidth={2.2} color={palette.primary} />
         <Text style={styles.text} numberOfLines={1}>
           {shown.message}
         </Text>
-        {action && (
-          <PressableScale onPress={onAction} style={styles.action}>
-            {action.kind === 'undo' && <Icon name="undo" size={15} color={palette.onInk} strokeWidth={2.2} />}
-            <Text style={styles.actionText}>{t(action.kind === 'undo' ? 'toast.undo' : 'toast.see')}</Text>
+        {undo && (
+          <PressableScale onPress={onUndo} style={styles.action}>
+            <Icon name="undo" size={15} color={palette.onInk} strokeWidth={2.2} />
+            <Text style={styles.actionText}>{t('common.undo')}</Text>
           </PressableScale>
         )}
       </Glass>

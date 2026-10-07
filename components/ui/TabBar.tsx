@@ -9,21 +9,21 @@ import Icon, { IconName } from './Icon';
 import PressableScale from './PressableScale';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
-import { getUpcoming } from '@/lib/releases';
-import { usePalaceStore } from '@/store/usePalaceStore';
-import { useUiStore } from '@/store/useUiStore';
+import { useRouter } from 'expo-router';
+import { useLibrary } from '@/store/useLibrary';
 
 const TABS: Record<string, { icon: IconName; label: string }> = {
-  index: { icon: 'window', label: 'tabs.palace' },
+  index: { icon: 'play', label: 'tabs.upNext' },
+  calendar: { icon: 'calendar', label: 'tabs.calendar' },
   library: { icon: 'grid', label: 'tabs.library' },
-  soon: { icon: 'bell', label: 'tabs.soon' },
   profile: { icon: 'user', label: 'tabs.you' },
 };
-const TAB_W = 66;
+const TAB_W = 68;
+const DAY = 86_400_000;
 const ADD_W = 64;
 
 /**
- * Floating glass tab bar with the add button at its heart (thumb zone, largest target).
+ * Floating glass tab bar with search at its heart (thumb zone, largest target).
  * A soft pill slides under the active tab so the eye follows the move.
  */
 export default function TabBar({ state, navigation }: BottomTabBarProps) {
@@ -32,9 +32,16 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   const styles = useStyles();
   const insets = useSafeAreaInsets();
   const haptics = useHaptics();
-  const openSearch = useUiStore((s) => s.openSearch);
-  const focus = usePalaceStore((s) => s.focus);
-  const upcomingCount = usePalaceStore((s) => getUpcoming(s.items).length);
+  const router = useRouter();
+  // A dot on the calendar when something you follow comes out within a day.
+  const soon = useLibrary((s) => {
+    const now = Date.now();
+    const inDay = (d?: number) => !!d && d > now - DAY / 2 && d < now + DAY;
+    return (
+      Object.values(s.shows).some((sh) => !sh.droppedAt && sh.episodes.some((e) => inDay(e.airstamp))) ||
+      Object.values(s.movies).some((m) => !m.watchedAt && inDay(m.releaseDate))
+    );
+  });
 
   const routes = state.routes.filter((r) => TABS[r.name]);
   const half = Math.ceil(routes.length / 2);
@@ -79,14 +86,12 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
       >
         <View>
           <Icon name={tab.icon} size={22} color={active ? palette.ink : palette.inkFaint} strokeWidth={active ? 2 : 1.7} />
-          {route.name === 'soon' && upcomingCount > 0 && <View style={styles.dot} />}
+          {route.name === 'calendar' && soon && <View style={styles.dot} />}
         </View>
         <Text style={[styles.label, active && styles.labelActive]}>{t(tab.label)}</Text>
       </PressableScale>
     );
   };
-
-  const onPalace = activeName === 'index';
 
   return (
     <View style={[styles.wrap, { paddingBottom: insets.bottom + 8 }]} pointerEvents="box-none">
@@ -103,13 +108,13 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
           <PressableScale
             onPress={() => {
               haptics.tap();
-              openSearch(onPalace && focus !== 'window' ? focus : 'all');
+              router.push('/search');
             }}
-            accessibilityLabel={t('nav.add')}
+            accessibilityLabel={t('search.title')}
             style={styles.add}
             depth={0.88}
           >
-            <Icon name="plus" size={26} color={palette.onInk} strokeWidth={2.3} />
+            <Icon name="search" size={24} color={palette.onInk} strokeWidth={2.3} />
           </PressableScale>
         </Animated.View>
       </View>
@@ -125,7 +130,7 @@ const useStyles = makeStyles(({ palette, fonts, shadow }) => ({
   tab: { width: TAB_W, height: 52, alignItems: 'center', justifyContent: 'center', gap: 3 },
   label: { fontFamily: fonts.medium, fontSize: 10.5, color: palette.inkFaint, letterSpacing: 0.1 },
   labelActive: { color: palette.ink, fontFamily: fonts.semibold },
-  dot: { position: 'absolute', top: -1, right: -3, width: 8, height: 8, borderRadius: 4, backgroundColor: palette.danger, borderWidth: 1.5, borderColor: palette.surface },
+  dot: { position: 'absolute', top: -1, right: -3, width: 8, height: 8, borderRadius: 4, backgroundColor: palette.primary, borderWidth: 1.5, borderColor: palette.surface },
   addSlot: { width: ADD_W },
   addWrap: { position: 'absolute', top: -12, left: 0, right: 0, alignItems: 'center' },
   add: {

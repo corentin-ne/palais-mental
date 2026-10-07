@@ -1,194 +1,181 @@
 {
-  "app": {
-    "title": "Mental Palace",
-    "items_one": "{{count}} memory",
-    "items_other": "{{count}} memories",
-    "level": "Level {{level}}"
-  },
-  "nav": {
-    "window": "Horizon",
-    "settings": "Settings",
-    "library": "Library",
-    "add": "Add a memory"
-  },
-  "categories": {
-    "movies": "Movies",
-    "series": "TV Series",
-    "music": "Music",
-    "books": "Books",
-    "boardgames": "Board Games",
-    "videogames": "Video Games"
-  },
-  "creator": {
-    "movies": "Director",
-    "series": "Created by",
-    "music": "Artist",
-    "books": "Author",
-    "boardgames": "Designer",
-    "videogames": "Studio"
-  },
-  "log": {
-    "titleLabel": "Title",
-    "titlePlaceholder": "e.g. {{example}}",
-    "year": "Year",
-    "rating": "Rating",
-    "note": "Note",
-    "notePlaceholder": "What do you want to remember?",
-    "submit": "Add to the palace",
-    "back": "Back",
+  "tabs": { "upNext": "Up next", "calendar": "Calendar", "library": "Library", "you": "You" },
+  "common": {
+    "undo": "Undo",
+    "seeAll": "See all",
+    "all": "All",
+    "shows": "Shows",
+    "movies": "Films",
     "cancel": "Cancel",
-    "searchAll": "Search films, series, books, albums, games…",
-    "search": {
-      "movies": "Search a film",
-      "series": "Search a series",
-      "music": "Search an album",
-      "books": "Search a book",
-      "boardgames": "Search a board game",
-      "videogames": "Search a video game"
-    },
-    "noResults": "Nothing found in the catalog.",
-    "addManually": "Add “{{title}}” yourself",
-    "addManuallyHint": "Enter the details by hand",
-    "episodesCount_one": "{{count}} episode",
-    "episodesCount_other": "{{count}} episodes",
-    "inPalace": "Already in your palace",
-    "searchHint": "Start typing a title.",
-    "confirmTitle": "New object",
-    "wholeSeason": "Whole season",
-    "stillWatching": "Still watching",
     "clear": "Clear",
-    "recentSearches": "Recent searches",
-    "comingOn": "Out {{date}}",
-    "alreadyTitle": "Already here",
-    "alreadyBody": "This one already has its place in your palace.",
-    "openIt": "Open it",
-    "awaitTitle": "Not out yet",
-    "awaitBody": "Comes out {{date}}. It gets its place now, and you'll get a quiet heads-up that day.",
-    "await": "Wait for it"
+    "save": "Save",
+    "remove": "Remove",
+    "retry": "Try again",
+    "back": "Back"
   },
-  "item": {
-    "remove": "Remove from the palace",
-    "close": "Close",
-    "notePlaceholder": "Add a note…",
-    "yearPlaceholder": "Year",
-    "outOn": "Out {{date}}",
-    "nextEpisode": "Next: {{code}}",
-    "willNotify": "You'll get a heads-up that day",
-    "changeArtwork": "Change artwork"
+  "greeting": {
+    "night": "Late night viewing?",
+    "morning": "Good morning.",
+    "afternoon": "Good afternoon.",
+    "evening": "Good evening."
   },
-  "series": {
-    "progress": "S{{season}} · {{watched}}/{{total}}",
-    "season": "Season {{season}}",
-    "episodes": "{{watched}} of {{total}} episodes",
-    "completed": "All seasons complete",
-    "logEpisode": "Log episode",
-    "newSeason": "Add season {{season}}",
-    "episodesLabel": "Episodes",
-    "continue": "Continue watching"
+  "welcome": {
+    "title": "Everything you watch, in one place",
+    "body": "Follow shows and films, tick episodes as you go, and know the day anything new comes out.",
+    "cta": "Find a show or film",
+    "import": "Restore a backup"
   },
-  "focus": {
-    "count_one": "{{count}} item",
-    "count_other": "{{count}} items",
-    "empty": "This niche is still empty. Tap + to add the first one.",
-    "open": "Library"
+  "search": {
+    "title": "Search",
+    "placeholder": "Shows and films",
+    "onTonight": "On tonight",
+    "popularFilms": "Popular films",
+    "none": "Nothing found for “{{q}}”.",
+    "add": "Add",
+    "added": "In your library"
+  },
+  "upNext": {
+    "title": "Up next",
+    "left_one": "{{count}} left",
+    "left_other": "{{count}} left",
+    "episodes_one": "{{count}} episode",
+    "episodes_other": "{{count}} episodes",
+    "caughtUp": "You're all caught up.",
+    "comingUp": "Coming up",
+    "notStarted": "Haven't started",
+    "watchlist": "Films to watch"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "subtitle": "New episodes and releases you follow",
+    "channel": "New episodes and releases",
+    "inTheaters": "Release day",
+    "release": "Release",
+    "premiere": "Premiere",
+    "newSeason": "New season",
+    "askTitle": "Know the moment it airs",
+    "askBody": "Get a notification when a new episode airs or a film comes out. Nothing else.",
+    "askCta": "Turn on",
+    "emptyTitle": "Nothing scheduled yet",
+    "emptyBody": "Follow shows still airing or films not out yet, and their dates will appear here."
+  },
+  "notify": {
+    "movieTitle": "Out today",
+    "episode": "{{code}} is out · {{name}}"
+  },
+  "date": {
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "yesterday": "Yesterday",
+    "inDays_one": "in {{count}} day",
+    "inDays_other": "in {{count}} days",
+    "inWeeks_one": "in {{count}} week",
+    "inWeeks_other": "in {{count}} weeks",
+    "inMonths_one": "in {{count}} month",
+    "inMonths_other": "in {{count}} months",
+    "daysHours": "{{d}}d {{h}}h",
+    "hoursMinutes": "{{h}}h {{m}}m"
+  },
+  "state": {
+    "all": "All",
+    "watching": "Watching",
+    "notStarted": "Not started",
+    "upToDate": "Up to date",
+    "finished": "Finished",
+    "dropped": "Dropped"
+  },
+  "status": {
+    "Running": "Airing",
+    "Ended": "Ended",
+    "To Be Determined": "Awaiting renewal",
+    "In Development": "In development"
   },
   "library": {
-    "all": "Everything",
-    "search": "Search titles, people, notes…",
-    "sortAlpha": "A–Z",
-    "sortRating": "Rating",
-    "empty": "Nothing here yet.",
-    "noResults": "No match for “{{q}}”.",
     "title": "Library",
-    "sortAdded": "Added",
-    "soon": "Soon",
-    "addFirst": "Add the first one"
+    "emptyTitle": "Your library is empty",
+    "emptyBody": "Shows and films you add will gather here.",
+    "watchlist": "To watch",
+    "upcoming": "Coming soon",
+    "watched": "Watched",
+    "none": "Nothing here yet."
   },
-  "settings": {
-    "title": "Settings",
-    "language": "Language",
-    "ambient": "Ambient light & dust",
-    "ambientHint": "Dust drifts through the sunbeams after you touch the room.",
-    "haptics": "Haptics",
-    "palace": "Your palace",
-    "level": "Room level {{level}}",
-    "reset": "Reset the palace",
-    "resetConfirm": "Remove every memory? This can't be undone.",
-    "resetYes": "Reset",
-    "cancel": "Cancel",
-    "version": "Version {{version}}",
-    "notifications": "Release notifications",
-    "notificationsHint": "New episodes and release days of things in your palace."
+  "show": {
+    "episodeN": "Episode {{n}}",
+    "markWatched": "Mark as watched",
+    "progress": "{{watched}} of {{aired}} episodes",
+    "notAired": "No episodes aired yet",
+    "watchedNext": "Watched {{code}}",
+    "nextAirs": "{{code}} airs {{when}}",
+    "drop": "Drop",
+    "resume": "Resume",
+    "follow": "Follow",
+    "followHint": "Follow to track your progress and get new episodes in Up next.",
+    "followHintNext": "Next episode airs {{when}}. Follow to be told.",
+    "episodes": "Episodes",
+    "season": "Season {{n}}",
+    "watchSeason": "Mark season watched",
+    "unwatchSeason": "Unmark season",
+    "longPressHint": "Long-press a tick to mark everything up to that episode.",
+    "tba": "Date to be announced"
   },
-  "language": {
-    "system": "Auto",
-    "en": "English",
-    "fr": "Français"
+  "movie": {
+    "releases": "Out on",
+    "released": "Released",
+    "watched": "Watched",
+    "markWatched": "Mark as watched",
+    "remind": "Remind me",
+    "addWatchlist": "Add to watchlist",
+    "seenIt": "Seen it",
+    "reminderSet": "Reminder set",
+    "remindHint": "It will show in your calendar, with a notification on release day."
   },
-  "examples": {
-    "movies": "In the Mood for Love",
-    "series": "The Leftovers",
-    "music": "Kind of Blue",
-    "books": "Invisible Cities",
-    "boardgames": "Azul",
-    "videogames": "Outer Wilds"
-  },
-  "creatorExamples": {
-    "movies": "Wong Kar-wai",
-    "series": "Damon Lindelof",
-    "music": "Miles Davis",
-    "books": "Italo Calvino",
-    "boardgames": "Michael Kiesling",
-    "videogames": "Mobius Digital"
-  },
-  "tabs": {
-    "library": "Library",
-    "palace": "Palace",
-    "you": "You",
-    "soon": "Soon"
+  "detail": {
+    "error": "Couldn't load this page. Check your connection.",
+    "more": "More",
+    "less": "Less",
+    "cast": "Cast"
   },
   "toast": {
-    "see": "See it",
-    "placed": "“{{title}}” has its place",
-    "awaited": "Waiting for “{{title}}”",
-    "removed": "“{{title}}” removed",
-    "undo": "Undo"
+    "followed": "Following {{title}}",
+    "addedMovie": "{{title}} added to your watchlist",
+    "awaitMovie": "We'll remind you when {{title}} is out",
+    "watchedMovie": "{{title}} marked as watched",
+    "removed": "{{title}} removed",
+    "dropped": "{{title}} dropped",
+    "resumed": "{{title}} is back in Up next",
+    "upTo": "Watched up to {{code}}"
   },
-  "soon": {
-    "title": "Soon",
-    "subtitle": "Releases and new episodes, only from your palace",
-    "thisWeek": "This week",
-    "later": "Later",
-    "today": "today",
-    "tomorrow": "tomorrow",
-    "episodeCode": "S{{season}} · E{{episode}}",
-    "release": {
-      "movies": "Film",
-      "series": "Series premiere",
-      "music": "Album",
-      "books": "Book",
-      "boardgames": "Board game",
-      "videogames": "Game"
-    },
-    "askTitle": "Know the day it's out",
-    "askBody": "A quiet notification on release day, nothing else. No account, no marketing.",
-    "askCta": "Turn on",
-    "emptyTitle": "Nothing announced yet",
-    "emptyBody": "Series you add are followed automatically, and anything not released yet waits here.",
-    "emptyCta": "Find a series",
-    "channel": "Releases",
-    "outToday": "Out today",
-    "newEpisode": "New episode",
-    "inDays_one": "in {{count}} day",
-    "inDays_other": "in {{count}} days"
-  },
-  "you": {
+  "profile": {
     "title": "You",
-    "subtitle": "Your mental palace",
-    "objects_one": "object in your palace",
-    "objects_other": "objects in your palace",
-    "avg": "{{avg}} ★ average",
-    "collections": "Collections",
-    "favourites": "Most loved"
+    "episodes": "Episodes watched",
+    "showTime": "Time on shows",
+    "films": "Films watched",
+    "filmTime": "Time on films",
+    "settings": "Settings",
+    "notifications": "Release notifications",
+    "notificationsHint": "New episodes and release days",
+    "notificationsWeb": "Available in the phone app",
+    "haptics": "Haptics",
+    "language": "Language",
+    "system": "System",
+    "sources": "Sources",
+    "sourcesNote": "Shows come from TVmaze. Films come from IMDb, iTunes, Wikidata and Wikipedia, or TMDB with a key.",
+    "tmdb": "TMDB key",
+    "active": "Active",
+    "tmdbHint": "Optional. A free TMDB key adds film backdrops, cast, trending films and exact release dates.",
+    "tmdbPlaceholder": "API key or read access token",
+    "tmdbBad": "TMDB didn't accept this key.",
+    "tmdbGet": "Get a free key",
+    "tmdbSaved": "TMDB connected",
+    "data": "Your data",
+    "exportJson": "Export backup",
+    "exportJsonHint": "Everything, as a JSON file you can import again",
+    "exportShows": "Export shows (CSV)",
+    "exportMovies": "Export films (CSV)",
+    "import": "Import backup",
+    "importHint": "Merged with what's already here",
+    "exportFailed": "Export failed",
+    "imported": "Imported {{shows}} shows and {{movies}} films",
+    "importFailed": "That file isn't a Palais Mental backup"
   }
 }

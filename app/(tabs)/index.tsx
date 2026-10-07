@@ -1,60 +1,189 @@
-import { useRef } from 'react';
-import { GestureResponderEvent, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
-import OceanWorld from '@/components/3d/ocean/OceanWorld';
-import SafeBoundary from '@/components/ui/SafeBoundary';
-import { makeStyles } from '@/constants/theme';
-import { dragWater, setDragging, tapWater } from '@/lib/oceanSignals';
+import PosterRail, { RailItem } from '@/components/media/PosterRail';
+import UpNextCard from '@/components/media/UpNextCard';
+import Button from '@/components/ui/Button';
+import Empty from '@/components/ui/Empty';
+import Icon from '@/components/ui/Icon';
+import PressableScale from '@/components/ui/PressableScale';
+import Screen, { Section } from '@/components/ui/Screen';
+import { FadeIn } from '@/components/ui/Motion';
+import { makeStyles, useTheme } from '@/constants/theme';
+import { useLayout } from '@/hooks/useLayout';
+import { SearchResult, popularShows } from '@/lib/api';
+import { countdown, relativeDay } from '@/lib/format';
+import { episodeCode, progressOf, showState } from '@/lib/progress';
+import { getUpcoming, refreshLibrary } from '@/lib/sync';
+import { useLibrary } from '@/store/useLibrary';
 
-/**
- * Your collection as clear water. The view is free: drag to look around, tap to ripple the
- * water. What you log falls into it as a drop. The tab bar is the only interface here.
- */
-export default function PalaceScreen() {
+/** What to watch now: the next episode of every show in progress, then what is waiting. */
+export default function UpNextScreen() {
+  const { t } = useTranslation();
+  const { palette } = useTheme();
   const styles = useStyles();
-  const screen = useWindowDimensions();
-  const touch = useRef({ x: 0, y: 0, lastX: 0, lastY: 0, t: 0, moved: 0 });
+  const router = useRouter();
+  const { inner, gap, wide } = useLayout();
+  const shows = useLibrary((s) => s.shows);
+  const movies = useLibrary((s) => s.movies);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const onGrant = (e: GestureResponderEvent) => {
-    const { pageX, pageY } = e.nativeEvent;
-    touch.current = { x: pageX, y: pageY, lastX: pageX, lastY: pageY, t: Date.now(), moved: 0 };
-    setDragging(true);
-  };
-  const onMove = (e: GestureResponderEvent) => {
-    const { pageX, pageY } = e.nativeEvent;
-    const c = touch.current;
-    dragWater(pageX - c.lastX, pageY - c.lastY);
-    c.moved = Math.max(c.moved, Math.hypot(pageX - c.x, pageY - c.y));
-    c.lastX = pageX;
-    c.lastY = pageY;
-  };
-  const onRelease = (e: GestureResponderEvent) => {
-    setDragging(false);
-    const { pageX, pageY } = e.nativeEvent;
-    if (touch.current.moved < 8 && Date.now() - touch.current.t < 400) {
-      tapWater((pageX / screen.width) * 2 - 1, 1 - (pageY / screen.height) * 2);
-    }
-  };
+  const { upNext, notStarted, watchlist, soon } = useMemo(() => {
+    const now = Date.now();
+    const list = Object.values(shows).map((show) => ({ show, progress: progressOf(show, now), state: showState(show, now) }));
+    const lastActivity = (s: (typeof list)[number]) => Math.max(s.show.addedAt, ...Object.values(s.show.watched));
+    return {
+      upNext: list.filter((s) => s.state === 'watching').sort((a, b) => lastActivity(b) - lastActivity(a)),
+      notStarted: list
+        .filter((s) => s.state === 'notStarted')
+        .sort((a, b) => b.show.addedAt - a.show.addedAt)
+        .map(
+          ({ show, progress }): RailItem => ({
+            key: show.id,
+            href: `/show/${show.tvmazeId}`,
+            title: show.title,
+            poster: show.poster,
+            kind: 'show',
+            caption: progress.aired ? t('upNext.episodes', { count: progress.aired }) : progress.upcoming?.airstamp ? countdown(progress.upcoming.airstamp) : undefined,
+          }),
+        ),
+      watchlist: Object.values(movies)
+        .filter((m) => !m.watchedAt && (!m.releaseDate || m.releaseDate <= now))
+        .sort((a, b) => b.addedAt - a.addedAt)
+        .map((m): RailItem => ({ key: m.id, href: `/movie/${m.id}`, title: m.title, poster: m.poster, kind: 'movie', caption: m.year ? String(m.year) : undefined })),
+      soon: getUpcoming(shows, movies, now).filter((u) => u.date > now).slice(0, 4),
+    };
+  }, [shows, movies, t]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshLibrary(true);
+    setRefreshing(false);
+  }, []);
+
+  const empty = !Object.keys(shows).length && !Object.keys(movies).length;
+  const cols = wide ? 2 : 1;
+  const cardW = Math.floor((inner - gap * (cols - 1)) / cols);
 
   return (
-    <View style={styles.root}>
-      <View
-        style={StyleSheet.absoluteFill}
-        onStartShouldSetResponder={() => true}
-        onMoveShouldSetResponder={() => true}
-        onResponderGrant={onGrant}
-        onResponderMove={onMove}
-        onResponderRelease={onRelease}
-        onResponderTerminate={() => setDragging(false)}
-      >
-        <SafeBoundary label="palace" fallback={null}>
-          <OceanWorld />
-        </SafeBoundary>
+    <Screen title={t('upNext.title')} subtitle={greeting(t)} refreshing={refreshing} onRefresh={onRefresh}>
+      {empty ? (
+        <Welcome />
+      ) : (
+        <>
+          {upNext.length > 0 ? (
+            <View style={[styles.cards, { gap }]}>
+              {upNext.map(({ show, progress }, i) => (
+                <FadeIn key={show.id} index={i}>
+                  <UpNextCard show={show} progress={progress} width={cardW} />
+                </FadeIn>
+              ))}
+            </View>
+          ) : (
+            <FadeIn style={styles.allCaught}>
+              <Icon name="check" size={20} color={palette.success} strokeWidth={2.4} />
+              <Text style={styles.allCaughtText}>{t('upNext.caughtUp')}</Text>
+            </FadeIn>
+          )}
+
+          {soon.length > 0 && (
+            <Section
+              title={t('upNext.comingUp')}
+              action={
+                <PressableScale onPress={() => router.navigate('/calendar')} style={styles.link}>
+                  <Text style={styles.linkText}>{t('common.seeAll')}</Text>
+                  <Icon name="chevronRight" size={14} color={palette.primary} strokeWidth={2.2} />
+                </PressableScale>
+              }
+            >
+              <View style={styles.soonList}>
+                {soon.map((u, i) => {
+                  const title = u.kind === 'episode' ? u.show.title : u.movie.title;
+                  const detail = u.kind === 'episode' ? `${episodeCode(u.episode)} · ${u.episode.name}` : t('calendar.inTheaters');
+                  const href = u.kind === 'episode' ? `/show/${u.show.tvmazeId}` : `/movie/${u.movie.id}`;
+                  return (
+                    <FadeIn key={`${title}${u.date}${i}`} index={i}>
+                      <PressableScale depth={0.98} onPress={() => router.push(href as never)} style={styles.soonRow}>
+                        <View style={styles.when}>
+                          <Text style={styles.whenText} numberOfLines={1}>
+                            {relativeDay(u.date)}
+                          </Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.soonTitle} numberOfLines={1}>
+                            {title}
+                          </Text>
+                          <Text style={styles.soonDetail} numberOfLines={1}>
+                            {detail}
+                          </Text>
+                        </View>
+                        <Icon name={u.kind === 'episode' ? 'series' : 'movies'} size={18} color={palette.inkFaint} />
+                      </PressableScale>
+                    </FadeIn>
+                  );
+                })}
+              </View>
+            </Section>
+          )}
+
+          {notStarted.length > 0 && (
+            <Section title={t('upNext.notStarted')}>
+              <PosterRail items={notStarted} />
+            </Section>
+          )}
+          {watchlist.length > 0 && (
+            <Section title={t('upNext.watchlist')}>
+              <PosterRail items={watchlist} />
+            </Section>
+          )}
+        </>
+      )}
+    </Screen>
+  );
+}
+
+function greeting(t: (k: string) => string) {
+  const h = new Date().getHours();
+  return t(h < 5 ? 'greeting.night' : h < 12 ? 'greeting.morning' : h < 18 ? 'greeting.afternoon' : 'greeting.evening');
+}
+
+/** First run: one sentence, a search button, and what is on tonight to get going. */
+function Welcome() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const [popular, setPopular] = useState<SearchResult[]>([]);
+  useEffect(() => {
+    popularShows().then(setPopular);
+  }, []);
+  return (
+    <View>
+      <Empty icon="sparkle" title={t('welcome.title')} body={t('welcome.body')} cta={t('welcome.cta')} onPress={() => router.push('/search')} />
+      {popular.length > 0 && (
+        <Section title={t('search.onTonight')}>
+          <PosterRail
+            items={popular.map((p) => ({ key: p.id, href: `/show/${p.id}`, title: p.title, poster: p.poster, kind: 'show', caption: p.subtitle }))}
+          />
+        </Section>
+      )}
+      <View style={{ alignItems: 'center', marginTop: 28 }}>
+        <Button label={t('welcome.import')} icon="upload" variant="ghost" compact onPress={() => router.navigate('/profile')} />
       </View>
     </View>
   );
 }
 
-const useStyles = makeStyles(({ palette }) => ({
-  root: { flex: 1, backgroundColor: palette.bg },
+const useStyles = makeStyles(({ palette, fonts, radii }) => ({
+  cards: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 18 },
+  allCaught: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18, padding: 16, borderRadius: radii.lg, backgroundColor: palette.surface },
+  allCaughtText: { fontFamily: fonts.medium, fontSize: 15, color: palette.ink },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4 },
+  linkText: { fontFamily: fonts.semibold, fontSize: 14, color: palette.primary },
+  soonList: { borderRadius: radii.lg, backgroundColor: palette.surface, paddingVertical: 4 },
+  soonRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14, paddingVertical: 11 },
+  when: { width: 86 },
+  whenText: { fontFamily: fonts.semibold, fontSize: 13, color: palette.primary },
+  soonTitle: { fontFamily: fonts.semibold, fontSize: 14.5, color: palette.ink },
+  soonDetail: { fontFamily: fonts.body, fontSize: 12.5, color: palette.inkSoft },
 }));
