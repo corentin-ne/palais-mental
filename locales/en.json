@@ -532,5 +532,12 @@
     "episodeRating": "Your rating",
     "notePlaceholder": "What you thought…",
     "reviewPlaceholder": "Your take on the series…"
+  },
+  "update": {
+    "title": "Version {{version}} is out",
+    "body": "You have {{current}}. Download the new APK and open it: it installs over this one, your library stays.",
+    "download": "Download",
+    "notes": "What's new",
+    "later": "Later"
   }
 }

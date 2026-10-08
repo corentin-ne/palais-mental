@@ -532,5 +532,12 @@
     "episodeRating": "Ta note",
     "notePlaceholder": "Ce que tu en as pensé…",
     "reviewPlaceholder": "Ton avis sur la série…"
+  },
+  "update": {
+    "title": "La version {{version}} est sortie",
+    "body": "Vous avez la {{current}}. Téléchargez le nouvel APK et ouvrez-le : il s’installe par-dessus celle-ci, votre bibliothèque reste.",
+    "download": "Télécharger",
+    "notes": "Nouveautés",
+    "later": "Plus tard"
   }
 }

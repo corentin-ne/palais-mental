@@ -10,6 +10,7 @@ import * as SystemUI from 'expo-system-ui';
 
 import SafeBoundary from '@/components/ui/SafeBoundary';
 import Toast from '@/components/ui/Toast';
+import UpdatePrompt from '@/components/ui/UpdatePrompt';
 import { useSparkOptions, useTheme } from '@/constants/theme';
 import { useLanguageSync } from '@/hooks/useLanguageSync';
 import { startSync } from '@/lib/sync';
@@ -81,6 +82,7 @@ export default function RootLayout() {
           <Stack.Screen name="settings" />
         </Stack>
         <Toast />
+        <UpdatePrompt />
       </SafeBoundary>
     </SparkProvider>
   );

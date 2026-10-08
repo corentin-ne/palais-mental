@@ -46,12 +46,30 @@ jobs:
         env:
           CI: 1
 
+      # Every release must be signed with the same key, or Android refuses to install it over the
+      # previous one. Expo's template signs release builds with android/app/debug.keystore: that file is
+      # replaced by the copy kept in the repo (signing/), so a template change can never change the key.
+      - name: Pin the signing key
+        run: cp signing/palais-mental.keystore android/app/debug.keystore
+
       - name: Build release APK
         working-directory: android
-        # Expo's template signs release builds with the debug keystore: fine for local testing.
         run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.workers.max=2
+
+      - name: Check the signature
+        env:
+          # SHA-256 of the certificate every release so far was signed with (see signing/README.md).
+          EXPECTED: fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)
+          ACTUAL=$("$APKSIGNER" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | grep -m1 'certificate SHA-256 digest' | awk '{print $NF}')
+          echo "Signed with $ACTUAL"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::The APK is not signed with the release key: it would not install over the previous version."
+            exit 1
+          fi
 
       - name: Resolve release tag
         id: tag
