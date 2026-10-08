@@ -13,7 +13,7 @@ import { makeStyles, noOutline, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
 import { pickFiles } from '@/lib/backup';
-import { SyncResult, exportForAnimeList, exportForLetterboxd, importExportFiles, syncService } from '@/lib/connect';
+import { HttpError, SyncResult, usernameFrom, exportForAnimeList, exportForLetterboxd, importExportFiles, syncService } from '@/lib/connect';
 import { relativeDay, timeOf } from '@/lib/format';
 import { refreshRelated } from '@/lib/related';
 import { SERVICES, Service, useConnections } from '@/store/useConnections';
@@ -45,8 +45,8 @@ export default function ConnectionsScreen() {
       haptics.success();
       toast(t('connect.synced', { added: result.added, updated: result.updated }));
       refreshRelated(true);
-    } catch {
-      toast(t('connect.failed'));
+    } catch (err) {
+      toast(t(err instanceof HttpError && err.status === 404 ? 'connect.notFound' : err instanceof HttpError ? 'connect.failed' : 'connect.offline'));
     } finally {
       setBusy(undefined);
       setProgress(undefined);
@@ -140,7 +140,7 @@ function ServiceCard({ service, busy, onSync, onExport }: { service: Service; bu
   const account = useConnections((s) => s.accounts[service]);
   const [draft, setDraft] = useState('');
   const connect = () => {
-    const username = draft.trim().replace(/^@/, '');
+    const username = usernameFrom(service, draft);
     if (!username) return;
     useConnections.getState().setAccount(service, { username });
     setDraft('');
@@ -162,6 +162,11 @@ function ServiceCard({ service, busy, onSync, onExport }: { service: Service; bu
       </View>
       {account ? (
         <>
+          {account.lastError && (
+            <Text style={[styles.hint, { color: palette.danger }]}>
+              {t(account.lastErrorStatus === 404 ? 'connect.notFound' : account.lastErrorStatus ? 'connect.failed' : 'connect.offline')}
+            </Text>
+          )}
           {!!account.lastSync && (
             <Text style={styles.hint}>
               {t('connect.lastSync', { when: `${relativeDay(account.lastSync)} ${timeOf(account.lastSync)}`, changes: account.lastChanges ?? 0 })}
