@@ -244,7 +244,7 @@
     "letterboxdHint": "Your latest diary entries (public profile)",
     "malHint": "Your anime list (public list)",
     "anilistHint": "Your anime list (public profile)",
-    "username": "Username",
+    "username": "Username or profile link",
     "connect": "Connect",
     "sync": "Sync now",
     "export": "Export what’s missing",
@@ -266,6 +266,8 @@
     "unmatched_other": "{{count}} titles not found",
     "unmatchedHint": "These couldn’t be matched to TVmaze or a film source. They are retried in a few days.",
     "serializdHint": "Your diary: shows, seasons and episodes (public profile)",
-    "exportSerializd": "Serializd has no import page yet, so it can only be read from. Shows from TVmaze are matched by title, or exactly with a TMDB key."
+    "exportSerializd": "Serializd has no import page yet, so it can only be read from. Shows from TVmaze are matched by title, or exactly with a TMDB key.",
+    "notFound": "No public profile with that username. Check the spelling, or paste the profile link.",
+    "offline": "Couldn’t reach the service. Check your connection and try again (Serializd can take a minute to wake up)."
   }
 }

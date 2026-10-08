@@ -244,7 +244,7 @@
     "letterboxdHint": "Vos dernières entrées du journal (profil public)",
     "malHint": "Votre liste d’anime (liste publique)",
     "anilistHint": "Votre liste d’anime (profil public)",
-    "username": "Nom d’utilisateur",
+    "username": "Nom d’utilisateur ou lien du profil",
     "connect": "Connecter",
     "sync": "Synchroniser",
     "export": "Exporter ce qui manque",
@@ -266,6 +266,8 @@
     "unmatched_other": "{{count}} titres introuvables",
     "unmatchedHint": "Pas de correspondance sur TVmaze ou les sources de films. Nouvel essai dans quelques jours.",
     "serializdHint": "Votre journal : séries, saisons et épisodes (profil public)",
-    "exportSerializd": "Serializd n’a pas encore de page d’import : il ne peut qu’être lu. Les séries sont retrouvées sur TVmaze par titre, ou exactement avec une clé TMDB."
+    "exportSerializd": "Serializd n’a pas encore de page d’import : il ne peut qu’être lu. Les séries sont retrouvées sur TVmaze par titre, ou exactement avec une clé TMDB.",
+    "notFound": "Aucun profil public avec ce nom. Vérifiez l’orthographe ou collez le lien du profil.",
+    "offline": "Service injoignable. Vérifiez la connexion et réessayez (Serializd peut mettre une minute à se réveiller)."
   }
 }
