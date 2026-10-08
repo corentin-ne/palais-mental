@@ -2,7 +2,9 @@
  * What every outside source is turned into before it reaches the library: one entry per title,
  * whatever the service (profile, feed, media server or export file), with ids when it has them.
  */
-import { norm } from '../api';
+import { HttpError, norm } from '../api';
+
+export { HttpError } from '../api';
 
 export type Status = 'watched' | 'watching' | 'planned' | 'dropped';
 export type EntryKind = 'show' | 'movie' | 'book' | 'game';
@@ -45,12 +47,6 @@ export interface ExternalEntry {
   hours?: number;
   /** Completion, 0–100. */
   percent?: number;
-}
-
-export class HttpError extends Error {
-  constructor(public status: number) {
-    super(`HTTP ${status}`);
-  }
 }
 
 /** A source that needs something the account doesn't have (a key, a server address). */

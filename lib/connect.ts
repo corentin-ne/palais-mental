@@ -45,7 +45,15 @@ const near = (a?: number, b?: number) => !a || !b || Math.abs(a - b) <= 1;
 // ------------------------------------------------------------------ Readers
 /** Letterboxd: the public RSS feed (latest diary entries). */
 export async function readLetterboxd(user: string): Promise<ExternalEntry[]> {
-  const xml = await getText(`https://letterboxd.com/${enc(user.trim())}/rss/`);
+  const url = `https://letterboxd.com/${enc(user.trim())}/rss/`;
+  // Letterboxd sits behind Cloudflare: ask like a browser, and once more if the first call drops.
+  const headers = { Accept: 'application/rss+xml, application/xml;q=0.9, */*;q=0.8', 'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36' };
+  const xml = await getText(url, { headers }).catch(async (err) => {
+    if (err instanceof HttpError && err.status < 500 && err.status !== 429) throw err;
+    await sleep(2000);
+    return getText(url, { headers });
+  });
+  if (!xml.includes('<rss')) throw new HttpError(403);
   const tag = (block: string, name: string) => {
     const m = block.match(new RegExp(`<${name}>([\\s\\S]*?)</${name}>`));
     return m ? decodeXml(m[1].replace(/^<!\[CDATA\[|\]\]>$/g, '').trim()) : undefined;
@@ -69,6 +77,15 @@ export async function readLetterboxd(user: string): Promise<ExternalEntry[]> {
   return out;
 }
 const letterboxdKey = (title: string, year?: number) => `letterboxd:${norm(title)}|${year ?? ''}`;
+
+/** A boxd.it share link (what the Letterboxd app copies) opens on the profile: its name is the first part of the path. */
+async function letterboxdShortLink(link: string) {
+  const r = await fetch(/^https?:\/\//i.test(link) ? link : `https://${link}`);
+  if (!r.ok) throw new HttpError(r.status);
+  const name = usernameFrom('letterboxd', r.url);
+  if (!name || /boxd\.it/i.test(r.url)) throw new HttpError(404);
+  return name;
+}
 
 /** MyAnimeList: the JSON behind a public anime list, 300 entries a page. */
 export async function readMal(user: string): Promise<ExternalEntry[]> {
@@ -697,6 +714,8 @@ export function usernameFrom(service: Service, input: string) {
   // These parse links themselves (instances, vanity urls, profile ids), or take a plain name.
   if (['bookwyrm', 'steam', 'plex', 'jellyfin', 'emby', 'hardcover'].includes(service)) return input.trim();
   const raw = input.trim().replace(/^@/, '');
+  // Share links from the Letterboxd app hide the name: kept whole, opened on the next sync.
+  if (service === 'letterboxd' && /boxd\.it\//i.test(raw)) return raw;
   if (service === 'goodreads') return raw.match(/(?:user\/show|review\/list(?:_rss)?|user)\/(\d+)/)?.[1] ?? raw.match(/^\d+/)?.[0] ?? raw;
   if (!/[/.]/.test(raw) || !/[a-z]\.[a-z]/i.test(raw)) return raw.replace(/[/?#].*$/, '');
   const path = raw
@@ -726,9 +745,10 @@ export function syncService(service: Service, onProgress?: OnProgress): Promise<
     const account = accounts[service];
     if (!account || !isSetUp(service, account)) throw new MissingSetup(SETUP[service].server && !account?.server ? 'server' : account?.username || !SETUP[service].username ? 'token' : 'username');
     // Accounts saved by 1.1.1 may hold the whole pasted link.
-    const user = usernameFrom(service, account.username);
-    if (user !== account.username) setAccount(service, { username: user });
+    let user = usernameFrom(service, account.username);
     try {
+      if (service === 'letterboxd' && /boxd\.it\//i.test(user)) user = await letterboxdShortLink(user);
+      if (user !== account.username) setAccount(service, { username: user });
       const entries = await READERS[service]({ ...account, username: user });
       const result = await applyEntries(entries, onProgress);
       setAccount(service, { lastSync: Date.now(), lastChanges: result.added + result.updated, lastUnmatched: result.unmatched.length, lastError: false, lastErrorStatus: undefined });

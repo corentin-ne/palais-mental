@@ -25,12 +25,19 @@ function remember(url: string, value: Promise<unknown>) {
 /** A slow source gives up after this long rather than holding a page on a spinner. */
 const TIMEOUT = 30_000;
 
+/** A source answered with an error status (kept so the screen can say why). */
+export class HttpError extends Error {
+  constructor(public status: number) {
+    super(`HTTP ${status}`);
+  }
+}
+
 function request(url: string, init?: RequestInit) {
   const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : undefined;
   const timer = ctrl && setTimeout(() => ctrl.abort(), TIMEOUT);
   return fetch(url, { ...init, signal: init?.signal ?? ctrl?.signal })
     .then((r) => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      if (!r.ok) throw new HttpError(r.status);
       return r;
     })
     .finally(() => clearTimeout(timer));
@@ -56,7 +63,7 @@ export function getText(url: string, init?: RequestInit): Promise<string> {
 /** JSON without caching (POST bodies, paged account lists). */
 export async function postJson<T = any>(url: string, body: string, headers: Record<string, string>): Promise<T> {
   const r = await fetch(url, { method: 'POST', body, headers: { Accept: 'application/json', ...headers } });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  if (!r.ok) throw new HttpError(r.status);
   return r.json();
 }
 

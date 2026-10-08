@@ -360,7 +360,7 @@
     "unmatched_other": "{{count}} titres introuvables",
     "unmatchedHint": "Impossible de les relier à une série, un film, un livre ou un jeu. Nouvel essai dans quelques jours.",
     "notFound": "Aucun profil public avec ce nom. Vérifiez l’orthographe ou collez le lien du profil.",
-    "offline": "Service injoignable. Vérifiez la connexion et réessayez (Serializd peut mettre une minute à se réveiller).",
+    "offline": "Service injoignable. Vérifiez la connexion et réessayez dans une minute (certains services mettent un moment à se réveiller).",
     "group": {
       "screen": "Films et séries",
       "anime": "Anime",

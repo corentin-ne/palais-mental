@@ -360,7 +360,7 @@
     "unmatched_other": "{{count}} titles not found",
     "unmatchedHint": "These couldn't be matched to a show, film, book or game source. They are retried in a few days.",
     "notFound": "No public profile with that username. Check the spelling, or paste the profile link.",
-    "offline": "Couldn’t reach the service. Check your connection and try again (Serializd can take a minute to wake up).",
+    "offline": "Couldn’t reach the service. Check your connection and try again in a minute (some services take a moment to wake up).",
     "group": {
       "screen": "Films and series",
       "anime": "Anime",
