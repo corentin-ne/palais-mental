@@ -164,4 +164,8 @@ export interface Settings {
   appearance: 'system' | 'light' | 'dark';
   /** Sequels and titles from the same universe in the calendar. */
   related: boolean;
+  /** Your accent colour (Spark UI kit): every decorative colour derives from it. Empty: the kit's blue. */
+  accent: string;
+  /** Display quality: full glass, or lite (opaque surfaces, no blur, no looping motion) for slower phones. */
+  fx: 'full' | 'lite';
 }

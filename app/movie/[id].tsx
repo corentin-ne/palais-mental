@@ -87,7 +87,7 @@ export default function MovieScreen() {
               <View style={styles.actions}>
                 {upcoming && !watched ? (
                   <View style={styles.reminder}>
-                    <Icon name="bell" size={18} color={palette.primary} strokeWidth={2} />
+                    <Icon name="bell" size={18} color={palette.primaryText} strokeWidth={2} />
                     <Text style={styles.reminderText}>{t('movie.reminderSet')}</Text>
                   </View>
                 ) : (
@@ -127,15 +127,15 @@ export default function MovieScreen() {
 }
 
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
-  panel: { marginTop: 22, padding: 16, gap: 12, borderRadius: radii.lg, backgroundColor: palette.surface },
+  panel: { marginTop: 22, padding: 16, gap: 12, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   release: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   releaseLabel: { ...type.label },
-  releaseDate: { fontFamily: fonts.semibold, fontSize: 14.5, color: palette.ink },
+  releaseDate: { ...fonts.semibold, fontSize: 14.5, color: palette.ink },
   countdown: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: palette.primaryTint },
-  countdownText: { fontFamily: fonts.semibold, fontSize: 12, color: palette.primary },
+  countdownText: { ...fonts.semibold, fontSize: 12, color: palette.primaryText },
   actions: { flexDirection: 'row', gap: 10 },
   rate: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   hint: { ...type.small, fontSize: 12.5 },
   reminder: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 50, borderRadius: 25, backgroundColor: palette.primaryTint },
-  reminderText: { fontFamily: fonts.semibold, fontSize: 15, color: palette.primary },
+  reminderText: { ...fonts.semibold, fontSize: 15, color: palette.primaryText },
 }));

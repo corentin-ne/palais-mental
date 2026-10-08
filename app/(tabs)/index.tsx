@@ -150,7 +150,7 @@ export default function UpNextScreen() {
               action={
                 <PressableScale onPress={() => router.navigate('/calendar')} style={styles.link}>
                   <Text style={styles.linkText}>{t('common.seeAll')}</Text>
-                  <Icon name="chevronRight" size={14} color={palette.primary} strokeWidth={2.2} />
+                  <Icon name="chevronRight" size={14} color={palette.primaryText} strokeWidth={2.2} />
                 </PressableScale>
               }
             >
@@ -164,7 +164,7 @@ export default function UpNextScreen() {
                         ? { title: u.movie.title, detail: t('calendar.inTheaters'), href: `/movie/${u.movie.id}`, icon: 'movies' as const }
                         : u.kind === 'book'
                           ? { title: u.book.title, detail: t('calendar.bookOut'), href: `/book/${u.book.id}`, icon: 'journal' as const }
-                          : { title: u.game.title, detail: t('calendar.gameOut'), href: `/game/${u.game.id}`, icon: 'play' as const };
+                          : { title: u.game.title, detail: t('calendar.gameOut'), href: `/game/${u.game.id}`, icon: 'gamepad' as const };
                   return (
                     <FadeIn key={`${title}${u.date}${i}`} index={i}>
                       <PressableScale depth={0.98} onPress={() => router.push(href as never)} style={styles.soonRow}>
@@ -271,14 +271,14 @@ function Welcome() {
 
 const useStyles = makeStyles(({ palette, fonts, radii }) => ({
   cards: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 18 },
-  allCaught: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18, padding: 16, borderRadius: radii.lg, backgroundColor: palette.surface },
-  allCaughtText: { fontFamily: fonts.medium, fontSize: 15, color: palette.ink },
+  allCaught: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18, padding: 16, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  allCaughtText: { ...fonts.medium, fontSize: 15, color: palette.ink },
   link: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4 },
-  linkText: { fontFamily: fonts.semibold, fontSize: 14, color: palette.primary },
-  soonList: { borderRadius: radii.lg, backgroundColor: palette.surface, paddingVertical: 4 },
+  linkText: { ...fonts.semibold, fontSize: 14, color: palette.primaryText },
+  soonList: { borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, paddingVertical: 4 },
   soonRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14, paddingVertical: 11 },
   when: { width: 86 },
-  whenText: { fontFamily: fonts.semibold, fontSize: 13, color: palette.primary },
-  soonTitle: { fontFamily: fonts.semibold, fontSize: 14.5, color: palette.ink },
-  soonDetail: { fontFamily: fonts.body, fontSize: 12.5, color: palette.inkSoft },
+  whenText: { ...fonts.semibold, fontSize: 13, color: palette.primaryText },
+  soonTitle: { ...fonts.semibold, fontSize: 14.5, color: palette.ink },
+  soonDetail: { ...fonts.body, fontSize: 12.5, color: palette.inkSoft },
 }));

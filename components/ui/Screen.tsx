@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
+import { Aurora } from '@/spark';
 
 interface Props {
   title: string;
@@ -31,6 +32,7 @@ export default function Screen({ title, subtitle, right, children, refreshing, o
 
   return (
     <View style={styles.root}>
+      <Aurora />
       <Animated.ScrollView
         scrollEventThrottle={16}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y } } }], { useNativeDriver: true })}

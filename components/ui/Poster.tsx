@@ -7,7 +7,7 @@ import Icon from './Icon';
 import { makeStyles, useTheme } from '@/constants/theme';
 import type { MediaKind } from '@/lib/types';
 
-const KIND_ICON = { show: 'series', movie: 'movies', book: 'journal', game: 'play' } as const;
+const KIND_ICON = { show: 'series', movie: 'movies', book: 'journal', game: 'gamepad' } as const;
 const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0;
 
 interface Props {
@@ -69,7 +69,7 @@ function Poster({ uri, title, width, kind = 'show', radius, progress, dim, eleva
 const useStyles = makeStyles(({ fonts, palette }) => ({
   clip: { flex: 1, overflow: 'hidden', backgroundColor: palette.placeholder },
   generated: { padding: 10, justifyContent: 'space-between' },
-  genTitle: { fontFamily: fonts.displayItalic, color: palette.posterInk },
+  genTitle: { ...fonts.displayItalic, color: palette.posterInk },
   track: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, backgroundColor: 'rgba(10,37,64,0.25)' },
   fill: { height: 4 },
 }));

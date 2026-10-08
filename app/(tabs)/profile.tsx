@@ -113,7 +113,7 @@ function Journal() {
     <Section title={t('journal.title')}>
       {entries.length === 0 ? (
         <View style={styles.emptyCard}>
-          <Icon name="journal" size={22} color={palette.primary} />
+          <Icon name="journal" size={22} color={palette.primaryText} />
           <Text style={styles.emptyText}>{t('journal.empty')}</Text>
         </View>
       ) : (
@@ -153,7 +153,7 @@ function Stat({ icon, value, text, label, index }: { icon: IconName; value?: num
   const shown = useCountUp(value ?? 0);
   return (
     <FadeIn index={index} style={styles.stat}>
-      <Icon name={icon} size={18} color={palette.primary} />
+      <Icon name={icon} size={18} color={palette.primaryText} />
       <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
         {text ?? Math.round(shown).toLocaleString()}
       </Text>
@@ -191,21 +191,21 @@ function ActionRow({ icon, label, hint, last, onPress }: { icon: IconName; label
 }
 
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
-  gear: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surface, marginBottom: 2 },
+  gear: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, marginBottom: 2 },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 },
-  stat: { flexGrow: 1, flexBasis: '45%', padding: 16, gap: 6, borderRadius: radii.lg, backgroundColor: palette.surface },
-  statValue: { fontFamily: fonts.bold, fontSize: 26, letterSpacing: -0.8, color: palette.ink },
+  stat: { flexGrow: 1, flexBasis: '45%', padding: 16, gap: 6, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  statValue: { ...fonts.bold, fontSize: 26, letterSpacing: -0.8, color: palette.ink },
   statLabel: { ...type.small },
-  group: { borderRadius: radii.lg, backgroundColor: palette.surface, overflow: 'hidden' },
+  group: { borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14 },
   line: { borderBottomWidth: 1, borderBottomColor: palette.hairline },
-  rowLabel: { fontFamily: fonts.medium, fontSize: 15, color: palette.ink },
+  rowLabel: { ...fonts.medium, fontSize: 15, color: palette.ink },
   rowHint: { ...type.small, fontSize: 12.5, lineHeight: 17 },
-  emptyCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: radii.lg, backgroundColor: palette.surface },
+  emptyCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   emptyText: { ...type.small, flex: 1 },
-  entry: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 10, borderRadius: radii.md, backgroundColor: palette.surface },
+  entry: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 10, borderRadius: radii.md, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   entryHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  entryTitle: { flex: 1, fontFamily: fonts.semibold, fontSize: 14.5, color: palette.ink },
-  entryDetail: { fontFamily: fonts.body, fontSize: 12.5, color: palette.inkSoft },
-  entryText: { fontFamily: fonts.displayItalic, fontSize: 16, lineHeight: 21, color: palette.ink, marginTop: 2 },
+  entryTitle: { flex: 1, ...fonts.semibold, fontSize: 14.5, color: palette.ink },
+  entryDetail: { ...fonts.body, fontSize: 12.5, color: palette.inkSoft },
+  entryText: { ...fonts.displayItalic, fontSize: 16, lineHeight: 21, color: palette.ink, marginTop: 2 },
 }));

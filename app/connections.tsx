@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Linking, Platform, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +33,7 @@ import { relativeDay, timeOf } from '@/lib/format';
 import { refreshRelated } from '@/lib/related';
 import { Service, useConnections } from '@/store/useConnections';
 import { useUi } from '@/store/useUi';
+import { Aurora, Switch } from '@/spark';
 
 const NAMES: Record<Service, string> = {
   letterboxd: 'Letterboxd',
@@ -143,6 +144,7 @@ export default function ConnectionsScreen() {
 
   return (
     <View style={styles.root}>
+      <Aurora />
       <View style={[styles.header, { paddingTop: insets.top + 8, paddingHorizontal: gutter, width: content }]}>
         <PressableScale onPress={() => router.back()} style={styles.back} accessibilityLabel={t('common.back')}>
           <Icon name="back" size={20} color={palette.ink} strokeWidth={2.2} />
@@ -197,7 +199,7 @@ export default function ConnectionsScreen() {
             <Text style={styles.label}>{t('connect.auto')}</Text>
             <Text style={styles.hint}>{t('connect.autoHint')}</Text>
           </View>
-          <Switch value={autoSync} trackColor={{ true: palette.primary, false: palette.fieldActive }} thumbColor="#fff" onValueChange={(v) => useConnections.getState().setAutoSync(v)} />
+          <Switch value={autoSync} label={t('connect.auto')} onValueChange={(v) => useConnections.getState().setAutoSync(v)} />
         </View>
 
         <Section title={t('connect.files')}>
@@ -383,20 +385,20 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 8 },
   back: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
   intro: { ...type.small, fontSize: 13.5, lineHeight: 19, marginTop: 6, marginBottom: 6 },
-  card: { marginTop: 10, padding: 16, gap: 12, borderRadius: radii.lg, backgroundColor: palette.surface },
+  card: { marginTop: 10, padding: 16, gap: 12, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  label: { fontFamily: fonts.medium, fontSize: 15, color: palette.ink },
+  label: { ...fonts.medium, fontSize: 15, color: palette.ink },
   hint: { ...type.small, fontSize: 12.5, lineHeight: 17 },
   footnote: { ...type.small, fontSize: 11.5, lineHeight: 16, color: palette.inkFaint },
   buttons: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   /** Next to a button on its row. */
   grow: { flex: 1 },
-  input: { alignSelf: 'stretch', height: 40, borderRadius: 12, paddingHorizontal: 12, backgroundColor: palette.field, fontFamily: fonts.body, fontSize: 14, color: palette.ink },
+  input: { alignSelf: 'stretch', height: 40, borderRadius: 12, paddingHorizontal: 12, backgroundColor: palette.field, ...fonts.body, fontSize: 14, color: palette.ink },
   pill: { maxWidth: 150, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: palette.successTint },
-  pillText: { fontFamily: fonts.semibold, fontSize: 11, color: palette.success },
+  pillText: { ...fonts.semibold, fontSize: 11, color: palette.success },
   progress: { marginTop: 12, padding: 14, gap: 8, borderRadius: radii.lg, backgroundColor: palette.primaryTint },
-  progressText: { fontFamily: fonts.medium, fontSize: 13, color: palette.primary },
+  progressText: { ...fonts.medium, fontSize: 13, color: palette.primaryText },
   track: { height: 4, borderRadius: 2, backgroundColor: palette.surface, overflow: 'hidden' },
   fill: { height: 4, borderRadius: 2, backgroundColor: palette.primary },
-  unmatched: { fontFamily: fonts.body, fontSize: 12.5, lineHeight: 18, color: palette.inkSoft },
+  unmatched: { ...fonts.body, fontSize: 12.5, lineHeight: 18, color: palette.inkSoft },
 }));

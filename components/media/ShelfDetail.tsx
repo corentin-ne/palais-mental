@@ -146,15 +146,16 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
             )}
 
             {!tracked ? (
-              <View style={styles.actions}>
-                <Button label={upcoming ? t('movie.remind') : t('shelf.add')} icon={upcoming ? 'bell' : 'plus'} onPress={() => add(false)} disabled={!meta} style={{ flex: 1 }} />
-                {!upcoming && <Button label={t(isBook ? 'book.start' : 'game.start')} icon={isBook ? 'journal' : 'play'} variant="secondary" onPress={() => add(true)} disabled={!meta} />}
+              // Two labelled actions don't fit side by side on a phone: stacked, the main one first.
+              <View style={styles.stacked}>
+                <Button label={upcoming ? t('movie.remind') : t('shelf.add')} icon={upcoming ? 'bell' : 'plus'} onPress={() => add(false)} disabled={!meta} style={styles.block} />
+                {!upcoming && <Button label={t(isBook ? 'book.start' : 'game.start')} icon={isBook ? 'journal' : 'gamepad'} variant="secondary" onPress={() => add(true)} disabled={!meta} style={styles.block} />}
               </View>
             ) : state === 'upcoming' ? (
               <>
                 <View style={styles.actions}>
                   <View style={styles.reminder}>
-                    <Icon name="bell" size={18} color={palette.primary} strokeWidth={2} />
+                    <Icon name="bell" size={18} color={palette.primaryText} strokeWidth={2} />
                     <Text style={styles.reminderText}>{t('movie.reminderSet')}</Text>
                   </View>
                   <Button label={t('common.remove')} icon="trash" variant="danger" onPress={remove} />
@@ -163,7 +164,7 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
               </>
             ) : state === 'want' ? (
               <View style={styles.actions}>
-                <Button label={t(isBook ? 'book.start' : 'game.start')} icon={isBook ? 'journal' : 'play'} onPress={() => status('started')} style={{ flex: 1 }} />
+                <Button label={t(isBook ? 'book.start' : 'game.start')} icon={isBook ? 'journal' : 'gamepad'} onPress={() => status('started')} style={{ flex: 1 }} />
                 <Button label={t('common.remove')} icon="trash" variant="danger" onPress={remove} />
               </View>
             ) : state === 'started' ? (
@@ -246,21 +247,23 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
 }
 
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
-  panel: { marginTop: 22, padding: 16, gap: 12, borderRadius: radii.lg, backgroundColor: palette.surface },
+  panel: { marginTop: 22, padding: 16, gap: 12, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   release: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   label: { ...type.label },
-  date: { fontFamily: fonts.semibold, fontSize: 14.5, color: palette.ink },
+  date: { ...fonts.semibold, fontSize: 14.5, color: palette.ink },
   badge: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: palette.primaryTint },
-  badgeText: { fontFamily: fonts.semibold, fontSize: 12, color: palette.primary },
-  platforms: { fontFamily: fonts.medium, fontSize: 13, color: palette.inkSoft },
+  badgeText: { ...fonts.semibold, fontSize: 12, color: palette.primaryText },
+  platforms: { ...fonts.medium, fontSize: 13, color: palette.inkSoft },
   actions: { flexDirection: 'row', gap: 10 },
+  stacked: { gap: 10 },
+  block: { alignSelf: 'stretch' },
   rate: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   hint: { ...type.small, fontSize: 12.5 },
-  done: { fontFamily: fonts.medium, fontSize: 14.5, color: palette.ink },
+  done: { ...fonts.medium, fontSize: 14.5, color: palette.ink },
   reminder: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 50, borderRadius: 25, backgroundColor: palette.primaryTint },
-  reminderText: { fontFamily: fonts.semibold, fontSize: 15, color: palette.primary },
+  reminderText: { ...fonts.semibold, fontSize: 15, color: palette.primaryText },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   track: { flex: 1, height: 6, borderRadius: 3, backgroundColor: palette.field, overflow: 'hidden' },
   fill: { height: 6, borderRadius: 3, backgroundColor: palette.primary },
-  percent: { fontFamily: fonts.semibold, fontSize: 12.5, color: palette.inkSoft },
+  percent: { ...fonts.semibold, fontSize: 12.5, color: palette.inkSoft },
 }));

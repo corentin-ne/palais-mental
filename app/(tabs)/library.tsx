@@ -280,12 +280,12 @@ const PosterTile = memo(function PosterTile({ href, title, poster, caption, prog
 
 const useStyles = makeStyles(({ palette, fonts, type }) => ({
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 20 },
-  title: { fontFamily: fonts.semibold, fontSize: 13, color: palette.ink },
-  caption: { fontFamily: fonts.body, fontSize: 11.5, color: palette.inkSoft },
+  title: { ...fonts.semibold, fontSize: 13, color: palette.ink },
+  caption: { ...fonts.body, fontSize: 11.5, color: palette.inkSoft },
   none: { ...type.small, textAlign: 'center', marginTop: 40 },
   tools: { flexDirection: 'row', gap: 8 },
-  search: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingHorizontal: 12, borderRadius: 20, backgroundColor: palette.surface },
-  searchInput: { flex: 1, height: 40, fontFamily: fonts.body, fontSize: 14, color: palette.ink },
-  sort: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: palette.surface },
-  sortText: { fontFamily: fonts.medium, fontSize: 13, color: palette.ink },
+  search: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingHorizontal: 12, borderRadius: 20, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  searchInput: { flex: 1, height: 40, ...fonts.body, fontSize: 14, color: palette.ink },
+  sort: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  sortText: { ...fonts.medium, fontSize: 13, color: palette.ink },
 }));

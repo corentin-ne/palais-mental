@@ -78,8 +78,8 @@ const useStyles = makeStyles(({ palette, fonts }) => ({
   btn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.field },
   plus: { backgroundColor: palette.primary },
   field: { flex: 1, flexDirection: 'row', alignItems: 'center', height: 38, paddingHorizontal: 12, borderRadius: 12, backgroundColor: palette.field, gap: 4 },
-  input: { minWidth: 36, flexShrink: 1, height: 38, fontFamily: fonts.semibold, fontSize: 16, color: palette.ink },
-  suffix: { flex: 1, fontFamily: fonts.medium, fontSize: 13.5, color: palette.inkSoft },
+  input: { minWidth: 36, flexShrink: 1, height: 38, ...fonts.semibold, fontSize: 16, color: palette.ink },
+  suffix: { flex: 1, ...fonts.medium, fontSize: 13.5, color: palette.inkSoft },
   big: { height: 38, paddingHorizontal: 12, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.primaryTint },
-  bigText: { fontFamily: fonts.semibold, fontSize: 13.5, color: palette.primary },
+  bigText: { ...fonts.semibold, fontSize: 13.5, color: palette.primaryText },
 }));

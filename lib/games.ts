@@ -201,7 +201,7 @@ interface SteamReviews {
 }
 
 /** CheapShark asks every client to name itself. */
-const CHEAPSHARK_HEADERS = { 'User-Agent': 'PalaisMental/1.3 (https://github.com/corentin-ne/palais-mental)' };
+const CHEAPSHARK_HEADERS = { 'User-Agent': 'PalaisMental/1.4 (https://github.com/corentin-ne/palais-mental)' };
 
 /** Steam's review summary, scored 1 (overwhelmingly negative) to 9 (overwhelmingly positive). */
 const REVIEW_KEYS = ['', 'overwhelminglyNegative', 'veryNegative', 'negative', 'mostlyNegative', 'mixed', 'mostlyPositive', 'positive', 'veryPositive', 'overwhelminglyPositive'];

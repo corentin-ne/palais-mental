@@ -8,8 +8,8 @@ import { persisted } from './cache';
 const API = 'https://www.wikidata.org/w/api.php?format=json&origin=*';
 const SPARQL = 'https://query.wikidata.org/sparql';
 export const WIKI_HEADERS = {
-  'User-Agent': 'PalaisMental/1.3 (https://github.com/corentin-ne/palais-mental)',
-  'Api-User-Agent': 'PalaisMental/1.3 (https://github.com/corentin-ne/palais-mental)',
+  'User-Agent': 'PalaisMental/1.4 (https://github.com/corentin-ne/palais-mental)',
+  'Api-User-Agent': 'PalaisMental/1.4 (https://github.com/corentin-ne/palais-mental)',
 };
 const enc = encodeURIComponent;
 

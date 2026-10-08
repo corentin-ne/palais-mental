@@ -516,7 +516,13 @@
     "look": "Apparence et langue",
     "services": "Services et sources",
     "csv": "Exports CSV",
-    "snapshots": "Copies automatiques"
+    "snapshots": "Copies automatiques",
+    "accent": "Couleur d’accent",
+    "accentN": "Couleur {{n}}",
+    "quality": "Qualité d’affichage",
+    "qualityFull": "Verre",
+    "qualityLite": "Allégée",
+    "qualityHint": "Le mode allégé coupe le flou et les halos et rend les surfaces opaques : plus fluide sur les téléphones anciens, plus économe en batterie."
   },
   "journal": {
     "title": "Carnet",

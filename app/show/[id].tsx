@@ -296,7 +296,7 @@ function EpisodeRow({
               <View style={styles.epCodeRow}>
                 <Text style={styles.epCode}>{episodeCode(e)}</Text>
                 {note?.rating != null && <StarBadge value={note.rating} />}
-                {!!note?.text && <Icon name="journal" size={13} color={palette.primary} />}
+                {!!note?.text && <Icon name="journal" size={13} color={palette.primaryText} />}
               </View>
               <Text style={styles.epName} numberOfLines={open ? undefined : 2}>
                 {e.name || t('show.episodeN', { n: e.number })}
@@ -351,34 +351,34 @@ function NoteInput({ value, placeholder, onSave }: { value?: string; placeholder
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   rate: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   rateLabel: { ...type.label },
-  panel: { marginTop: 22, padding: 16, gap: 10, borderRadius: radii.lg, backgroundColor: palette.surface },
+  panel: { marginTop: 22, padding: 16, gap: 10, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   progressHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  progressText: { fontFamily: fonts.medium, fontSize: 14.5, color: palette.ink },
-  progressState: { fontFamily: fonts.semibold, fontSize: 12.5, color: palette.primary },
+  progressText: { ...fonts.medium, fontSize: 14.5, color: palette.ink },
+  progressState: { ...fonts.semibold, fontSize: 12.5, color: palette.primaryText },
   track: { height: 6, borderRadius: 3, backgroundColor: palette.field, overflow: 'hidden' },
   fill: { height: 6, borderRadius: 3 },
-  nextAir: { ...type.small, color: palette.primary },
-  allLink: { fontFamily: fonts.semibold, fontSize: 13.5, color: palette.primary },
+  nextAir: { ...type.small, color: palette.primaryText },
+  allLink: { ...fonts.semibold, fontSize: 13.5, color: palette.primaryText },
   actions: { flexDirection: 'row', gap: 8, marginTop: 4 },
   sectionTitle: { ...type.title },
   seasonHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   seasonToggle: { paddingVertical: 4 },
-  seasonToggleText: { fontFamily: fonts.semibold, fontSize: 13.5, color: palette.primary },
-  seasonChip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 15, borderRadius: 18, backgroundColor: palette.surface },
+  seasonToggleText: { ...fonts.semibold, fontSize: 13.5, color: palette.primaryText },
+  seasonChip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 15, borderRadius: 18, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   seasonChipActive: { backgroundColor: palette.ink },
-  seasonChipText: { fontFamily: fonts.semibold, fontSize: 13.5, color: palette.ink },
+  seasonChipText: { ...fonts.semibold, fontSize: 13.5, color: palette.ink },
   doneDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: palette.success },
   hint: { ...type.small, fontSize: 12, marginTop: -4 },
   episodes: { gap: 8 },
-  episode: { padding: 10, borderRadius: radii.md, backgroundColor: palette.surface, gap: 10 },
+  episode: { padding: 10, borderRadius: radii.md, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, gap: 10 },
   epCodeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   notePanel: { gap: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: palette.hairline },
-  note: { minHeight: 64, borderRadius: 12, padding: 12, backgroundColor: palette.field, fontFamily: fonts.displayItalic, fontSize: 17, lineHeight: 22, color: palette.ink },
+  note: { minHeight: 64, borderRadius: 12, padding: 12, backgroundColor: palette.field, ...fonts.displayItalic, fontSize: 17, lineHeight: 22, color: palette.ink },
   epTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   still: { width: 96, height: 56, borderRadius: 8, overflow: 'hidden', backgroundColor: palette.field, alignItems: 'center', justifyContent: 'center' },
-  stillNum: { fontFamily: fonts.displayItalic, fontSize: 22, color: palette.inkFaint },
-  epCode: { fontFamily: fonts.semibold, fontSize: 11, letterSpacing: 0.6, color: palette.inkFaint },
-  epName: { fontFamily: fonts.semibold, fontSize: 14.5, color: palette.ink, letterSpacing: -0.15 },
-  epDate: { fontFamily: fonts.body, fontSize: 12, color: palette.inkSoft },
+  stillNum: { ...fonts.displayItalic, fontSize: 22, color: palette.inkFaint },
+  epCode: { ...fonts.semibold, fontSize: 11, letterSpacing: 0.6, color: palette.inkFaint },
+  epName: { ...fonts.semibold, fontSize: 14.5, color: palette.ink, letterSpacing: -0.15 },
+  epDate: { ...fonts.body, fontSize: 12, color: palette.inkSoft },
   epSynopsis: { ...type.small, color: palette.inkSoft, lineHeight: 19 },
 }));

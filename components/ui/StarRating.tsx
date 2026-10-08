@@ -34,10 +34,10 @@ export default function StarRating({ value, onChange, size = 26 }: Props) {
             }}
           >
             <View style={{ width: size, height: size }}>
-              <Icon name="star" size={size} color={full || half ? palette.primary : palette.inkFaint} />
+              <Icon name="star" size={size} color={full || half ? palette.primaryText : palette.inkFaint} />
               {(full || half) && (
                 <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: full ? size : size / 2, overflow: 'hidden' }}>
-                  <Icon name="starFill" size={size} color={palette.primary} />
+                  <Icon name="starFill" size={size} color={palette.primaryText} />
                 </View>
               )}
             </View>
@@ -53,8 +53,8 @@ export function StarBadge({ value }: { value: number }) {
   const { palette, fonts } = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: palette.primaryTint }}>
-      <Icon name="starFill" size={11} color={palette.primary} />
-      <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: palette.primary }}>{(value / 2).toLocaleString(undefined, { maximumFractionDigits: 1 })}</Text>
+      <Icon name="starFill" size={11} color={palette.primaryText} />
+      <Text style={{ ...fonts.semibold, fontSize: 12, color: palette.primaryText }}>{(value / 2).toLocaleString(undefined, { maximumFractionDigits: 1 })}</Text>
     </View>
   );
 }

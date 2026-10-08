@@ -91,11 +91,11 @@ export function Similar({ kind, extras }: { kind: 'show' | 'movie'; extras?: Ext
 
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   title: { ...type.title },
-  card: { borderRadius: radii.lg, backgroundColor: palette.surface, padding: 16, gap: 14 },
+  card: { borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, padding: 16, gap: 14 },
   group: { gap: 8 },
   groupLabel: { ...type.label },
   logos: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   provider: { width: 46, height: 46, borderRadius: 12, overflow: 'hidden', backgroundColor: palette.field, alignItems: 'center', justifyContent: 'center' },
-  provName: { fontFamily: fonts.semibold, fontSize: 13, color: palette.inkSoft },
+  provName: { ...fonts.semibold, fontSize: 13, color: palette.inkSoft },
   credit: { ...type.small, fontSize: 11 },
 }));

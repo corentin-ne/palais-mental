@@ -20,6 +20,7 @@ import { searchBooks, trendingBooks } from '@/lib/books';
 import { popularGames, searchGames } from '@/lib/games';
 import { countdown } from '@/lib/format';
 import { useLibrary } from '@/store/useLibrary';
+import { Aurora } from '@/spark';
 
 type Scope = 'all' | 'shows' | 'movies' | 'books' | 'games';
 const SCOPES: Scope[] = ['all', 'shows', 'movies', 'books', 'games'];
@@ -109,6 +110,7 @@ export default function SearchScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + 10 }]}>
+      <Aurora />
       <View style={{ width: content, paddingHorizontal: gutter, gap: 12, alignSelf: 'center' }}>
         <View style={styles.bar}>
           <View style={styles.field}>
@@ -260,7 +262,7 @@ function ResultRow({ r }: { r: SearchResult }) {
         {busy ? (
           <ActivityIndicator size="small" color={palette.onInk} />
         ) : (
-          <Icon name={inLibrary ? 'check' : 'plus'} size={18} color={inLibrary ? palette.primary : palette.onInk} strokeWidth={2.4} />
+          <Icon name={inLibrary ? 'check' : 'plus'} size={18} color={inLibrary ? palette.primaryText : palette.onInk} strokeWidth={2.4} />
         )}
       </PressableScale>
     </PressableScale>
@@ -270,15 +272,15 @@ function ResultRow({ r }: { r: SearchResult }) {
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   root: { flex: 1, backgroundColor: palette.screen },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  field: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 46, paddingHorizontal: 14, borderRadius: 23, backgroundColor: palette.surface },
-  input: { flex: 1, fontFamily: fonts.body, fontSize: 16, color: palette.ink, height: 46 },
+  field: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 46, paddingHorizontal: 14, borderRadius: 23, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  input: { flex: 1, ...fonts.body, fontSize: 16, color: palette.ink, height: 46 },
   clear: { width: 20, height: 20, borderRadius: 10, backgroundColor: palette.inkFaint, alignItems: 'center', justifyContent: 'center' },
-  cancel: { fontFamily: fonts.semibold, fontSize: 15, color: palette.primary },
+  cancel: { ...fonts.semibold, fontSize: 15, color: palette.primaryText },
   results: { flexDirection: 'row', flexWrap: 'wrap' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 8, borderRadius: radii.md, backgroundColor: palette.surface },
-  title: { fontFamily: fonts.semibold, fontSize: 15, color: palette.ink, letterSpacing: -0.2 },
-  meta: { fontFamily: fonts.body, fontSize: 12.5, color: palette.inkSoft },
-  soon: { fontFamily: fonts.semibold, fontSize: 12, color: palette.primary },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 8, borderRadius: radii.md, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  title: { ...fonts.semibold, fontSize: 15, color: palette.ink, letterSpacing: -0.2 },
+  meta: { ...fonts.body, fontSize: 12.5, color: palette.inkSoft },
+  soon: { ...fonts.semibold, fontSize: 12, color: palette.primaryText },
   add: { width: 38, height: 38, borderRadius: 19, backgroundColor: palette.primary, alignItems: 'center', justifyContent: 'center' },
   none: { ...type.small, textAlign: 'center', marginTop: 48 },
 }));

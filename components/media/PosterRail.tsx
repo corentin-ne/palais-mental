@@ -47,6 +47,6 @@ export default function PosterRail({ items }: { items: RailItem[] }) {
 }
 
 const useStyles = makeStyles(({ palette, fonts }) => ({
-  title: { fontFamily: fonts.semibold, fontSize: 13.5, color: palette.ink },
-  caption: { fontFamily: fonts.body, fontSize: 12, color: palette.inkSoft },
+  title: { ...fonts.semibold, fontSize: 13.5, color: palette.ink },
+  caption: { ...fonts.body, fontSize: 12, color: palette.inkSoft },
 }));

@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react';
-import { Linking, Platform, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,7 @@ import type { LanguagePreference } from '@/locales/i18n';
 import type { Settings } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
 import { useUi } from '@/store/useUi';
+import { Aurora, Switch } from '@/spark';
 
 /** Everything that changes how the app behaves, and your data to take anywhere. */
 export default function SettingsScreen() {
@@ -68,11 +69,12 @@ export default function SettingsScreen() {
   };
 
   const toggle = (value: boolean, onChange: (v: boolean) => void, disabled?: boolean) => (
-    <Switch value={value} disabled={disabled} trackColor={{ true: palette.primary, false: palette.fieldActive }} thumbColor="#fff" onValueChange={onChange} />
+    <Switch value={value} disabled={disabled} onValueChange={onChange} />
   );
 
   return (
     <View style={styles.root}>
+      <Aurora />
       <View style={[styles.header, { paddingTop: insets.top + 8, paddingHorizontal: gutter, width: content }]}>
         <PressableScale onPress={() => router.back()} style={styles.back} accessibilityLabel={t('common.back')}>
           <Icon name="back" size={20} color={palette.ink} strokeWidth={2.2} />
@@ -118,6 +120,20 @@ export default function SettingsScreen() {
                 { value: 'dark', label: t('profile.dark') },
               ]}
             />
+          </Block>
+          <Block icon="palette" tint="" label={t('settings.accent')}>
+            <AccentPicker />
+          </Block>
+          <Block icon="sparkle" tint="" label={t('settings.quality')}>
+            <Segmented<Settings['fx']>
+              value={settings.fx}
+              onChange={(fx) => setSettings({ fx })}
+              options={[
+                { value: 'full', label: t('settings.qualityFull') },
+                { value: 'lite', label: t('settings.qualityLite') },
+              ]}
+            />
+            <Text style={styles.rowHint}>{t('settings.qualityHint')}</Text>
           </Block>
           <Block icon="globe" tint="#0B63CE" label={t('profile.language')} last>
             <Segmented<LanguagePreference>
@@ -166,12 +182,48 @@ function Group({ title, index, children }: { title: string; index: number; child
   );
 }
 
-/** A coloured tile behind each icon, so rows read at a glance. */
-function Tile({ icon, tint }: { icon: IconName; tint: string }) {
+/** The icon tile of a row: the accent's soft tint (one accent colour, Spark UI kit), whatever the row. */
+function Tile({ icon }: { icon: IconName; tint?: string }) {
+  const { palette } = useTheme();
   const styles = useStyles();
   return (
-    <View style={[styles.tile, { backgroundColor: tint }]}>
-      <Icon name={icon} size={17} color="#fff" strokeWidth={2} />
+    <View style={styles.tile}>
+      <Icon name={icon} size={17} color={palette.primaryText} strokeWidth={2} />
+    </View>
+  );
+}
+
+/** Accent colours to pick from: every decorative colour of the app derives from the one chosen. */
+const ACCENTS = ['#3987e5', '#6d5ce8', '#a855f7', '#e0518c', '#f0614c', '#f59e0b', '#22a35a', '#14a3b8', '#64748b'];
+
+function AccentPicker() {
+  const { t } = useTranslation();
+  const { palette } = useTheme();
+  const styles = useStyles();
+  const haptics = useHaptics();
+  const accent = useLibrary((s) => s.settings.accent) || ACCENTS[0];
+  const setSettings = useLibrary((s) => s.setSettings);
+  return (
+    <View style={styles.swatches} accessibilityRole="radiogroup">
+      {ACCENTS.map((c, i) => {
+        const on = c.toLowerCase() === accent.toLowerCase();
+        return (
+          <PressableScale
+            key={c}
+            depth={0.88}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={t('settings.accentN', { n: i + 1 })}
+            onPress={() => {
+              haptics.select();
+              setSettings({ accent: i === 0 ? '' : c });
+            }}
+            style={[styles.swatchRing, on && { borderColor: palette.ink }]}
+          >
+            <View style={[styles.swatch, { backgroundColor: c }]}>{on && <Icon name="check" size={16} color="#fff" strokeWidth={2.8} />}</View>
+          </PressableScale>
+        );
+      })}
     </View>
   );
 }
@@ -313,18 +365,21 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 4 },
   back: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
   groupTitle: { ...type.label, marginLeft: 4 },
-  group: { borderRadius: radii.lg, backgroundColor: palette.surface, overflow: 'hidden' },
-  tile: { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  group: { borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, overflow: 'hidden' },
+  tile: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.primaryTint },
+  swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  swatchRing: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
+  swatch: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14, paddingVertical: 12, minHeight: 56 },
   line: { borderBottomWidth: 1, borderBottomColor: palette.hairline },
   rowHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   block: { padding: 14, gap: 12 },
-  rowLabel: { fontFamily: fonts.medium, fontSize: 15, color: palette.ink },
+  rowLabel: { ...fonts.medium, fontSize: 15, color: palette.ink },
   rowHint: { ...type.small, fontSize: 12.5, lineHeight: 17 },
-  input: { flex: 1, height: 40, borderRadius: 12, paddingHorizontal: 12, backgroundColor: palette.field, borderWidth: 1, borderColor: 'transparent', fontFamily: fonts.body, fontSize: 14, color: palette.ink },
-  link: { fontFamily: fonts.semibold, fontSize: 13, color: palette.primary },
+  input: { flex: 1, height: 40, borderRadius: 12, paddingHorizontal: 12, backgroundColor: palette.field, borderWidth: 1, borderColor: 'transparent', ...fonts.body, fontSize: 14, color: palette.ink },
+  link: { ...fonts.semibold, fontSize: 13, color: palette.primaryText },
   on: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: palette.successTint },
-  onText: { fontFamily: fonts.semibold, fontSize: 11, color: palette.success },
+  onText: { ...fonts.semibold, fontSize: 11, color: palette.success },
   footnote: { ...type.small, fontSize: 12, marginTop: 8, marginHorizontal: 4 },
   version: { ...type.small, fontSize: 12, textAlign: 'center', marginTop: 32, color: palette.inkFaint },
 }));

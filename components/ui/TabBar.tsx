@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import type { BottomTabBarProps } from 'expo-router/tabs';
@@ -28,7 +29,7 @@ const ADD_W = 64;
  */
 export default function TabBar({ state, navigation }: BottomTabBarProps) {
   const { t } = useTranslation();
-  const { palette, motion } = useTheme();
+  const { palette, motion, spark } = useTheme();
   const styles = useStyles();
   const insets = useSafeAreaInsets();
   const haptics = useHaptics();
@@ -85,7 +86,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
         }}
       >
         <View>
-          <Icon name={tab.icon} size={22} color={active ? palette.ink : palette.inkFaint} strokeWidth={active ? 2 : 1.7} />
+          <Icon name={tab.icon} size={22} color={active ? palette.primaryText : palette.inkSoft} strokeWidth={active ? 2.1 : 1.8} />
           {route.name === 'calendar' && soon && <View style={styles.dot} />}
         </View>
         <Text style={[styles.label, active && styles.labelActive]}>{t(tab.label)}</Text>
@@ -111,9 +112,11 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
               router.push('/search');
             }}
             accessibilityLabel={t('search.title')}
-            style={styles.add}
-            depth={0.88}
+            style={[styles.add, spark.shadow.glow]}
+            depth={0.9}
           >
+            <LinearGradient colors={spark.color.primaryGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: 29 }]} />
+            <View style={styles.addHighlight} />
             <Icon name="search" size={24} color={palette.onInk} strokeWidth={2.3} />
           </PressableScale>
         </Animated.View>
@@ -122,24 +125,18 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   );
 }
 
-const useStyles = makeStyles(({ palette, fonts, shadow }) => ({
+const useStyles = makeStyles(({ palette, fonts }) => ({
   wrap: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', paddingHorizontal: 16 },
   bar: { paddingHorizontal: 8, paddingVertical: 6 },
   row: { flexDirection: 'row', alignItems: 'center' },
-  pill: { position: 'absolute', left: 0, top: 0, width: TAB_W, height: 52, borderRadius: 18, backgroundColor: palette.field },
+  // The kit's active nav item: an accent tint with a hairline ring, under the accent icon and label.
+  pill: { position: 'absolute', left: 0, top: 0, width: TAB_W, height: 52, borderRadius: 16, backgroundColor: palette.primaryTint, borderWidth: 1, borderColor: palette.primaryTint },
   tab: { width: TAB_W, height: 52, alignItems: 'center', justifyContent: 'center', gap: 3 },
-  label: { fontFamily: fonts.medium, fontSize: 10.5, color: palette.inkFaint, letterSpacing: 0.1 },
-  labelActive: { color: palette.ink, fontFamily: fonts.semibold },
-  dot: { position: 'absolute', top: -1, right: -3, width: 8, height: 8, borderRadius: 4, backgroundColor: palette.primary, borderWidth: 1.5, borderColor: palette.surface },
+  label: { ...fonts.medium, fontSize: 10.5, color: palette.inkSoft, letterSpacing: 0.1 },
+  labelActive: { color: palette.primaryText, ...fonts.semibold },
+  dot: { position: 'absolute', top: -1, right: -3, width: 8, height: 8, borderRadius: 4, backgroundColor: palette.primary, borderWidth: 1.5, borderColor: palette.bg },
   addSlot: { width: ADD_W },
   addWrap: { position: 'absolute', top: -12, left: 0, right: 0, alignItems: 'center' },
-  add: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: palette.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadow.lifted,
-  },
+  add: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center' },
+  addHighlight: { position: 'absolute', top: 0, left: 14, right: 14, height: 1, backgroundColor: 'rgba(255,255,255,0.35)' },
 }));

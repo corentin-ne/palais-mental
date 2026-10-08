@@ -516,7 +516,13 @@
     "look": "Appearance and language",
     "services": "Services and sources",
     "csv": "CSV exports",
-    "snapshots": "Automatic copies"
+    "snapshots": "Automatic copies",
+    "accent": "Accent colour",
+    "accentN": "Colour {{n}}",
+    "quality": "Display quality",
+    "qualityFull": "Glass",
+    "qualityLite": "Lite",
+    "qualityHint": "Lite turns off blur and glow and makes surfaces opaque: smoother on older phones, easier on the battery."
   },
   "journal": {
     "title": "Journal",

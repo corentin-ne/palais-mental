@@ -14,6 +14,7 @@ import { FadeIn, Skeleton } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 import type { MediaKind } from '@/lib/types';
+import { Aurora } from '@/spark';
 
 interface Props {
   kind: MediaKind;
@@ -55,6 +56,7 @@ export default function DetailLayout({ kind, title, poster, backdrop, meta, tags
 
   return (
     <View style={styles.root}>
+      <Aurora />
       <Animated.ScrollView
         scrollEventThrottle={16}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y } } }], { useNativeDriver: true })}
@@ -188,19 +190,19 @@ const useStyles = makeStyles(({ palette, fonts, type }) => ({
   root: { flex: 1, backgroundColor: palette.screen },
   body: { alignSelf: 'center' },
   head: { flexDirection: 'row', alignItems: 'flex-end', gap: 18 },
-  meta: { fontFamily: fonts.medium, fontSize: 13.5, color: palette.inkSoft },
+  meta: { ...fonts.medium, fontSize: 13.5, color: palette.inkSoft },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16 },
-  tag: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: palette.surface },
-  tagText: { fontFamily: fonts.medium, fontSize: 12, color: palette.inkSoft },
+  tag: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  tagText: { ...fonts.medium, fontSize: 12, color: palette.inkSoft },
   synopsis: { ...type.body, color: palette.ink, lineHeight: 22 },
-  more: { fontFamily: fonts.semibold, fontSize: 13, color: palette.primary, marginTop: 4 },
+  more: { ...fonts.semibold, fontSize: 13, color: palette.primaryText, marginTop: 4 },
   error: { marginTop: 30, alignItems: 'center', gap: 10 },
-  retry: { fontFamily: fonts.semibold, fontSize: 14, color: palette.primary },
+  retry: { ...fonts.semibold, fontSize: 14, color: palette.primaryText },
   bar: { position: 'absolute', left: 0, right: 0, top: 0, overflow: 'hidden' },
   barInner: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   back: { position: 'absolute', width: 40, height: 40, borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: palette.glass },
   face: { width: 64, height: 64, borderRadius: 32, overflow: 'hidden', backgroundColor: palette.fieldActive, alignItems: 'center', justifyContent: 'center' },
-  initials: { fontFamily: fonts.semibold, fontSize: 18, color: palette.inkSoft },
-  castName: { fontFamily: fonts.medium, fontSize: 12, color: palette.ink, textAlign: 'center' },
-  castRole: { fontFamily: fonts.body, fontSize: 11, color: palette.inkFaint, textAlign: 'center' },
+  initials: { ...fonts.semibold, fontSize: 18, color: palette.inkSoft },
+  castName: { ...fonts.medium, fontSize: 12, color: palette.ink, textAlign: 'center' },
+  castRole: { ...fonts.body, fontSize: 11, color: palette.inkFaint, textAlign: 'center' },
 }));

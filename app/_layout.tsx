@@ -1,26 +1,20 @@
 import '@/locales/i18n';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
-import {
-  InstrumentSans_400Regular,
-  InstrumentSans_500Medium,
-  InstrumentSans_600SemiBold,
-  InstrumentSans_700Bold,
-} from '@expo-google-fonts/instrument-sans';
-import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
 
 import SafeBoundary from '@/components/ui/SafeBoundary';
 import Toast from '@/components/ui/Toast';
-import { useTheme } from '@/constants/theme';
+import { useSparkOptions, useTheme } from '@/constants/theme';
 import { useLanguageSync } from '@/hooks/useLanguageSync';
 import { startSync } from '@/lib/sync';
+import { SparkProvider } from '@/spark';
+import { useLibrary } from '@/store/useLibrary';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -39,47 +33,55 @@ function useNotificationRouting() {
   }, [router]);
 }
 
+/** True once the saved library (and with it your theme and accent) is read back. */
+function useHydrated() {
+  const [done, setDone] = useState(() => useLibrary.persist.hasHydrated());
+  useEffect(() => {
+    if (done) return;
+    const unsub = useLibrary.persist.onFinishHydration(() => setDone(true));
+    if (useLibrary.persist.hasHydrated()) setDone(true);
+    return unsub;
+  }, [done]);
+  return done;
+}
+
 export default function RootLayout() {
   const { palette, dark } = useTheme();
+  const spark = useSparkOptions();
+  const hydrated = useHydrated();
   useLanguageSync();
   useNotificationRouting();
   useEffect(() => startSync(), []);
-  const [loaded, error] = useFonts({
-    InstrumentSans_400Regular,
-    InstrumentSans_500Medium,
-    InstrumentSans_600SemiBold,
-    InstrumentSans_700Bold,
-    InstrumentSerif_400Regular,
-    InstrumentSerif_400Regular_Italic,
-  });
 
+  // System fonts (Spark UI kit): nothing to load, the splash waits only for your saved theme and accent.
   useEffect(() => {
-    if (loaded || error) SplashScreen.hideAsync().catch(() => undefined);
-  }, [loaded, error]);
+    if (hydrated) SplashScreen.hideAsync().catch(() => undefined);
+  }, [hydrated]);
 
   // The window behind the app follows the theme: no light flash around transitions in dark mode.
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(palette.bg).catch(() => undefined);
   }, [palette.bg]);
 
-  // Hold on the background colour until the type is ready; on failure, system fonts take over.
-  if (!loaded && !error) return <View style={{ flex: 1, backgroundColor: palette.bg }} />;
+  if (!hydrated) return <View style={{ flex: 1, backgroundColor: palette.bg }} />;
 
   return (
-    <SafeBoundary>
-      <StatusBar style={dark ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.bg }, animation: 'slide_from_right' }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="search" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="show/[id]" />
-        <Stack.Screen name="movie/[id]" />
-        <Stack.Screen name="book/[id]" />
-        <Stack.Screen name="game/[id]" />
-        <Stack.Screen name="history" />
-        <Stack.Screen name="connections" />
-        <Stack.Screen name="settings" />
-      </Stack>
-      <Toast />
-    </SafeBoundary>
+    <SparkProvider scheme={spark.scheme} accent={spark.accent} lite={spark.lite}>
+      <SafeBoundary>
+        <StatusBar style={dark ? 'light' : 'dark'} />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.bg }, animation: 'slide_from_right' }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="search" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="show/[id]" />
+          <Stack.Screen name="movie/[id]" />
+          <Stack.Screen name="book/[id]" />
+          <Stack.Screen name="game/[id]" />
+          <Stack.Screen name="history" />
+          <Stack.Screen name="connections" />
+          <Stack.Screen name="settings" />
+        </Stack>
+        <Toast />
+      </SafeBoundary>
+    </SparkProvider>
   );
 }

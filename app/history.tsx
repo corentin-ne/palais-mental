@@ -15,6 +15,7 @@ import { dayKey, relativeDay, timeOf } from '@/lib/format';
 import { episodeCode } from '@/lib/progress';
 import type { MediaKind } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
+import { Aurora } from '@/spark';
 
 type Row =
   | { type: 'day'; key: string; day: number }
@@ -71,6 +72,7 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.root}>
+      <Aurora />
       <View style={[styles.header, { paddingTop: insets.top + 8, paddingHorizontal: gutter, width: content }]}>
         <PressableScale onPress={() => router.back()} style={styles.back} accessibilityLabel={t('common.back')}>
           <Icon name="back" size={20} color={palette.ink} strokeWidth={2.2} />
@@ -111,9 +113,9 @@ const useStyles = makeStyles(({ palette, fonts, radii }) => ({
   root: { flex: 1, backgroundColor: palette.screen, alignItems: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 8 },
   back: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
-  day: { fontFamily: fonts.bold, fontSize: 17, color: palette.ink, marginTop: 22, marginBottom: 8, letterSpacing: -0.3 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 8, marginBottom: 6, borderRadius: radii.md, backgroundColor: palette.surface },
-  title: { fontFamily: fonts.semibold, fontSize: 14.5, color: palette.ink },
-  detail: { fontFamily: fonts.body, fontSize: 12.5, color: palette.inkSoft },
-  time: { fontFamily: fonts.medium, fontSize: 12, color: palette.inkFaint },
+  day: { ...fonts.bold, fontSize: 17, color: palette.ink, marginTop: 22, marginBottom: 8, letterSpacing: -0.3 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 8, marginBottom: 6, borderRadius: radii.md, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  title: { ...fonts.semibold, fontSize: 14.5, color: palette.ink },
+  detail: { ...fonts.body, fontSize: 12.5, color: palette.inkSoft },
+  time: { ...fonts.medium, fontSize: 12, color: palette.inkFaint },
 }));

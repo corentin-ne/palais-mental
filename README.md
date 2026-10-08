@@ -16,6 +16,7 @@ npm run typecheck
 
 ## What it does
 
+- **Spark UI kit look.** Frosted glass over a soft aurora, one accent colour you pick in Settings (every decorative colour derives from it, with readable text on any of them), fixed colours for states and data, system fonts and measured motion. Light and dark, plus a lite display mode for older phones (opaque surfaces, no blur, no looping animation). Built on the kit's native layer, vendored in `spark/`.
 - **Up next.** The next episode of every show you're watching, with its still, progress and one tick to mark it watched; the next one slides in. Below: what's airing soon, shows you haven't started, and films waiting on your watchlist.
 - **Books and games.** Search Open Library, Google Books, Steam and Wikidata; keep your place (the page you're at, hours played and completion), finish, drop or start again. Books you're reading and games you're playing sit in **Up next** with a one-tap + (a page, or ten on a long press; an hour of play). Each page shows the release date (with a countdown when it's announced) and the rest of the series in order: prequels, sequels and every entry with its number and date.
 - **Calendar.** Every upcoming episode, film, book and game release you follow, day by day, with premieres and new seasons flagged. Local notifications when an episode airs or a film comes out (phones).
@@ -60,16 +61,18 @@ Shows still airing refresh every 6 hours, ended shows weekly, awaited films, boo
 
 ```
 app/
-  _layout.tsx            fonts, i18n, sync, notification routing, toast
+  _layout.tsx            Spark provider, i18n, sync, notification routing, toast
   (tabs)/                Up next · Calendar · Library · You (+ search button in the tab bar)
   search.tsx             modal search
   show/[id].tsx          show detail (TVmaze id)
   movie/[id].tsx         film detail (tmdb-… / imdb-… / itunes-…)
   book/[id].tsx          book detail (ol-… / gb-… / wd-…)
   game/[id].tsx          game detail (steam-… / wd-…)
+spark/                   Spark UI kit native layer (vendored copy, see spark/VERSION): tokens, glass, controls
+constants/theme.ts       the app's theme built on the kit's tokens (appearance × accent × display quality)
 components/
   media/                 detail layout, Up next and reading/playing cards, poster and series rails, book/game detail
-  ui/                    glass, buttons, chips, segmented, check, poster, motion, toast
+  ui/                    the app's controls on the kit: glass, buttons, chips, segmented, check, poster, motion, toast
 lib/
   api.ts                 TVmaze, TMDB, IMDb, iTunes, Wikidata
   books.ts               Open Library, Google Books

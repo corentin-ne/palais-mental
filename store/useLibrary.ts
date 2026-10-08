@@ -72,7 +72,7 @@ interface LibraryState extends LibraryData {
   setLanguage: (language: LanguagePreference) => void;
 }
 
-const DEFAULT_SETTINGS: Settings = { notifications: true, haptics: true, tmdbKey: '', appearance: 'system', related: true };
+const DEFAULT_SETTINGS: Settings = { notifications: true, haptics: true, tmdbKey: '', appearance: 'system', related: true, accent: '', fx: 'full' };
 const STORE_KEY = 'palais-mental/library';
 const STORE_VERSION = 3;
 

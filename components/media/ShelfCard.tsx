@@ -44,26 +44,29 @@ export default function ShelfCard({ kind, item, width }: Props) {
   const atEnd = !!book?.pages && (book.page ?? 0) >= book.pages;
 
   return (
-    <PressableScale depth={0.98} onPress={() => router.push(`/${kind}/${item.id}` as never)} style={[styles.card, { width }]} accessibilityLabel={item.title}>
-      <Poster uri={item.cover} title={item.title} width={52} kind={kind} elevated={false} radius={7} />
-      <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={1}>
-          {item.title}
-        </Text>
-        {!!sub && (
-          <Text style={styles.sub} numberOfLines={1}>
-            {sub}
+    // The card opens the title and the + moves you on: siblings, not one button inside another.
+    <View style={[styles.card, { width }]}>
+      <PressableScale depth={0.98} onPress={() => router.push(`/${kind}/${item.id}` as never)} style={styles.open} accessibilityLabel={item.title}>
+        <Poster uri={item.cover} title={item.title} width={52} kind={kind} elevated={false} radius={7} />
+        <View style={styles.info}>
+          <Text style={styles.title} numberOfLines={1}>
+            {item.title}
           </Text>
-        )}
-        <View style={styles.metaRow}>
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${Math.round(fraction * 100)}%` }]} />
+          {!!sub && (
+            <Text style={styles.sub} numberOfLines={1}>
+              {sub}
+            </Text>
+          )}
+          <View style={styles.metaRow}>
+            <View style={styles.track}>
+              <View style={[styles.fill, { width: `${Math.round(fraction * 100)}%` }]} />
+            </View>
+            <Text style={styles.where} numberOfLines={1}>
+              {where}
+            </Text>
           </View>
-          <Text style={styles.where} numberOfLines={1}>
-            {where}
-          </Text>
         </View>
-      </View>
+      </PressableScale>
       <PressableScale
         onPress={() => bump(1)}
         onLongPress={book ? () => bump(10) : undefined}
@@ -75,18 +78,19 @@ export default function ShelfCard({ kind, item, width }: Props) {
       >
         <Icon name="plus" size={18} color={palette.onInk} strokeWidth={2.4} />
       </PressableScale>
-    </PressableScale>
+    </View>
   );
 }
 
 const useStyles = makeStyles(({ palette, fonts, shadow, radii }) => ({
-  card: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 10, paddingRight: 12, borderRadius: radii.lg, backgroundColor: palette.surface, ...shadow.soft, shadowOpacity: 0.06 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, paddingRight: 12, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, ...shadow.soft, shadowOpacity: 0.06 },
+  open: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 },
   info: { flex: 1, gap: 3 },
-  title: { fontFamily: fonts.semibold, fontSize: 15.5, color: palette.ink, letterSpacing: -0.2 },
-  sub: { fontFamily: fonts.body, fontSize: 13, color: palette.inkSoft },
+  title: { ...fonts.semibold, fontSize: 15.5, color: palette.ink, letterSpacing: -0.2 },
+  sub: { ...fonts.body, fontSize: 13, color: palette.inkSoft },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 5 },
   track: { flex: 1, height: 4, borderRadius: 2, backgroundColor: palette.field, overflow: 'hidden' },
   fill: { height: 4, borderRadius: 2, backgroundColor: palette.primary },
-  where: { fontFamily: fonts.medium, fontSize: 11.5, color: palette.inkFaint, maxWidth: '60%' },
+  where: { ...fonts.medium, fontSize: 11.5, color: palette.inkFaint, maxWidth: '60%' },
   plus: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.primary },
 }));

@@ -43,49 +43,53 @@ export default function UpNextCard({ show, progress, width }: { show: Show; prog
   };
 
   return (
-    <PressableScale depth={0.98} onPress={() => router.push(`/show/${show.tvmazeId}`)} style={[styles.card, { width }]} accessibilityLabel={show.title}>
-      <View style={[styles.still, { width: imgW, height: Math.round(imgW * 0.62) }]}>
-        {still ? (
-          <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} />
-        ) : (
-          <View style={styles.posterFill}>
-            <Poster uri={show.poster} title={show.title} width={imgW} elevated={false} radius={0} />
+    // The card opens the show and the check marks the episode: siblings, not one control inside another.
+    <View style={[styles.card, { width }]}>
+      <PressableScale depth={0.98} onPress={() => router.push(`/show/${show.tvmazeId}`)} style={styles.open} accessibilityLabel={show.title}>
+        <View style={[styles.still, { width: imgW, height: Math.round(imgW * 0.62) }]}>
+          {still ? (
+            <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} />
+          ) : (
+            <View style={styles.posterFill}>
+              <Poster uri={show.poster} title={show.title} width={imgW} elevated={false} radius={0} />
+            </View>
+          )}
+          <View style={styles.codeTag}>
+            <Text style={styles.codeText}>{episodeCode(ep)}</Text>
           </View>
-        )}
-        <View style={styles.codeTag}>
-          <Text style={styles.codeText}>{episodeCode(ep)}</Text>
         </View>
-      </View>
-      <Animated.View style={[styles.info, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }]}>
-        <Text style={styles.show} numberOfLines={1}>
-          {show.title}
-        </Text>
-        <Text style={styles.ep} numberOfLines={2}>
-          {ep.name || t('show.episodeN', { n: ep.number })}
-        </Text>
-        <View style={styles.metaRow}>
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${Math.round(progress.fraction * 100)}%` }]} />
+        <Animated.View style={[styles.info, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }]}>
+          <Text style={styles.show} numberOfLines={1}>
+            {show.title}
+          </Text>
+          <Text style={styles.ep} numberOfLines={2}>
+            {ep.name || t('show.episodeN', { n: ep.number })}
+          </Text>
+          <View style={styles.metaRow}>
+            <View style={styles.track}>
+              <View style={[styles.fill, { width: `${Math.round(progress.fraction * 100)}%` }]} />
+            </View>
+            <Text style={styles.left}>{t('upNext.left', { count: progress.left })}</Text>
           </View>
-          <Text style={styles.left}>{t('upNext.left', { count: progress.left })}</Text>
-        </View>
-      </Animated.View>
+        </Animated.View>
+      </PressableScale>
       <CheckButton checked={false} onPress={onCheck} label={t('show.markWatched')} size={38} />
-    </PressableScale>
+    </View>
   );
 }
 
 const useStyles = makeStyles(({ palette, fonts, shadow, radii }) => ({
-  card: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 10, paddingRight: 12, borderRadius: radii.lg, backgroundColor: palette.surface, ...shadow.soft, shadowOpacity: 0.06 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, paddingRight: 12, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, ...shadow.soft, shadowOpacity: 0.06 },
+  open: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 },
   still: { borderRadius: radii.sm, overflow: 'hidden', backgroundColor: palette.placeholder },
   posterFill: { position: 'absolute', top: '-40%', left: 0, right: 0 },
   codeTag: { position: 'absolute', left: 6, bottom: 6, backgroundColor: palette.codeTag, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  codeText: { fontFamily: fonts.semibold, fontSize: 10.5, color: '#fff', letterSpacing: 0.3 },
+  codeText: { ...fonts.semibold, fontSize: 10.5, color: '#fff', letterSpacing: 0.3 },
   info: { flex: 1, gap: 3 },
-  show: { fontFamily: fonts.semibold, fontSize: 15.5, color: palette.ink, letterSpacing: -0.2 },
-  ep: { fontFamily: fonts.body, fontSize: 13.5, lineHeight: 18, color: palette.inkSoft },
+  show: { ...fonts.semibold, fontSize: 15.5, color: palette.ink, letterSpacing: -0.2 },
+  ep: { ...fonts.body, fontSize: 13.5, lineHeight: 18, color: palette.inkSoft },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 5 },
   track: { flex: 1, height: 4, borderRadius: 2, backgroundColor: palette.field, overflow: 'hidden' },
   fill: { height: 4, borderRadius: 2, backgroundColor: palette.primary },
-  left: { fontFamily: fonts.medium, fontSize: 11.5, color: palette.inkFaint },
+  left: { ...fonts.medium, fontSize: 11.5, color: palette.inkFaint },
 }));

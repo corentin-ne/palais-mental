@@ -142,16 +142,16 @@ export const ExtraRails = memo(function ExtraRails({ rails, exclude }: { rails: 
 });
 
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
-  score: { minWidth: 104, maxWidth: 160, paddingHorizontal: 14, paddingVertical: 12, gap: 3, borderRadius: radii.md, backgroundColor: palette.surface },
-  scoreValue: { fontFamily: fonts.semibold, fontSize: 19, color: palette.ink },
-  scoreLabel: { fontFamily: fonts.body, fontSize: 12, lineHeight: 16, color: palette.inkSoft },
-  card: { borderRadius: radii.lg, backgroundColor: palette.surface, paddingHorizontal: 16, paddingVertical: 4 },
+  score: { minWidth: 104, maxWidth: 160, paddingHorizontal: 14, paddingVertical: 12, gap: 3, borderRadius: radii.md, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  scoreValue: { ...fonts.semibold, fontSize: 19, color: palette.ink },
+  scoreLabel: { ...fonts.body, fontSize: 12, lineHeight: 16, color: palette.inkSoft },
+  card: { borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, paddingHorizontal: 16, paddingVertical: 4 },
   fact: { flexDirection: 'row', gap: 14, paddingVertical: 11, alignItems: 'flex-start' },
   factEdge: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.hairline },
   factLabel: { ...type.label, width: 116, paddingTop: 2 },
-  factValue: { flex: 1, fontFamily: fonts.medium, fontSize: 14, color: palette.ink },
+  factValue: { flex: 1, ...fonts.medium, fontSize: 14, color: palette.ink },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: palette.surface },
-  chipText: { fontFamily: fonts.medium, fontSize: 12.5, color: palette.inkSoft },
+  chip: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  chipText: { ...fonts.medium, fontSize: 12.5, color: palette.inkSoft },
   shot: { borderRadius: radii.md, overflow: 'hidden', backgroundColor: palette.placeholder },
 }));
