@@ -243,24 +243,98 @@ function diaryRow(x: any): DiaryRow | undefined {
   return { title: title.trim(), showId: showId != null && showId !== '' ? String(showId) : undefined, season, episode, at, rating };
 }
 
-const SERIALIZD = 'https://www.serializd.com/api';
-const SERIALIZD_HEADERS = { 'X-Requested-With': 'serializd_vercel', Origin: 'https://www.serializd.com', Referer: 'https://www.serializd.com/' };
+// The API is served from Render (www.serializd.com sits behind Cloudflare and refuses apps).
+const SERIALIZD = 'https://serializd.onrender.com/api';
+const SERIALIZD_HEADERS = { Accept: 'application/json', 'X-Requested-With': 'serializd_vercel', Origin: 'https://www.serializd.com', Referer: 'https://www.serializd.com/' };
 
-/** Serializd: the public diary of a profile, page by page (the same JSON the website reads). */
-export async function readSerializd(user: string): Promise<ExternalEntry[]> {
-  const rows: DiaryRow[] = [];
-  for (let page = 1; page <= 60; page++) {
-    const json = await getJson<any>(`${SERIALIZD}/user/${enc(user.trim())}/diary?page=${page}`, { headers: SERIALIZD_HEADERS });
-    const items: any[] = json?.reviews ?? json?.diary ?? json?.items ?? (Array.isArray(json) ? json : []);
-    for (const it of items) {
-      const row = diaryRow(it);
-      if (row) rows.push(row);
+/** GET with retries: the Render host sleeps when idle and the first calls can fail while it wakes. */
+async function serializdGet(path: string): Promise<any> {
+  let last: unknown;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const r = await fetch(`${SERIALIZD}${path}`, { headers: SERIALIZD_HEADERS });
+      if (r.status === 404) throw new HttpError(404);
+      if (r.ok) return await r.json();
+      last = new HttpError(r.status);
+      if (r.status < 500 && r.status !== 429) throw last;
+    } catch (err) {
+      if (err instanceof HttpError && err.status < 500 && err.status !== 429) throw err;
+      last = err;
     }
-    const pages = Number(json?.totalPages ?? json?.total_pages ?? json?.numPages);
-    if (!items.length || (Number.isFinite(pages) && page >= pages)) break;
-    await sleep(400);
+    await sleep(3000 * (attempt + 1));
   }
-  return serializdEntries(rows);
+  throw last;
+}
+export class HttpError extends Error {
+  constructor(public status: number) {
+    super(`HTTP ${status}`);
+  }
+}
+
+/** Every page of a paged Serializd list (`totalPages`), items under `key`. */
+async function serializdPages(path: (page: number) => string, key: string, max = 80) {
+  const out: any[] = [];
+  for (let page = 1; page <= max; page++) {
+    const json = await serializdGet(path(page));
+    const items: any[] = json?.[key] ?? [];
+    out.push(...items);
+    const pages = Number(json?.totalPages);
+    if (!items.length || !Number.isFinite(pages) || page >= pages) break;
+    await sleep(350);
+  }
+  return out;
+}
+
+/** Season ids → numbers for one show (`/show/{tmdbId}` lists them). */
+async function serializdSeasons(showId: number | string): Promise<Map<number, number>> {
+  const json = await quiet(serializdGet(`/show/${showId}`), null);
+  const map = new Map<number, number>();
+  for (const s of json?.seasons ?? []) if (Number.isFinite(s?.id) && Number.isFinite(s?.seasonNumber)) map.set(s.id, s.seasonNumber);
+  return map;
+}
+
+/**
+ * Serializd: a public profile, read the way the website reads it. The diary gives each
+ * episode or season logged with its date and rating; "watched" gives whole seasons marked as
+ * seen; "watching" and the watchlist add shows to follow.
+ */
+export async function readSerializd(user: string): Promise<ExternalEntry[]> {
+  const u = enc(user.trim());
+  const diary = await serializdPages((p) => `/user/${u}/diary?page=${p}`, 'reviews');
+  const [watched, watching, watchlist] = await Promise.all([
+    quiet(serializdPages((p) => `/user/${u}/watchedpage_v2/${p}?sort_by=date_added_desc`, 'items'), []),
+    quiet(serializdPages((p) => `/user/${u}/currently_watching_page/${p}?sort_by=date_added_desc`, 'items'), []),
+    quiet(serializdPages((p) => `/user/${u}/watchlistpage_v2/${p}?sort_by=date_added_desc`, 'items'), []),
+  ]);
+
+  const rows: DiaryRow[] = diary.map(diaryRow).filter((r): r is DiaryRow => !!r);
+  // Watched seasons come as Serializd season ids: one show lookup each turns them into numbers.
+  for (const it of watched) {
+    const ids: number[] = Array.isArray(it?.seasonIds) ? it.seasonIds : [];
+    if (!it?.showId || !it.showName) continue;
+    const at = Date.parse(it.dateAdded) || undefined;
+    if (!ids.length) {
+      rows.push({ title: it.showName, showId: String(it.showId), at });
+      continue;
+    }
+    const map = await serializdSeasons(it.showId);
+    for (const id of ids) {
+      const season = map.get(id);
+      if (season && season > 0) rows.push({ title: it.showName, showId: String(it.showId), season, at });
+    }
+    await sleep(250);
+  }
+  const entries = serializdEntries(rows);
+  const known = new Set(entries.map((e) => e.key));
+  // Shows only followed or watchlisted: added, nothing ticked.
+  for (const it of [...watching, ...watchlist]) {
+    if (!it?.showId || !it.showName) continue;
+    const key = `serializd:${it.showId}`;
+    if (known.has(key)) continue;
+    known.add(key);
+    entries.push({ key, kind: 'show', titles: [it.showName], tmdbId: String(it.showId), status: 'planned', episodes: [], seasons: [] });
+  }
+  return entries;
 }
 
 /** A Serializd export (or any TV diary file): JSON or CSV with show, season and episode columns. */
@@ -518,19 +592,48 @@ const matchMovieOrShow = (e: ExternalEntry) => (e.kind === 'movie' ? matchMovie(
 // ------------------------------------------------------------------ Sync
 let running: Promise<SyncResult> | undefined;
 
+/**
+ * The username in whatever was pasted: a bare name, "@name", or a profile link such as
+ * serializd.com/user/name/profile, letterboxd.com/name/, myanimelist.net/profile/name or
+ * anilist.co/user/name.
+ */
+export function usernameFrom(service: Service, input: string) {
+  const raw = input.trim().replace(/^@/, '');
+  if (!/[/.]/.test(raw) || !/[a-z]\.[a-z]/i.test(raw)) return raw.replace(/[/?#].*$/, '');
+  const path = raw
+    .replace(/^[a-z]+:\/\//i, '')
+    .replace(/[?#].*$/, '')
+    .split('/')
+    .slice(1)
+    .filter(Boolean);
+  const after = (word: string) => {
+    const i = path.findIndex((p) => p.toLowerCase() === word);
+    return i >= 0 ? path[i + 1] : undefined;
+  };
+  const name =
+    service === 'serializd' ? after('user') :
+    service === 'letterboxd' ? path[0] :
+    service === 'mal' ? (after('profile') ?? after('animelist')) :
+    after('user');
+  return decodeURIComponent(name ?? path[path.length - 1] ?? raw).replace(/^@/, '');
+}
+
 export function syncService(service: Service, onProgress?: OnProgress): Promise<SyncResult> {
   if (running) return running;
   running = (async () => {
     const { accounts, setAccount } = useConnections.getState();
-    const user = accounts[service]?.username;
-    if (!user) throw new Error('No account');
+    const stored = accounts[service]?.username;
+    if (!stored) throw new Error('No account');
+    // Accounts saved by 1.1.1 may hold the whole pasted link.
+    const user = usernameFrom(service, stored);
+    if (user !== stored) setAccount(service, { username: user });
     try {
       const entries = await READERS[service](user);
       const result = await applyEntries(entries, onProgress);
-      setAccount(service, { lastSync: Date.now(), lastChanges: result.added + result.updated, lastUnmatched: result.unmatched.length, lastError: false });
+      setAccount(service, { lastSync: Date.now(), lastChanges: result.added + result.updated, lastUnmatched: result.unmatched.length, lastError: false, lastErrorStatus: undefined });
       return result;
     } catch (err) {
-      setAccount(service, { lastError: true });
+      setAccount(service, { lastError: true, lastErrorStatus: err instanceof HttpError ? err.status : 0 });
       throw err;
     }
   })().finally(() => {

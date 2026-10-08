@@ -13,6 +13,8 @@ export interface Account {
   lastChanges?: number;
   lastUnmatched?: number;
   lastError?: boolean;
+  /** HTTP status of the last failure (404: no such public profile), 0 when offline. */
+  lastErrorStatus?: number;
 }
 
 /** What an outside entry was matched to. `id` null: nothing found (retried after a while). */

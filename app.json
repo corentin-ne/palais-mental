@@ -2,7 +2,7 @@
   "expo": {
     "name": "Palais Mental",
     "slug": "palais-mental",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "scheme": "palaismental",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
@@ -13,7 +13,7 @@
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true
       },
-      "buildNumber": "111"
+      "buildNumber": "112"
     },
     "android": {
       "package": "com.palaismental.app",
@@ -23,9 +23,9 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0B63CE"
+        "backgroundColor": "#0A2540"
       },
-      "versionCode": 111
+      "versionCode": 112
     },
     "web": {
       "bundler": "metro",
