@@ -23,7 +23,7 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0B63CE"
+        "backgroundColor": "#0A2540"
       },
       "versionCode": 111
     },
