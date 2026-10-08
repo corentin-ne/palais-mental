@@ -92,9 +92,14 @@ export const useConnections = create<ConnectionsState>()(
       setAccount: (service, patch) =>
         set((s) => {
           const accounts = { ...s.accounts };
-          if (patch === null) delete accounts[service];
-          else accounts[service] = { username: '', ...accounts[service], ...patch };
-          return { accounts };
+          if (patch !== null) {
+            accounts[service] = { username: '', ...accounts[service], ...patch };
+            return { accounts };
+          }
+          // Disconnecting forgets what was matched (the library keeps it all): connecting again reads everything afresh.
+          delete accounts[service];
+          const matches = Object.fromEntries(Object.entries(s.matches).filter(([key]) => !key.startsWith(`${service}:`)));
+          return { accounts, matches };
         }),
       setMatches: (patch) => set((s) => ({ matches: { ...s.matches, ...patch } })),
       setAutoSync: (autoSync) => set({ autoSync }),

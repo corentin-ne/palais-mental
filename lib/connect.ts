@@ -660,8 +660,11 @@ async function applyOne(e: ExternalEntry, found: Found, season: number | undefin
   if (changed && existed) result.updated++;
 }
 
-/** Merge outside entries into the library. Unchanged entries since the last sync are skipped. */
-export async function applyEntries(entries: ExternalEntry[], onProgress?: OnProgress): Promise<SyncResult> {
+/**
+ * Merge outside entries into the library. Unchanged entries since the last sync are skipped;
+ * titles not found are looked for again after a week, or right away when `retry` (a sync you asked for).
+ */
+export async function applyEntries(entries: ExternalEntry[], onProgress?: OnProgress, retry = false): Promise<SyncResult> {
   const result: SyncResult = { total: entries.length, added: 0, updated: 0, unmatched: [] };
   const { setMatches } = useConnections.getState();
   let done = 0;
@@ -676,7 +679,7 @@ export async function applyEntries(entries: ExternalEntry[], onProgress?: OnProg
     let local = false;
     // Unchanged since last time: leave it (and leave alone anything you removed here since).
     if (prev?.id && prev.sig === sig) continue;
-    if (prev && prev.id === null && prev.sig === sig && Date.now() - prev.at < RETRY_UNMATCHED) {
+    if (!retry && prev && prev.id === null && prev.sig === sig && Date.now() - prev.at < RETRY_UNMATCHED) {
       result.unmatched.push(e.titles[0] ?? e.key);
       continue;
     }
@@ -739,7 +742,7 @@ export function usernameFrom(service: Service, input: string) {
   return decodeURIComponent(name ?? path[path.length - 1] ?? raw).replace(/^@/, '');
 }
 
-export function syncService(service: Service, onProgress?: OnProgress): Promise<SyncResult> {
+export function syncService(service: Service, onProgress?: OnProgress, manual = true): Promise<SyncResult> {
   if (running) return running;
   running = (async () => {
     const { accounts, setAccount } = useConnections.getState();
@@ -761,7 +764,7 @@ export function syncService(service: Service, onProgress?: OnProgress): Promise<
         entries = await READERS[service]({ ...account, username: user });
       }
       if (user !== account.username) setAccount(service, { username: user });
-      const result = await applyEntries(entries, onProgress);
+      const result = await applyEntries(entries, onProgress, manual);
       setAccount(service, { lastSync: Date.now(), lastChanges: result.added + result.updated, lastUnmatched: result.unmatched.length, lastError: false, lastErrorStatus: undefined });
       return result;
     } catch (err) {
@@ -802,14 +805,14 @@ export async function autoSyncAccounts() {
   if (!autoSync) return;
   for (const [service, account] of Object.entries(accounts) as [Service, NonNullable<(typeof accounts)[Service]>][]) {
     if (!isSetUp(service, account) || (account.lastSync && Date.now() - account.lastSync < DAY / 2)) continue;
-    await quiet(syncService(service), undefined);
+    await quiet(syncService(service, undefined, false), undefined);
   }
 }
 
 export async function importExportFiles(files: { name: string; text: string }[], onProgress?: OnProgress) {
   const entries = files.flatMap((f) => readExportFile(f.name, f.text));
   if (!entries.length) throw new Error('Nothing recognised');
-  return applyEntries(entries, onProgress);
+  return applyEntries(entries, onProgress, true);
 }
 
 // ------------------------------------------------------------------ The other way: files for their import pages
