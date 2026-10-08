@@ -3,5 +3,4 @@
 <path d="M186 380V200a70 70 0 0 1 140 0v180z" fill="#FF6B52" opacity=".55" filter="url(#g)"/>
 <path d="M186 380V200a70 70 0 0 1 140 0v180z" fill="url(#l)"/>
 <path d="M186 380 L150 440 H362 L326 380z" fill="url(#spill)"/>
-<path d="M186 200a70 70 0 0 1 70-70v276l-70-26z" fill="#0A2540" opacity=".9"/>
 </svg>
