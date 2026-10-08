@@ -2,7 +2,7 @@
   "expo": {
     "name": "Palais Mental",
     "slug": "palais-mental",
-    "version": "1.4.3",
+    "version": "1.4.4",
     "scheme": "palaismental",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
@@ -17,7 +17,7 @@
         },
         "NSLocalNetworkUsageDescription": "Palais Mental reads what you watched from your Plex, Jellyfin or Emby server on your network."
       },
-      "buildNumber": "143"
+      "buildNumber": "144"
     },
     "android": {
       "package": "com.palaismental.app",
@@ -28,7 +28,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A2540"
       },
-      "versionCode": 143
+      "versionCode": 144
     },
     "web": {
       "bundler": "metro",

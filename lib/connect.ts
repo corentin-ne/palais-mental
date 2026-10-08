@@ -80,10 +80,11 @@ const letterboxdKey = (title: string, year?: number) => `letterboxd:${norm(title
 
 /** A boxd.it share link (what the Letterboxd app copies) opens on the profile: its name is the first part of the path. */
 async function letterboxdShortLink(link: string) {
+  // The profile page itself may be refused (Cloudflare): only the address it lands on matters.
   const r = await fetch(/^https?:\/\//i.test(link) ? link : `https://${link}`);
-  if (!r.ok) throw new HttpError(r.status);
+  if (!/letterboxd\.com\//i.test(r.url)) throw new HttpError(r.ok ? 404 : r.status);
   const name = usernameFrom('letterboxd', r.url);
-  if (!name || /boxd\.it/i.test(r.url)) throw new HttpError(404);
+  if (!name) throw new HttpError(404);
   return name;
 }
 
@@ -748,8 +749,18 @@ export function syncService(service: Service, onProgress?: OnProgress): Promise<
     let user = usernameFrom(service, account.username);
     try {
       if (service === 'letterboxd' && /boxd\.it\//i.test(user)) user = await letterboxdShortLink(user);
+      let entries: ExternalEntry[];
+      try {
+        entries = await READERS[service]({ ...account, username: user });
+      } catch (err) {
+        // 1.4.2 kept only the code of a boxd.it link ("cca67"): no such profile, so try it as a share code.
+        if (service !== 'letterboxd' || !(err instanceof HttpError) || err.status !== 404) throw err;
+        const named = await letterboxdShortLink(`https://boxd.it/${enc(user)}`).catch(() => undefined);
+        if (!named || named.toLowerCase() === user.toLowerCase()) throw err;
+        user = named;
+        entries = await READERS[service]({ ...account, username: user });
+      }
       if (user !== account.username) setAccount(service, { username: user });
-      const entries = await READERS[service]({ ...account, username: user });
       const result = await applyEntries(entries, onProgress);
       setAccount(service, { lastSync: Date.now(), lastChanges: result.added + result.updated, lastUnmatched: result.unmatched.length, lastError: false, lastErrorStatus: undefined });
       return result;
