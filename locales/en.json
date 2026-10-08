@@ -238,7 +238,7 @@
   },
   "connect": {
     "title": "Connections",
-    "rowHint": "Letterboxd, MyAnimeList, AniList, IMDb",
+    "rowHint": "Letterboxd, Serializd, MyAnimeList, AniList, IMDb",
     "intro": "Just a username: public profiles are read, no password or API key. Syncing only adds: what is missing here is added, what you watched there is ticked here, nothing is removed. To send what is missing the other way, export a file and import it on the service.",
     "web": "In a browser these sites refuse to be read: use the phone app.",
     "letterboxdHint": "Your latest diary entries (public profile)",
@@ -256,7 +256,7 @@
     "auto": "Sync automatically",
     "autoHint": "Connected accounts are read again when you open the app, twice a day at most.",
     "files": "Import export files",
-    "filesHint": "Letterboxd (diary.csv, watched.csv, ratings.csv, watchlist.csv from Settings › Data › Export) and IMDb (ratings or watchlist CSV). Several at once is fine.",
+    "filesHint": "Letterboxd (diary.csv, watched.csv, ratings.csv, watchlist.csv from Settings › Data › Export), Serializd (diary export, CSV or JSON) and IMDb (ratings or watchlist CSV). Several at once is fine.",
     "pickFiles": "Choose files",
     "progress": "Matching {{done}} of {{total}}…",
     "synced": "{{added}} added · {{updated}} updated",
@@ -264,6 +264,8 @@
     "exported": "{{count}} titles exported",
     "unmatched_one": "{{count}} title not found",
     "unmatched_other": "{{count}} titles not found",
-    "unmatchedHint": "These couldn’t be matched to TVmaze or a film source. They are retried in a few days."
+    "unmatchedHint": "These couldn’t be matched to TVmaze or a film source. They are retried in a few days.",
+    "serializdHint": "Your diary: shows, seasons and episodes (public profile)",
+    "exportSerializd": "Serializd has no import page yet, so it can only be read from. Shows from TVmaze are matched by title, or exactly with a TMDB key."
   }
 }

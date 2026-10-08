@@ -3,8 +3,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /** Services read through public pages or feeds: no API key, no password, just a username. */
-export type Service = 'letterboxd' | 'mal' | 'anilist';
-export const SERVICES: Service[] = ['letterboxd', 'mal', 'anilist'];
+export type Service = 'letterboxd' | 'serializd' | 'mal' | 'anilist';
+export const SERVICES: Service[] = ['letterboxd', 'serializd', 'mal', 'anilist'];
 
 export interface Account {
   username: string;

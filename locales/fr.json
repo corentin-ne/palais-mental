@@ -238,7 +238,7 @@
   },
   "connect": {
     "title": "Connexions",
-    "rowHint": "Letterboxd, MyAnimeList, AniList, IMDb",
+    "rowHint": "Letterboxd, Serializd, MyAnimeList, AniList, IMDb",
     "intro": "Juste un nom d’utilisateur : les profils publics sont lus, sans mot de passe ni clé d’API. La synchro ne fait qu’ajouter : ce qui manque ici est ajouté, ce que vous avez vu là-bas est coché ici, rien n’est supprimé. Pour l’autre sens, exportez un fichier et importez-le sur le service.",
     "web": "Dans un navigateur, ces sites refusent d’être lus : utilisez l’app mobile.",
     "letterboxdHint": "Vos dernières entrées du journal (profil public)",
@@ -256,7 +256,7 @@
     "auto": "Synchroniser automatiquement",
     "autoHint": "Les comptes connectés sont relus à l’ouverture de l’app, deux fois par jour au plus.",
     "files": "Importer des fichiers d’export",
-    "filesHint": "Letterboxd (diary.csv, watched.csv, ratings.csv, watchlist.csv depuis Settings › Data › Export) et IMDb (CSV des notes ou de la watchlist). Plusieurs à la fois, c’est possible.",
+    "filesHint": "Letterboxd (diary.csv, watched.csv, ratings.csv, watchlist.csv depuis Settings › Data › Export), Serializd (export du journal, CSV ou JSON) et IMDb (CSV des notes ou de la watchlist). Plusieurs à la fois, c’est possible.",
     "pickFiles": "Choisir des fichiers",
     "progress": "Correspondance {{done}} sur {{total}}…",
     "synced": "{{added}} ajoutés · {{updated}} mis à jour",
@@ -264,6 +264,8 @@
     "exported": "{{count}} titres exportés",
     "unmatched_one": "{{count}} titre introuvable",
     "unmatched_other": "{{count}} titres introuvables",
-    "unmatchedHint": "Pas de correspondance sur TVmaze ou les sources de films. Nouvel essai dans quelques jours."
+    "unmatchedHint": "Pas de correspondance sur TVmaze ou les sources de films. Nouvel essai dans quelques jours.",
+    "serializdHint": "Votre journal : séries, saisons et épisodes (profil public)",
+    "exportSerializd": "Serializd n’a pas encore de page d’import : il ne peut qu’être lu. Les séries sont retrouvées sur TVmaze par titre, ou exactement avec une clé TMDB."
   }
 }

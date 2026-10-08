@@ -19,7 +19,7 @@ import { refreshRelated } from '@/lib/related';
 import { SERVICES, Service, useConnections } from '@/store/useConnections';
 import { useUi } from '@/store/useUi';
 
-const NAMES: Record<Service, string> = { letterboxd: 'Letterboxd', mal: 'MyAnimeList', anilist: 'AniList' };
+const NAMES: Record<Service, string> = { letterboxd: 'Letterboxd', serializd: 'Serializd', mal: 'MyAnimeList', anilist: 'AniList' };
 
 /** Other trackers, read through public profiles and export files: no keys, no passwords. */
 export default function ConnectionsScreen() {
@@ -59,7 +59,7 @@ export default function ConnectionsScreen() {
     run('files', () => importExportFiles(files, (d, n) => setProgress([d, n])));
   };
 
-  const onExport = async (service: Service) => {
+  const onExport = async (service: Exclude<Service, 'serializd'>) => {
     setBusy(`export-${service}`);
     setProgress(undefined);
     try {
@@ -96,7 +96,12 @@ export default function ConnectionsScreen() {
 
         {SERVICES.map((service, i) => (
           <FadeIn key={service} index={i}>
-            <ServiceCard service={service} busy={busy} onSync={() => run(service, () => syncService(service, (d, n) => setProgress([d, n])))} onExport={() => onExport(service)} />
+            <ServiceCard
+              service={service}
+              busy={busy}
+              onSync={() => run(service, () => syncService(service, (d, n) => setProgress([d, n])))}
+              onExport={service === 'serializd' ? undefined : () => onExport(service)}
+            />
           </FadeIn>
         ))}
 
@@ -128,7 +133,7 @@ export default function ConnectionsScreen() {
   );
 }
 
-function ServiceCard({ service, busy, onSync, onExport }: { service: Service; busy?: string; onSync: () => void; onExport: () => void }) {
+function ServiceCard({ service, busy, onSync, onExport }: { service: Service; busy?: string; onSync: () => void; onExport?: () => void }) {
   const { t } = useTranslation();
   const { palette } = useTheme();
   const styles = useStyles();
@@ -164,10 +169,12 @@ function ServiceCard({ service, busy, onSync, onExport }: { service: Service; bu
           )}
           <View style={styles.buttons}>
             <Button label={t('connect.sync')} icon="refresh" compact onPress={onSync} loading={busy === service} disabled={!!busy && busy !== service} />
-            <Button label={t('connect.export')} icon="download" variant="secondary" compact onPress={onExport} loading={busy === `export-${service}`} disabled={!!busy && busy !== `export-${service}`} />
+            {onExport && (
+              <Button label={t('connect.export')} icon="download" variant="secondary" compact onPress={onExport} loading={busy === `export-${service}`} disabled={!!busy && busy !== `export-${service}`} />
+            )}
             <Button label={t('connect.disconnect')} variant="ghost" compact onPress={() => useConnections.getState().setAccount(service, null)} disabled={!!busy} />
           </View>
-          <Text style={styles.footnote}>{t(service === 'letterboxd' ? 'connect.exportLetterboxd' : 'connect.exportAnime')}</Text>
+          <Text style={styles.footnote}>{t(service === 'letterboxd' ? 'connect.exportLetterboxd' : service === 'serializd' ? 'connect.exportSerializd' : 'connect.exportAnime')}</Text>
         </>
       ) : (
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>

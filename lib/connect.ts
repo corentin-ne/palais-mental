@@ -9,7 +9,7 @@
  * service doesn't have yet.
  */
 import i18n from '@/locales/i18n';
-import { SearchResult, fetchMovie, fetchShow, getJson, getText, imdbTitle, norm, postJson, quiet, searchMovies, searchShows, tvmazeIdByImdb } from './api';
+import { SearchResult, fetchMovie, fetchShow, getJson, getText, imdbTitle, norm, postJson, quiet, searchMovies, searchShows, tmdb, tvmazeIdByImdb } from './api';
 import { deliver } from './backup';
 import { parseCsv, toCsv } from './csv';
 import { hasAired, seasonsOf, sortEpisodes } from './progress';
@@ -37,6 +37,10 @@ export interface ExternalEntry {
   watchedAt?: number;
   /** 1–10. */
   rating?: number;
+  /** Exact episodes logged (Serializd), each with its own date. */
+  episodes?: { season: number; number: number; at?: number }[];
+  /** Whole seasons logged. */
+  seasons?: { season: number; at?: number }[];
 }
 
 export interface SyncResult {
@@ -180,17 +184,118 @@ export async function readAnilist(user: string): Promise<ExternalEntry[]> {
   return out;
 }
 
+// ------------------------------------------------------------------ Serializd
+/** A Serializd diary row, from the site's JSON or an export file: one show, a season or an episode. */
+interface DiaryRow {
+  showId?: string;
+  title: string;
+  season?: number;
+  episode?: number;
+  at?: number;
+  rating?: number;
+}
+
+const num = (v: unknown) => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+};
+const seasonFromName = (v: unknown) => (typeof v === 'string' ? Number(v.match(/(\d+)/)?.[1]) || undefined : undefined);
+
+/** Groups diary rows by show: one entry with every season and episode logged. */
+function serializdEntries(rows: DiaryRow[]): ExternalEntry[] {
+  const byShow = new Map<string, ExternalEntry>();
+  for (const r of rows) {
+    if (!r.title) continue;
+    const key = `serializd:${r.showId ?? norm(r.title)}`;
+    let e = byShow.get(key);
+    if (!e) {
+      e = { key, kind: 'show', titles: [r.title], tmdbId: r.showId, status: 'planned', episodes: [], seasons: [] };
+      byShow.set(key, e);
+    }
+    if (r.season && r.episode) e.episodes!.push({ season: r.season, number: r.episode, at: r.at });
+    else if (r.season) e.seasons!.push({ season: r.season, at: r.at });
+    // A rating on the show itself (no season) is the show's rating.
+    if (r.rating && !r.season) e.rating ??= r.rating;
+    if (r.episode || r.season) e.status = 'watching';
+    e.watchedAt = Math.max(e.watchedAt ?? 0, r.at ?? 0) || undefined;
+  }
+  for (const e of byShow.values()) e.progress = e.episodes!.length + e.seasons!.length * 1000;
+  return [...byShow.values()];
+}
+
+/** Reads one diary item whatever the field names (the site's JSON or an export). */
+function diaryRow(x: any): DiaryRow | undefined {
+  if (!x || typeof x !== 'object') return undefined;
+  const title = x.showName ?? x.show_name ?? x.showTitle ?? x.show?.name ?? x.Show ?? x['Show Name'] ?? x['Show'] ?? x.Title ?? x.title ?? x.name;
+  if (typeof title !== 'string' || !title.trim()) return undefined;
+  const seasons: any[] = x.showSeasons ?? x.show?.seasons ?? [];
+  const seasonId = x.seasonId ?? x.season_id;
+  const season =
+    num(x.seasonNumber ?? x.season_number ?? x.Season ?? x['Season Number']) ??
+    num(seasons.find((s) => s?.id === seasonId)?.seasonNumber ?? seasons.find((s) => s?.id === seasonId)?.season_number) ??
+    seasonFromName(x.seasonName ?? x['Season Name']);
+  const episode = num(x.episodeNumber ?? x.episode_number ?? x.Episode ?? x['Episode Number']);
+  const date = x.backdate ?? x.watchedDate ?? x.dateWatched ?? x['Watched Date'] ?? x['Date Watched'] ?? x.dateAdded ?? x.date_added ?? x.Date ?? x.date;
+  const at = typeof date === 'number' ? (date < 1e12 ? date * 1000 : date) : typeof date === 'string' ? Date.parse(date) || undefined : undefined;
+  // Serializd stores ratings out of 10 (half stars as odd numbers).
+  const rating = rating10(x.rating ?? x.Rating ?? x['Your Rating']);
+  const showId = x.showId ?? x.show_id ?? x.tmdbId ?? x['TMDB ID'] ?? x.show?.id;
+  return { title: title.trim(), showId: showId != null && showId !== '' ? String(showId) : undefined, season, episode, at, rating };
+}
+
+const SERIALIZD = 'https://www.serializd.com/api';
+const SERIALIZD_HEADERS = { 'X-Requested-With': 'serializd_vercel', Origin: 'https://www.serializd.com', Referer: 'https://www.serializd.com/' };
+
+/** Serializd: the public diary of a profile, page by page (the same JSON the website reads). */
+export async function readSerializd(user: string): Promise<ExternalEntry[]> {
+  const rows: DiaryRow[] = [];
+  for (let page = 1; page <= 60; page++) {
+    const json = await getJson<any>(`${SERIALIZD}/user/${enc(user.trim())}/diary?page=${page}`, { headers: SERIALIZD_HEADERS });
+    const items: any[] = json?.reviews ?? json?.diary ?? json?.items ?? (Array.isArray(json) ? json : []);
+    for (const it of items) {
+      const row = diaryRow(it);
+      if (row) rows.push(row);
+    }
+    const pages = Number(json?.totalPages ?? json?.total_pages ?? json?.numPages);
+    if (!items.length || (Number.isFinite(pages) && page >= pages)) break;
+    await sleep(400);
+  }
+  return serializdEntries(rows);
+}
+
+/** A Serializd export (or any TV diary file): JSON or CSV with show, season and episode columns. */
+function readSerializdFile(name: string, text: string): ExternalEntry[] {
+  const trimmed = text.trim();
+  let items: any[] = [];
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      const json = JSON.parse(trimmed);
+      items = Array.isArray(json) ? json : (json.reviews ?? json.diary ?? json.items ?? json.logs ?? json.data ?? []);
+    } catch {
+      return [];
+    }
+  } else {
+    items = parseCsv(text);
+    const cols = Object.keys(items[0] ?? {}).map((c) => c.toLowerCase());
+    const hasShow = cols.some((c) => /show/.test(c)) || (/serializd/i.test(name) && cols.some((c) => /title|name/.test(c)));
+    if (!hasShow) return [];
+  }
+  return serializdEntries(items.map(diaryRow).filter((r): r is DiaryRow => !!r));
+}
+
 export const READERS: Record<Service, (user: string) => Promise<ExternalEntry[]>> = {
   letterboxd: readLetterboxd,
   mal: readMal,
   anilist: readAnilist,
+  serializd: readSerializd,
 };
 
 /**
  * Export files: Letterboxd (diary, watched, ratings, watchlist .csv from the export zip)
- * and IMDb (ratings, watchlist, list .csv). Anything else is ignored.
+ * IMDb (ratings, watchlist, list .csv) and Serializd (diary export, JSON or CSV). Anything else is ignored.
  */
 export function readExportFile(name: string, text: string): ExternalEntry[] {
+  if (/^\s*[[{]/.test(text)) return readSerializdFile(name, text);
   const rows = parseCsv(text);
   if (!rows.length) return [];
   const cols = Object.keys(rows[0]);
@@ -234,7 +339,7 @@ export function readExportFile(name: string, text: string): ExternalEntry[] {
     }
     return out;
   }
-  return [];
+  return readSerializdFile(name, text);
 }
 
 // ------------------------------------------------------------------ Matching
@@ -273,6 +378,17 @@ async function matchShow(e: ExternalEntry): Promise<Found | undefined> {
     const id = await tvmazeIdByImdb(e.imdbId);
     if (id) return { id: String(id), exact: true };
   }
+  // Serializd ids are TMDB ids: with a key, TMDB gives the IMDb id and TVmaze finds it by that.
+  const key = tmdbKey();
+  if (e.tmdbId && key) {
+    const ext = await quiet(tmdb<{ imdb_id?: string | null }>(`/tv/${e.tmdbId}/external_ids`, key), null);
+    if (ext?.imdb_id) {
+      const mine = shows.find((s) => s.imdbId === ext.imdb_id);
+      if (mine) return { id: mine.id, exact: true };
+      const id = await tvmazeIdByImdb(ext.imdb_id);
+      if (id) return { id: String(id), exact: true };
+    }
+  }
   const titles = [...new Set(e.titles.map(stripSeason).filter(Boolean))];
   const mine = shows.find((s) => titles.some((t) => norm(t) === norm(s.title)));
   if (mine) return { id: mine.id, exact: true };
@@ -289,15 +405,24 @@ async function matchShow(e: ExternalEntry): Promise<Found | undefined> {
 }
 
 // ------------------------------------------------------------------ Applying, additively
-const sigOf = (e: ExternalEntry) => `${e.status}|${e.progress ?? ''}|${e.rating ?? ''}`;
+const sigOf = (e: ExternalEntry) => `${e.status}|${e.progress ?? ''}|${e.rating ?? ''}|${e.episodes?.length ?? ''}|${e.seasons?.length ?? ''}`;
 
 /** Episodes an outside entry says you saw: that season if the title names one, else from the start. */
 function episodesFor(show: Show, e: ExternalEntry, season?: number) {
   const all = sortEpisodes(show.episodes).filter((ep) => hasAired(ep));
+  if (e.episodes || e.seasons) {
+    const logged = new Set((e.episodes ?? []).map((x) => `${x.season}x${x.number}`));
+    const whole = new Set((e.seasons ?? []).map((x) => x.season));
+    const dateOfEp = new Map((e.episodes ?? []).map((x) => [`${x.season}x${x.number}`, x.at]));
+    const dateOfSeason = new Map((e.seasons ?? []).map((x) => [x.season, x.at]));
+    return all
+      .filter((ep) => whole.has(ep.season) || logged.has(`${ep.season}x${ep.number}`))
+      .map((ep) => ({ id: ep.id, at: dateOfEp.get(`${ep.season}x${ep.number}`) ?? dateOfSeason.get(ep.season) ?? e.watchedAt }));
+  }
   const pool = season && season > 1 ? all.filter((ep) => ep.season === season) : all;
   if (season && season > 1 && !pool.length) return [];
   const count = e.status === 'watched' ? (e.total ?? pool.length) : (e.progress ?? 0);
-  return pool.slice(0, count).map((ep) => ep.id);
+  return pool.slice(0, count).map((ep) => ({ id: ep.id, at: e.watchedAt }));
 }
 
 async function applyOne(e: ExternalEntry, found: Found, season: number | undefined, result: SyncResult) {
@@ -338,11 +463,12 @@ async function applyOne(e: ExternalEntry, found: Found, season: number | undefin
   let changed = false;
   // A loosely matched title could be another season or a spin-off: add it, but leave its ticks alone.
   if (found.exact) {
-    const ids = episodesFor(show, e, season).filter((id) => !show.watched[id]);
-    if (ids.length) {
-      lib2.setEpisodes(show.id, ids, true, e.watchedAt);
-      changed = true;
-    }
+    const todo = episodesFor(show, e, season).filter((x) => !show.watched[x.id]);
+    // One write per date, so each episode keeps the day you logged it.
+    const byDate = new Map<number | undefined, number[]>();
+    for (const x of todo) byDate.set(x.at, [...(byDate.get(x.at) ?? []), x.id]);
+    for (const [at, ids] of byDate) lib2.setEpisodes(show.id, ids, true, at);
+    if (todo.length) changed = true;
   }
   if (e.rating && !show.rating && (!season || season === 1)) {
     lib2.setShowRating(show.id, e.rating);
