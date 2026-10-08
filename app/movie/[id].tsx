@@ -97,15 +97,17 @@ export default function MovieScreen() {
                       icon={watched ? 'check' : 'eye'}
                       variant={watched ? 'secondary' : 'primary'}
                       onPress={toggleWatched}
+                      style={{ alignSelf: 'stretch' }}
                     />
                   </Pop>
                 )}
-                <Button label={t('common.remove')} icon="trash" variant="danger" onPress={() => removeMovie(id)} />
+                <Button label={t('common.remove')} icon="trash" variant="danger" iconOnly onPress={() => removeMovie(id)} />
               </View>
             ) : (
-              <View style={styles.actions}>
-                <Button label={upcoming ? t('movie.remind') : t('movie.addWatchlist')} icon={upcoming ? 'bell' : 'plus'} onPress={() => add(false)} disabled={!details} style={{ flex: 1 }} />
-                {!upcoming && <Button label={t('movie.seenIt')} icon="check" variant="secondary" onPress={() => add(true)} disabled={!details} />}
+              // Two labelled actions don't fit side by side on a phone: stacked, the main one first.
+              <View style={{ gap: 10 }}>
+                <Button label={upcoming ? t('movie.remind') : t('movie.addWatchlist')} icon={upcoming ? 'bell' : 'plus'} onPress={() => add(false)} disabled={!details} style={{ alignSelf: 'stretch' }} />
+                {!upcoming && <Button label={t('movie.seenIt')} icon="check" variant="secondary" onPress={() => add(true)} disabled={!details} style={{ alignSelf: 'stretch' }} />}
               </View>
             )}
             {upcoming && !watched && <Text style={styles.hint}>{t('movie.remindHint')}</Text>}

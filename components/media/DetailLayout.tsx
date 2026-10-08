@@ -112,8 +112,8 @@ export default function DetailLayout({ kind, title, poster, backdrop, meta, tags
       </Animated.ScrollView>
 
       <Animated.View pointerEvents="none" style={[styles.bar, { height: insets.top + 52, opacity: barOpacity }]}>
-        <BlurView intensity={40} tint={glass.tint} style={StyleSheet.absoluteFill} />
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.glass }]} />
+        {glass.supported && <BlurView intensity={40} tint={glass.tint} style={StyleSheet.absoluteFill} />}
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: glass.supported ? palette.glass : glass.solid }]} />
         <View style={[styles.barInner, { paddingTop: insets.top }]}>
           <Text style={[type.heading, { maxWidth: '70%' }]} numberOfLines={1}>
             {title}
@@ -121,7 +121,7 @@ export default function DetailLayout({ kind, title, poster, backdrop, meta, tags
         </View>
       </Animated.View>
       <PressableScale onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={[styles.back, { top: insets.top + 6, left: gutter - 6 }]} accessibilityLabel={t('common.back')}>
-        <BlurView intensity={30} tint={glass.tint} style={StyleSheet.absoluteFill} />
+        {glass.supported ? <BlurView intensity={30} tint={glass.tint} style={StyleSheet.absoluteFill} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: glass.solid }]} />}
         <Icon name="back" size={20} color={palette.ink} strokeWidth={2.2} />
       </PressableScale>
     </View>

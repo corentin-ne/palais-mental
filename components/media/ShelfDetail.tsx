@@ -158,14 +158,14 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
                     <Icon name="bell" size={18} color={palette.primaryText} strokeWidth={2} />
                     <Text style={styles.reminderText}>{t('movie.reminderSet')}</Text>
                   </View>
-                  <Button label={t('common.remove')} icon="trash" variant="danger" onPress={remove} />
+                  <Button label={t('common.remove')} icon="trash" variant="danger" iconOnly onPress={remove} />
                 </View>
                 <Text style={styles.hint}>{t('shelf.remindHint')}</Text>
               </>
             ) : state === 'want' ? (
               <View style={styles.actions}>
                 <Button label={t(isBook ? 'book.start' : 'game.start')} icon={isBook ? 'journal' : 'gamepad'} onPress={() => status('started')} style={{ flex: 1 }} />
-                <Button label={t('common.remove')} icon="trash" variant="danger" onPress={remove} />
+                <Button label={t('common.remove')} icon="trash" variant="danger" iconOnly onPress={remove} />
               </View>
             ) : state === 'started' ? (
               <>
@@ -221,7 +221,7 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
                     }}
                     style={{ flex: 1 }}
                   />
-                  <Button label={t('common.remove')} icon="trash" variant="danger" onPress={remove} />
+                  <Button label={t('common.remove')} icon="trash" variant="danger" iconOnly onPress={remove} />
                 </View>
               </>
             )}

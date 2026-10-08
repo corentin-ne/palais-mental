@@ -53,8 +53,8 @@ export default function Screen({ title, subtitle, right, children, refreshing, o
         </View>
       </Animated.ScrollView>
       <Animated.View pointerEvents="none" style={[styles.bar, { height: insets.top + 48, opacity: barOpacity }]}>
-        <BlurView intensity={40} tint={glass.tint} style={StyleSheet.absoluteFill} />
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.glass }]} />
+        {glass.supported && <BlurView intensity={40} tint={glass.tint} style={StyleSheet.absoluteFill} />}
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: glass.supported ? palette.glass : glass.solid }]} />
         <View style={[styles.barInner, { paddingTop: insets.top }]}>
           <Text style={type.heading} numberOfLines={1}>
             {title}
@@ -67,12 +67,21 @@ export default function Screen({ title, subtitle, right, children, refreshing, o
 }
 
 /** Section heading inside a screen. */
-export function Section({ title, action, children, style }: { title: string; action?: ReactNode; children: ReactNode; style?: object }) {
-  const { type } = useTheme();
+export function Section({ title, count, action, children, style }: { title: string; count?: number; action?: ReactNode; children: ReactNode; style?: object }) {
+  const { type, palette, fonts } = useTheme();
   return (
     <View style={[{ marginTop: 30, gap: 14 }, style]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={type.title}>{title}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
+          <Text style={type.title} accessibilityRole="header" numberOfLines={1}>
+            {title}
+          </Text>
+          {count != null && (
+            <View style={{ minWidth: 24, height: 22, paddingHorizontal: 7, borderRadius: 11, backgroundColor: palette.fieldActive, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ ...fonts.bold, fontSize: 12, color: palette.inkSoft, fontVariant: ['tabular-nums'] }}>{count}</Text>
+            </View>
+          )}
+        </View>
         {action}
       </View>
       {children}

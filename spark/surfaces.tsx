@@ -8,7 +8,7 @@
  * already, and one blur per card would cost a GPU pass per card on every scroll frame.
  */
 import { ReactNode, memo, useRef } from 'react';
-import { Animated, Platform, Pressable, PressableProps, StyleProp, StyleSheet, View, ViewStyle, useWindowDimensions } from 'react-native';
+import { Animated, Pressable, PressableProps, StyleProp, StyleSheet, View, ViewStyle, useWindowDimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
@@ -68,20 +68,21 @@ export interface GlassProps {
 export function Glass({ children, style, tone = 'default', blur, highlight = true, elevated, radius }: GlassProps) {
   const t = useSpark();
   const s = useGlassStyles();
-  const fill = tone === 'strong' ? t.color.glassStrong : tone === 'subtle' ? t.color.glassSubtle : t.color.glass;
-  const blurred = blur && !t.lite && t.blur.intensity > 0;
+  const blurred = blur && t.blur.supported && t.blur.intensity > 0;
+  // A floating layer that can't blur (Android, lite) goes near-opaque: content scrolling under it never reads through.
+  const fill = blur && !blurred ? t.blur.solid : tone === 'strong' ? t.color.glassStrong : tone === 'subtle' ? t.color.glassSubtle : t.color.glass;
+  // Shadows only under surfaces that hide them: floating layers. Translucent glass would show its own shadow through.
+  const shadow = elevated && blur ? (elevated === 'lg' ? t.shadow.glassLg : t.shadow.glass) : undefined;
   const r = radius ?? t.radius.lg;
   // The panel itself carries the layout (padding, gap…), the border and the shadow; the blur and the
   // fill sit under the children, clipped to the corners.
   return (
-    <View style={[s.panel, { borderRadius: r, backgroundColor: blurred ? 'transparent' : fill }, elevated && (elevated === 'lg' ? t.shadow.glassLg : t.shadow.glass), style]}>
+    <View style={[s.panel, { borderRadius: r, backgroundColor: blurred ? 'transparent' : fill }, shadow, style]}>
       {blurred && (
         <View style={[StyleSheet.absoluteFill, { borderRadius: r, overflow: 'hidden' }]} pointerEvents="none">
           <BlurView
             intensity={tone === 'strong' ? t.blur.strong : t.blur.intensity}
             tint={t.blur.tint}
-            // Android blurs only through this method; without it the fill alone shows.
-            experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
             style={StyleSheet.absoluteFill}
           />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: fill }]} />

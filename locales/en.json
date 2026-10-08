@@ -56,7 +56,8 @@
     "notStarted": "Haven't started",
     "watchlist": "Films to watch",
     "reading": "Reading",
-    "playing": "Playing"
+    "playing": "Playing",
+    "episodes": "Episodes to watch"
   },
   "calendar": {
     "title": "Calendar",

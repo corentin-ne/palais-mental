@@ -106,13 +106,17 @@ export default function UpNextScreen() {
       ) : (
         <>
           {upNext.length > 0 || !Object.keys(shows).length ? (
-            <View style={[styles.cards, { gap }]}>
-              {upNext.map(({ show, progress }, i) => (
-                <FadeIn key={show.id} index={i}>
-                  <UpNextCard show={show} progress={progress} width={cardW} />
-                </FadeIn>
-              ))}
-            </View>
+            upNext.length > 0 && (
+              <Section title={t('upNext.episodes')} count={upNext.length} style={{ marginTop: 18 }}>
+                <View style={[styles.cards, { gap, marginTop: 0 }]}>
+                  {upNext.map(({ show, progress }, i) => (
+                    <FadeIn key={show.id} index={i}>
+                      <UpNextCard show={show} progress={progress} width={cardW} />
+                    </FadeIn>
+                  ))}
+                </View>
+              </Section>
+            )
           ) : (
             <FadeIn style={styles.allCaught}>
               <Icon name="check" size={20} color={palette.success} strokeWidth={2.4} />
@@ -121,7 +125,7 @@ export default function UpNextScreen() {
           )}
 
           {reading.length > 0 && (
-            <Section title={t('upNext.reading')}>
+            <Section title={t('upNext.reading')} count={reading.length}>
               <View style={[styles.cards, { gap, marginTop: 0 }]}>
                 {reading.map((b, i) => (
                   <FadeIn key={b.id} index={i}>
@@ -133,7 +137,7 @@ export default function UpNextScreen() {
           )}
 
           {playing.length > 0 && (
-            <Section title={t('upNext.playing')}>
+            <Section title={t('upNext.playing')} count={playing.length}>
               <View style={[styles.cards, { gap, marginTop: 0 }]}>
                 {playing.map((g, i) => (
                   <FadeIn key={g.id} index={i}>

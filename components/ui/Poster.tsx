@@ -8,6 +8,13 @@ import { makeStyles, useTheme } from '@/constants/theme';
 import type { MediaKind } from '@/lib/types';
 
 const KIND_ICON = { show: 'series', movie: 'movies', book: 'journal', game: 'gamepad' } as const;
+/**
+ * The size of artwork a poster needs. TVmaze's "original" posters are the untouched upload (often several MB):
+ * fine for a detail page, far too heavy for a grid tile or a rail, which take its 210 px portrait size.
+ */
+export const sizedPoster = (uri: string | undefined, width: number) =>
+  uri && width <= 120 ? uri.replace('/images/original_untouched/', '/images/medium_portrait/') : uri;
+
 const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0;
 
 interface Props {
@@ -30,16 +37,17 @@ function Poster({ uri, title, width, kind = 'show', radius, progress, dim, eleva
   const r = radius ?? (width > 120 ? radii.md : radii.sm);
   const height = Math.round(width * 1.5);
   const tint = palette.posterTints[hash(title) % palette.posterTints.length];
+  const src = sizedPoster(uri, width);
   return (
     <View style={[{ width, height, borderRadius: r }, elevated && shadow.cover]}>
       <View style={[styles.clip, { borderRadius: r }]}>
-        {uri && !failed ? (
+        {src && !failed ? (
           <Image
-            source={{ uri }}
+            source={{ uri: src }}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
             transition={260}
-            recyclingKey={uri}
+            recyclingKey={src}
             // Decoded posters stay in memory: walls and rails scroll back without a reload.
             cachePolicy="memory-disk"
             onError={() => setFailed(true)}

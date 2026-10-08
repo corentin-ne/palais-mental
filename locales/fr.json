@@ -56,7 +56,8 @@
     "notStarted": "Pas encore commencées",
     "watchlist": "Films à voir",
     "reading": "En lecture",
-    "playing": "En cours de jeu"
+    "playing": "En cours de jeu",
+    "episodes": "Épisodes à voir"
   },
   "calendar": {
     "title": "Calendrier",

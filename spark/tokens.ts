@@ -5,6 +5,8 @@
  * the web; the app's or the user's choice on a phone) and the display quality. Same values, same names
  * in camelCase (`--glass-border-strong` → `glassBorderStrong`), so a fix in tokens.css is easy to carry over.
  */
+import { Platform } from 'react-native';
+
 import { alpha, mix, mixOklab, rotate, toOklch, withLightness } from './color';
 
 export type Scheme = 'dark' | 'light';
@@ -198,13 +200,30 @@ export function createTokens({ scheme, accent: accentBase = NATIVE_BLUE, lite = 
       ease: [0.2, 0.8, 0.2, 1] as const,
       loops: !lite && !reduceMotion,
     },
+    /**
+     * Shadows draw under the whole box, so behind translucent glass they show through it (a grey cast, and on
+     * Android an inner rectangle). `glass` is for opaque or near-opaque surfaces only (floating layers, lite);
+     * translucent cards take their depth from the border and the top highlight instead.
+     */
     shadow: {
       glass: shadow(dark ? 0.45 : 0.16, 18, 10, 4),
       glassLg: shadow(dark ? 0.6 : 0.26, 32, 18, 10),
+      none: { shadowColor: 'transparent', shadowOpacity: 0, shadowRadius: 0, shadowOffset: { width: 0, height: 0 }, elevation: 0 } as Shadow,
       glow: lite ? shadow(0, 0, 0, 0) : { ...shadow(0.5, 14, 6, 6), shadowColor: accent },
     },
     /** Blur strengths for expo-blur (0–100) on floating layers; lite turns blur off. */
-    blur: { intensity: lite ? 0 : 40, strong: lite ? 0 : 60, tint: (dark ? 'dark' : 'light') as 'dark' | 'light' },
+    /**
+     * Blur strengths for expo-blur (0–100) on floating layers. Android blurs only content wrapped in a blur
+     * target, which a navigator can't be: there (and in lite rendering) floating layers are near-opaque instead.
+     */
+    blur: {
+      intensity: lite ? 0 : 40,
+      strong: lite ? 0 : 60,
+      tint: (dark ? 'dark' : 'light') as 'dark' | 'light',
+      supported: !lite && Platform.OS !== 'android',
+      /** The fill of a floating layer that can't blur: nothing behind reads through it. */
+      solid: dark ? 'rgba(22, 27, 40, 0.97)' : 'rgba(248, 250, 253, 0.97)',
+    },
     /**
      * Phone metrics. Targets are 44 pt (Apple HIG) / 48 dp (Material): WCAG's 24 px is a floor, not a size.
      * Control heights: lg 50 (main action), md 44 (default), sm 36 (in rows), xs 30 (dense chips, still in a 44 hit area).

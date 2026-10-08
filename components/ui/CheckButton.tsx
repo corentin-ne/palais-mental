@@ -47,14 +47,17 @@ export default function CheckButton({ checked, onPress, size = 34, disabled, lab
           width: size,
           height: size,
           borderRadius: size / 2,
-          borderWidth: 1.6,
-          borderColor: checked ? 'transparent' : disabled ? palette.hairline : palette.checkRing,
+          borderWidth: 1.8,
+          // An accent ring with a faint check inside: reads as "tap to mark", not as a disabled control.
+          borderColor: checked ? 'transparent' : disabled ? palette.hairline : palette.primaryRing,
+          backgroundColor: checked || disabled ? 'transparent' : palette.primaryTint,
           alignItems: 'center',
           justifyContent: 'center',
           transform: [{ scale: press }],
           opacity: disabled ? 0.5 : 1,
         }}
       >
+        {!checked && !disabled && <Icon name="check" size={size * 0.48} color={palette.primaryText} strokeWidth={2.4} />}
         <Animated.View
           style={{
             position: 'absolute',

@@ -9,13 +9,15 @@ interface Props {
   icon?: IconName;
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   compact?: boolean;
+  /** Square, glyph only (the label stays the accessible name): a secondary action beside a main one. */
+  iconOnly?: boolean;
   loading?: boolean;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
 /** The kit's button: the accent gradient for the main action, glass for the rest; 50 pt, 36 pt compact. */
-export default function Button({ label, onPress, icon, variant = 'primary', compact, loading, disabled, style }: Props) {
+export default function Button({ label, onPress, icon, variant = 'primary', compact, iconOnly, loading, disabled, style }: Props) {
   return (
     <SparkButton
       label={label}
@@ -23,6 +25,7 @@ export default function Button({ label, onPress, icon, variant = 'primary', comp
       icon={icon ? glyph(icon) : undefined}
       variant={variant as ButtonVariant}
       size={compact ? 'sm' : 'lg'}
+      iconOnly={iconOnly}
       busy={loading}
       disabled={disabled}
       style={style}

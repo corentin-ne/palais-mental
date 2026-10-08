@@ -37,6 +37,7 @@ function paletteOf(t: SparkTokens) {
     primaryText: c.accentText,
     primaryDeep: c.accentHover,
     primaryTint: c.accentSoft,
+    primaryRing: c.accentRing,
     primaryGlow: c.accentGlow,
     accent2: c.accent2,
     /** Text and glyphs on an accent fill. */
@@ -50,7 +51,8 @@ function paletteOf(t: SparkTokens) {
     warning: c.warningText,
     warningTint: c.warningSoft,
     shadow: c.shadowColor,
-    placeholder: c.surface2,
+    /** Behind images while they load: opaque, so a poster's shadow never shows through it. */
+    placeholder: mix(c.textPrimary, c.bg, t.dark ? 0.08 : 0.07),
     hero: deep(c.accent, 0.25),
     scrimClear: alpha(c.bg, 0),
     scrimSoft: alpha(c.bg, 0.2),
@@ -100,8 +102,11 @@ function build(spark: SparkTokens) {
     button: { ...k.button },
   };
   const shadow = {
-    soft: spark.shadow.glass,
+    /** Cards are translucent glass: no shadow (it would show through them), depth comes from the edge. */
+    soft: spark.shadow.none,
+    /** Opaque floating things only (solid buttons, sheets). */
     lifted: spark.shadow.glassLg,
+    /** Under posters and artwork, which are opaque. */
     cover: { ...spark.shadow.glass, shadowOpacity: spark.dark ? 0.5 : 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
   };
   return {
@@ -113,7 +118,8 @@ function build(spark: SparkTokens) {
     type,
     shadow,
     radii: { xs: spark.radius.xs, sm: spark.radius.sm, md: spark.radius.md, lg: spark.radius.lg, xl: spark.radius.xl, pill: spark.radius.full },
-    glass: { blur: spark.blur.intensity, androidBlur: spark.blur.intensity, tint: spark.blur.tint },
+    /** Floating bars: blurred where the platform can (iOS, web), else `solid` (Android, lite) so nothing reads through. */
+    glass: { blur: spark.blur.intensity, androidBlur: spark.blur.intensity, tint: spark.blur.tint, supported: spark.blur.supported, solid: spark.blur.solid },
     /** Motion vocabulary shared by every animated surface (kit §2.8). */
     motion: {
       spring: spark.motion.spring,

@@ -209,7 +209,8 @@ const useSegStyles = sparkStyles((t) => ({
     bottom: 3,
     left: 3,
     borderRadius: 11,
-    backgroundColor: t.dark ? t.color.glassActive : '#ffffff',
+    // Opaque: a shadow under a translucent thumb would show through it.
+    backgroundColor: t.dark ? '#262d3e' : '#ffffff',
     borderWidth: 1,
     borderColor: t.color.glassBorder,
     ...t.shadow.glass,

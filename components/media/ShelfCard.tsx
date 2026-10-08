@@ -82,15 +82,15 @@ export default function ShelfCard({ kind, item, width }: Props) {
   );
 }
 
-const useStyles = makeStyles(({ palette, fonts, shadow, radii }) => ({
-  card: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, paddingRight: 12, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, ...shadow.soft, shadowOpacity: 0.06 },
-  open: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 },
-  info: { flex: 1, gap: 3 },
-  title: { ...fonts.semibold, fontSize: 15.5, color: palette.ink, letterSpacing: -0.2 },
-  sub: { ...fonts.body, fontSize: 13, color: palette.inkSoft },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 5 },
-  track: { flex: 1, height: 4, borderRadius: 2, backgroundColor: palette.field, overflow: 'hidden' },
+const useStyles = makeStyles(({ palette, fonts, radii }) => ({
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  open: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  info: { flex: 1, minWidth: 0, gap: 2 },
+  title: { ...fonts.semibold, fontSize: 15.5, lineHeight: 20, color: palette.ink, letterSpacing: -0.2 },
+  sub: { ...fonts.body, fontSize: 13.5, lineHeight: 18, color: palette.inkSoft },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
+  track: { flex: 1, height: 4, borderRadius: 2, backgroundColor: palette.fieldActive, overflow: 'hidden' },
   fill: { height: 4, borderRadius: 2, backgroundColor: palette.primary },
-  where: { ...fonts.medium, fontSize: 11.5, color: palette.inkFaint, maxWidth: '60%' },
-  plus: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.primary },
+  where: { ...fonts.medium, fontSize: 12, color: palette.inkFaint, maxWidth: '60%', fontVariant: ['tabular-nums'] },
+  plus: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.primary },
 }));

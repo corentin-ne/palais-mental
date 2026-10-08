@@ -216,7 +216,7 @@ export default function ShowScreen() {
                       }}
                       style={[styles.seasonChip, active && styles.seasonChipActive]}
                     >
-                      <Text style={[styles.seasonChipText, active && { color: palette.screen }]}>{t('show.season', { n: s.season })}</Text>
+                      <Text style={[styles.seasonChipText, active && { color: palette.ink }]}>{t('show.season', { n: s.season })}</Text>
                       {done && <View style={[styles.doneDot, active && { backgroundColor: palette.screen }]} />}
                     </PressableScale>
                   );
@@ -365,7 +365,8 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   seasonToggle: { paddingVertical: 4 },
   seasonToggleText: { ...fonts.semibold, fontSize: 13.5, color: palette.primaryText },
   seasonChip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 15, borderRadius: 18, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
-  seasonChipActive: { backgroundColor: palette.ink },
+  // The kit's active chip: an accent tint with a ring.
+  seasonChipActive: { backgroundColor: palette.primaryTint, borderColor: palette.primaryRing },
   seasonChipText: { ...fonts.semibold, fontSize: 13.5, color: palette.ink },
   doneDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: palette.success },
   hint: { ...type.small, fontSize: 12, marginTop: -4 },
