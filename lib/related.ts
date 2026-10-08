@@ -5,9 +5,9 @@
  * date are kept, from a few months back (out now) to anything announced.
  */
 import i18n from '@/locales/i18n';
-import { imdbTitle, postJson, tvmazeIdByImdb } from './api';
-import { isbnCover } from './books';
-import { steamCover } from './games';
+import { imdbTitle, postJson, quiet, tvmazeIdByImdb } from './api';
+import { persisted } from './cache';
+import { isbnCover, steamCover } from './covers';
 import { BOOK_TYPES, GAME_TYPES, seriesHref } from './series';
 import { WIKI_HEADERS } from './wikidata';
 import { useLibrary } from '@/store/useLibrary';
@@ -104,9 +104,19 @@ export async function refreshRelated(force = false) {
     const from = new Date(Date.now() - OUT_NOW).toISOString().slice(0, 10) + 'T00:00:00Z';
     const lang = i18n.language === 'fr' ? 'fr' : 'en';
     const ids = [...seeds.keys()];
+    const qids = [...shelf.keys()];
     const found = new Map<string, RelatedRelease>();
-    for (let i = 0; i < ids.length; i += 80) {
-      const json = await postJson<any>(SPARQL, `format=json&query=${encodeURIComponent(query(ids.slice(i, i + 80), from, lang))}`, HEADERS);
+    const ask = (q: string) => postJson<any>(SPARQL, `format=json&query=${encodeURIComponent(q)}`, HEADERS);
+    const chunks = (list: string[]) => Array.from({ length: Math.ceil(list.length / 80) }, (_, i) => list.slice(i * 80, i * 80 + 80));
+    // Films and series, books and games: two queues side by side (Wikidata allows a few
+    // queries at once per client, so each queue asks one chunk at a time).
+    const queue = async (list: string[], build: (c: string[]) => string) => {
+      const out: any[] = [];
+      for (const c of chunks(list)) out.push(await ask(build(c)));
+      return out;
+    };
+    const [screenAnswers, shelfAnswers] = await Promise.all([queue(ids, (c) => query(c, from, lang)), queue(qids, (c) => shelfQuery(c, from, lang))]);
+    for (const json of screenAnswers) {
       for (const b of json?.results?.bindings ?? []) {
         const imdbId: string | undefined = b.imdb?.value;
         const date = Date.parse(b.date?.value ?? '');
@@ -119,9 +129,7 @@ export async function refreshRelated(force = false) {
         keep(found, { imdbId, title, date, kind, relation, group, from: seeds.get(b.seedImdb?.value) ?? '' });
       }
     }
-    const qids = [...shelf.keys()];
-    for (let i = 0; i < qids.length; i += 80) {
-      const json = await postJson<any>(SPARQL, `format=json&query=${encodeURIComponent(shelfQuery(qids.slice(i, i + 80), from, lang))}`, HEADERS);
+    for (const json of shelfAnswers) {
       for (const b of json?.results?.bindings ?? []) {
         const qid = String(b.item?.value ?? '').split('/').pop()!;
         const seed = shelf.get(String(b.seed?.value ?? '').split('/').pop()!);
@@ -151,8 +159,8 @@ export async function refreshRelated(force = false) {
     for (let i = 0; i < screen.length; i += 6)
       await Promise.all(
         screen.slice(i, i + 6).map(async (e) => {
-          const hit = await imdbTitle(e.imdbId);
-          e.poster = hit?.poster;
+          // Kept on the device: the same posters come back every day.
+          e.poster = (await quiet(persisted(`imdb:${e.imdbId}`, 30 * 86_400_000, async () => (await imdbTitle(e.imdbId))?.poster ?? '', (v) => !v), '')) || undefined;
         }),
       );
     useConnections.getState().setRelated({ at: Date.now(), seeds: key, entries });

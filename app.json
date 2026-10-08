@@ -2,7 +2,7 @@
   "expo": {
     "name": "Palais Mental",
     "slug": "palais-mental",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "scheme": "palaismental",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
@@ -11,13 +11,16 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.palaismental.app",
       "infoPlist": {
-        "CFBundleAllowMixedLocalizations": true
+        "CFBundleAllowMixedLocalizations": true,
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        },
+        "NSLocalNetworkUsageDescription": "Palais Mental reads what you watched from your Plex, Jellyfin or Emby server on your network."
       },
-      "buildNumber": "120"
+      "buildNumber": "130"
     },
     "android": {
       "package": "com.palaismental.app",
-      "edgeToEdgeEnabled": true,
       "permissions": [
         "POST_NOTIFICATIONS"
       ],
@@ -25,7 +28,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A2540"
       },
-      "versionCode": 120
+      "versionCode": 130
     },
     "web": {
       "bundler": "metro",
@@ -53,6 +56,14 @@
         "expo-notifications",
         {
           "color": "#0B63CE"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
         }
       ]
     ],

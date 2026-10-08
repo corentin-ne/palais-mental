@@ -26,7 +26,13 @@ npm run typecheck
 - **History.** Every episode and film you watched, day by day.
 - **Light and dark.** Follows the system, or pick one in **You → Settings**. English and French.
 - **Your data.** Export a full JSON backup (re-importable, merged on import) or CSV sheets of every episode, film, book and game. Automatic copies are kept on the phone every few days and can be merged back from **You → Your data**. Updates never reset the library: store migrations keep every entry and save a copy first.
-- **Connections.** Letterboxd, Serializd, MyAnimeList and AniList by username (public profiles, no password or API key), plus Letterboxd, Serializd and IMDb export files. Serializd diaries tick the exact episodes and seasons you logged, each on its own date; seasons marked watched are ticked whole, and shows you are watching or have watchlisted are added. A pasted profile link works as well as a bare username. Syncing is additive: titles missing here are added, episodes and films watched there are ticked here, ratings fill in, nothing is removed. The other way goes through each service's import page: **Export what's missing** writes a Letterboxd CSV or a MyAnimeList XML (also read by AniList) with only what that service doesn't have.
+- **Connections.** Films and series, anime, books and games, read from the phone with no server in between:
+  - *Public profiles, a username:* Letterboxd, Serializd, MyAnimeList, AniList, Kitsu, Goodreads (shelf feeds), Open Library (reading log), BookWyrm (any instance), Steam (wishlist).
+  - *A personal key you create on the service:* Trakt (client ID), Hardcover (API token), Steam (Web API key: library and playtime), RetroAchievements (web API key).
+  - *Your own media server:* Plex (X-Plex-Token), Jellyfin and Emby (API key), local http addresses included.
+  - *Export files:* Letterboxd, IMDb, Trakt, TV Time, Netflix viewing activity (episodes matched by name), Serializd, Goodreads, StoryGraph, LibraryThing/Libib-style book lists, HowLongToBeat/Grouvee/Backloggd/Playnite-style game lists.
+
+  Syncing is additive: titles missing here are added, episodes, films, books and games finished there are marked here, ratings, pages and playtime fill in, nothing is removed. The other way goes through each service's import page: a Letterboxd CSV, a MyAnimeList XML (also read by AniList), a Goodreads CSV (Goodreads, StoryGraph, Hardcover, BookWyrm), an IMDb-format CSV (Trakt, Simkl), and an .ics calendar of everything upcoming (Google, Apple, Outlook).
 - **Sequels and universes.** From Wikidata: sequels, prequels, the same film, book or game series, franchise or fictional universe (MCU, Star Wars…) as anything in your library show up in the calendar (dashed) with a release-day notification, and recent ones in **Up next → Out now in your universes**.
 - **Ratings.** Half-star ratings on films and shows, imported from other services, exported to Letterboxd and in the CSVs; sort the library by rating.
 
@@ -42,6 +48,11 @@ npm run typecheck
 | Book publication dates (upcoming ones too), extra results | Google Books | none |
 | Games: search, covers, release dates, top sellers, coming soon | Steam store | none |
 | Book and game series, prequels, sequels, exact dates, platforms, console games | Wikidata + Wikipedia | none |
+| Book ratings, readers, characters, places, authors, more by the author, same publisher, books alike, Open Library series | Open Library | none |
+| Awards, characters, settings, publisher, engine, modes, director, composer, age ratings, adaptations (films, series, games) and sources | Wikidata | none |
+| Game reviews, Metacritic, price, features, screenshots, more from the developer and publisher | Steam store | none |
+| Linux and Steam Deck compatibility | ProtonDB | none |
+| Best price across stores | CheapShark | none |
 
 Shows still airing refresh every 6 hours, ended shows weekly, awaited films, books and games daily, plus pull-to-refresh.
 
@@ -64,6 +75,12 @@ lib/
   books.ts               Open Library, Google Books
   games.ts               Steam store, Wikidata
   series.ts              prequels, sequels and series order (Wikidata)
+  connect.ts             connections: matching, additive sync, export files
+  sources/               readers per service (films and series, books, games) and export-file parsers
+  calendarFile.ts        .ics export of upcoming releases
+  extras.ts              book and game page extras: facts, scores, rails, adaptations (Wikidata)
+  cache.ts               on-device cache for slow, rarely changing answers
+  storage.ts             batched writes for the persisted stores
   shelf.ts               pure book/game progress logic
   progress.ts            pure show-progress logic
   sync.ts                refresh, calendar entries, notifications

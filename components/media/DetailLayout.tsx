@@ -144,7 +144,7 @@ export function Synopsis({ text }: { text?: string }) {
 }
 
 /** Cast as small round portraits. */
-export function CastRail({ cast }: { cast: { name: string; character?: string; image?: string }[] }) {
+export function CastRail({ cast, title }: { cast: { name: string; character?: string; image?: string }[]; title?: string }) {
   const { t } = useTranslation();
   const { type } = useTheme();
   const styles = useStyles();
@@ -152,7 +152,7 @@ export function CastRail({ cast }: { cast: { name: string; character?: string; i
   if (!cast.length) return null;
   return (
     <View style={{ marginTop: 30, gap: 14 }}>
-      <Text style={type.title}>{t('detail.cast')}</Text>
+      <Text style={type.title}>{title ?? t('detail.cast')}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -gutter }} contentContainerStyle={{ paddingHorizontal: gutter, gap: 14 }}>
         {cast.map((c, i) => (
           <FadeIn key={`${c.name}${i}`} index={i} style={{ width: 78, alignItems: 'center', gap: 6 }}>

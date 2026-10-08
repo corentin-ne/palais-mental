@@ -53,9 +53,16 @@ export default function SearchScreen() {
   const request = useRef(0);
 
   useEffect(() => {
-    Promise.all([popularShows(), popularMovies({ tmdbKey, lang: i18n.language }), trendingBooks(), popularGames(i18n.language)]).then(([s, m, b, g]) =>
-      setDiscover({ shows: s, movies: m, books: b, games: g.top, gamesSoon: g.soon }),
-    );
+    // Rails fill in one by one rather than waiting for the slowest source.
+    let live = true;
+    const put = (patch: Partial<typeof discover>) => live && setDiscover((d) => ({ ...d, ...patch }));
+    popularShows().then((shows) => put({ shows })).catch(() => undefined);
+    popularMovies({ tmdbKey, lang: i18n.language }).then((movies) => put({ movies })).catch(() => undefined);
+    trendingBooks().then((books) => put({ books })).catch(() => undefined);
+    popularGames(i18n.language).then((g) => put({ games: g.top, gamesSoon: g.soon })).catch(() => undefined);
+    return () => {
+      live = false;
+    };
   }, [tmdbKey, i18n.language]);
 
   useEffect(() => {
@@ -72,19 +79,18 @@ export default function SearchScreen() {
     setLoading(true);
     const timer = setTimeout(async () => {
       const wants = (s: Scope) => scope === 'all' || scope === s;
-      const none = Promise.resolve([] as SearchResult[]);
-      const [s, m, b, g] = await Promise.all([
-        wants('shows') ? searchShows(query) : none,
-        wants('movies') ? searchMovies(query, { tmdbKey, lang: i18n.language }) : none,
-        wants('books') ? searchBooks(query, i18n.language) : none,
-        wants('games') ? searchGames(query, i18n.language) : none,
+      // Each kind shows as soon as its sources answer: TVmaze is quick, Wikidata takes longer.
+      const run = (on: boolean, search: () => Promise<SearchResult[]>, set: (r: SearchResult[]) => void) =>
+        (on ? search().catch(() => [] as SearchResult[]) : Promise.resolve([] as SearchResult[])).then((r) => {
+          if (id === request.current) set(r);
+        });
+      await Promise.all([
+        run(wants('shows'), () => searchShows(query), setShows),
+        run(wants('movies'), () => searchMovies(query, { tmdbKey, lang: i18n.language }), setMovies),
+        run(wants('books'), () => searchBooks(query, i18n.language), setBooks),
+        run(wants('games'), () => searchGames(query, i18n.language), setGames),
       ]);
-      if (id !== request.current) return;
-      setShows(s);
-      setMovies(m);
-      setBooks(b);
-      setGames(g);
-      setLoading(false);
+      if (id === request.current) setLoading(false);
     }, 280);
     return () => clearTimeout(timer);
   }, [q, scope, tmdbKey, i18n.language]);

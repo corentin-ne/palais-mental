@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Linking, ScrollView, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import DetailLayout, { Synopsis } from './DetailLayout';
 import SeriesRail from './SeriesRail';
+import { ExtraDetails, ExtraLinks, ExtraRails, ExtraScores } from './ShelfExtras';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import StarRating from '@/components/ui/StarRating';
@@ -12,12 +13,13 @@ import Stepper from '@/components/ui/Stepper';
 import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
-import { useLayout } from '@/hooks/useLayout';
 import { removeBook, removeGame, setShelfStatus } from '@/lib/actions';
-import { BookMeta, bookPage, fetchBook } from '@/lib/books';
+import { BookMeta, bookPage, fetchBook, loadBookExtras } from '@/lib/books';
+import { ShelfExtras, mergeExtras } from '@/lib/extras';
 import { countdown, fullDate } from '@/lib/format';
-import { GameMeta, fetchGame, gamePage } from '@/lib/games';
+import { GameMeta, fetchGame, gamePage, loadGameExtras } from '@/lib/games';
 import { bookFraction, gameFraction, shelfState } from '@/lib/shelf';
+import { shareTitle } from '@/lib/share';
 import { Book, Game } from '@/lib/types';
 import { ShelfStatus, useLibrary } from '@/store/useLibrary';
 import { useUi } from '@/store/useUi';
@@ -31,7 +33,6 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
   const styles = useStyles();
   const router = useRouter();
   const haptics = useHaptics();
-  const { gutter } = useLayout();
   const tracked = useLibrary((s) => (kind === 'book' ? s.books[id] : s.games[id])) as Book | Game | undefined;
   const [meta, setMeta] = useState<BookMeta | GameMeta>();
   const [error, setError] = useState(false);
@@ -67,6 +68,25 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
   const book = isBook ? (item as Book | undefined) : undefined;
   const game = !isBook ? (item as Game | undefined) : undefined;
 
+  // Extras load once the page knows what it shows, each source adding its part as it answers.
+  const [extras, setExtras] = useState<ShelfExtras>({});
+  const [seriesShown, setSeriesShown] = useState<string[]>([]);
+  const extrasKey = item ? [item.id, item.wikidataId, isBook ? (item as Book).isbn : (item as Game).steamId, i18n.language].join('|') : '';
+  useEffect(() => {
+    setExtras({});
+    if (!extrasKey || !item) return;
+    let live = true;
+    const emit = (part: ShelfExtras) => live && setExtras((prev) => mergeExtras(prev, part));
+    if (isBook) loadBookExtras(item as Book, i18n.language, emit).catch(() => undefined);
+    else loadGameExtras(item as Game, i18n.language, emit).catch(() => undefined);
+    return () => {
+      live = false;
+    };
+    // Only a new title (or language) reloads: progress changes keep what is there.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extrasKey]);
+  const exclude = useMemo(() => [`/${kind}/${id}`, ...seriesShown], [kind, id, seriesShown]);
+
   const status = (s: ShelfStatus) => {
     setShelfStatus(kind, id, s);
     s === 'finished' ? haptics.success() : haptics.tap();
@@ -95,6 +115,7 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
   const fraction = book ? bookFraction(book) : game ? gameFraction(game) : 0;
   const link = item ? (isBook ? bookPage(book!) : gamePage(game!)) : undefined;
   const linkLabel = isBook ? (book?.source === 'ol' ? 'Open Library' : book?.source === 'gb' ? 'Google Books' : 'Wikidata') : game?.steamId ? 'Steam' : 'Wikidata';
+  const links = useMemo(() => (link ? [{ label: linkLabel, url: link, icon: 'globe' as const }, ...(extras.links ?? []).filter((l) => l.label !== linkLabel)] : (extras.links ?? [])), [link, linkLabel, extras.links]);
 
   return (
     <DetailLayout kind={kind} title={item?.title} poster={item?.cover} backdrop={game?.backdrop} meta={metaLine} tags={isBook ? book?.subjects : game?.genres} loading={!item} error={error} onRetry={load}>
@@ -212,13 +233,12 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
             )}
           </FadeIn>
 
-          {!!link && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -gutter, marginTop: 18, flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: gutter, gap: 8 }}>
-              <Button label={linkLabel} icon="globe" variant="secondary" compact onPress={() => Linking.openURL(link).catch(() => undefined)} />
-            </ScrollView>
-          )}
+          <ExtraLinks links={links} onShare={() => shareTitle(item.title, item.year, link)} />
+          <ExtraScores scores={extras.scores ?? []} />
           <Synopsis text={item.overview} />
-          <SeriesRail qid={item.wikidataId} kind={kind} ordinal={item.series?.ordinal} />
+          <ExtraDetails extras={extras} kind={kind} />
+          <SeriesRail qid={item.wikidataId} kind={kind} ordinal={item.series?.ordinal} fallback={extras.series} onShown={setSeriesShown} />
+          <ExtraRails rails={extras.rails ?? []} exclude={exclude} />
         </>
       )}
     </DetailLayout>

@@ -73,51 +73,30 @@ export async function refreshLibrary(force = false) {
     const staleGames = Object.values(games).filter(awaited);
     const staleShows = Object.values(shows).filter((s) => force || now - s.syncedAt > (s.status === 'Ended' ? ENDED_EVERY : SHOW_EVERY));
     const staleMovies = Object.values(movies).filter((m) => force || (!m.watchedAt && (!m.releaseDate || m.releaseDate > now - 30 * 86_400_000) && now - m.syncedAt > MOVIE_EVERY));
-    // A few at a time: TVmaze allows about 20 calls per 10 seconds.
-    for (let i = 0; i < staleShows.length; i += 4) {
-      await Promise.all(
-        staleShows.slice(i, i + 4).map(async (s) => {
-          try {
-            const { show } = await fetchShow(s.tvmazeId, settings.tmdbKey || undefined);
-            useLibrary.getState().updateShow(show);
-          } catch {
-            // Offline or rate limited: try next time.
-          }
-        }),
-      );
-    }
-    await Promise.all(
-      staleMovies.map(async (m) => {
-        try {
-          const { movie } = await fetchMovie(m.id, { tmdbKey: settings.tmdbKey || undefined, lang });
-          useLibrary.getState().updateMovie({ ...movie, poster: movie.poster ?? m.poster });
-        } catch {
-          // keep what we have
-        }
+    /** `size` at a time: each source has its own rate limit (TVmaze about 20 calls per 10 s). */
+    const inBatches = async <T,>(list: T[], size: number, run: (x: T) => Promise<void>) => {
+      for (let i = 0; i < list.length; i += size) await Promise.all(list.slice(i, i + size).map((x) => run(x).catch(() => undefined)));
+    };
+    // Different hosts: shows, films, books and games refresh side by side. Failures (offline,
+    // rate limited) keep what we have until next time.
+    await Promise.all([
+      inBatches(staleShows, 4, async (s) => {
+        const { show } = await fetchShow(s.tvmazeId, settings.tmdbKey || undefined);
+        useLibrary.getState().updateShow(show);
       }),
-    );
-    for (let i = 0; i < staleBooks.length; i += 4)
-      await Promise.all(
-        staleBooks.slice(i, i + 4).map(async (b) => {
-          try {
-            const { book, redirect } = await fetchBook(b.id, lang);
-            if (!redirect) useLibrary.getState().updateBook({ ...book, cover: book.cover ?? b.cover });
-          } catch {
-            // keep what we have
-          }
-        }),
-      );
-    for (let i = 0; i < staleGames.length; i += 4)
-      await Promise.all(
-        staleGames.slice(i, i + 4).map(async (g) => {
-          try {
-            const { game, redirect } = await fetchGame(g.id, lang);
-            if (!redirect) useLibrary.getState().updateGame({ ...game, cover: game.cover ?? g.cover });
-          } catch {
-            // keep what we have
-          }
-        }),
-      );
+      inBatches(staleMovies, 8, async (m) => {
+        const { movie } = await fetchMovie(m.id, { tmdbKey: settings.tmdbKey || undefined, lang });
+        useLibrary.getState().updateMovie({ ...movie, poster: movie.poster ?? m.poster });
+      }),
+      inBatches(staleBooks, 4, async (b) => {
+        const { book, redirect } = await fetchBook(b.id, lang);
+        if (!redirect) useLibrary.getState().updateBook({ ...book, cover: book.cover ?? b.cover });
+      }),
+      inBatches(staleGames, 4, async (g) => {
+        const { game, redirect } = await fetchGame(g.id, lang);
+        if (!redirect) useLibrary.getState().updateGame({ ...game, cover: game.cover ?? g.cover });
+      }),
+    ]);
   } finally {
     refreshing = false;
   }
@@ -201,14 +180,18 @@ export function startSync() {
       handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
     });
   }
-  const run = async () => {
-    if (!useConnections.persist.hasHydrated()) await new Promise<void>((resolve) => useConnections.persist.onFinishHydration(() => resolve()));
-    await autoSnapshot();
-    await refreshLibrary();
-    await scheduleNotifications();
-    await autoSyncAccounts();
-    await refreshRelated();
-  };
+  // One pass at a time: coming back to the app while a pass runs doesn't start a second one.
+  let pass: Promise<void> | undefined;
+  const run = () =>
+    (pass ??= (async () => {
+      if (!useConnections.persist.hasHydrated()) await new Promise<void>((resolve) => useConnections.persist.onFinishHydration(() => resolve()));
+      await autoSnapshot();
+      await refreshLibrary();
+      // Notifications don't wait on connected accounts; related releases do (a sync can add seeds).
+      await Promise.all([scheduleNotifications(), autoSyncAccounts().catch(() => undefined).then(() => refreshRelated())]);
+    })().finally(() => {
+      pass = undefined;
+    }));
   // Wait for the persisted library before the first refresh.
   if (useLibrary.persist.hasHydrated()) run();
   const unhydrate = useLibrary.persist.onFinishHydration(run);

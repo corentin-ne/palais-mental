@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,7 @@ import Icon from '@/components/ui/Icon';
 import { makeStyles, noOutline, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
+import { useProgressive } from '@/hooks/useProgressive';
 import { countdown } from '@/lib/format';
 import { progressOf, showState } from '@/lib/progress';
 import { SHELF_STATES, bookFraction, gameFraction, shelfActivity, shelfState } from '@/lib/shelf';
@@ -36,6 +37,8 @@ interface Tile {
   caption?: string;
   progress?: number;
   dim?: boolean;
+  /** Also matched by the filter: authors, developer, director, network, genres. */
+  search?: string;
 }
 
 /** Everything you follow, read and play, as a wall of posters. */
@@ -138,6 +141,7 @@ export default function LibraryScreen() {
             poster: show.poster,
             progress: state === 'notStarted' ? undefined : progress.fraction,
             dim: state === 'dropped',
+            search: [show.network, ...show.genres].filter(Boolean).join(' '),
             caption:
               state === 'watching'
                 ? t('upNext.left', { count: progress.left })
@@ -151,6 +155,7 @@ export default function LibraryScreen() {
             href: `/movie/${m.id}`,
             title: m.title,
             poster: m.poster,
+            search: [m.director, ...m.genres].filter(Boolean).join(' '),
             caption: movieFilter === 'upcoming' && m.releaseDate ? countdown(m.releaseDate) : m.year ? String(m.year) : undefined,
           }))
         : shelf[activeShelf].map((item) => ({
@@ -161,9 +166,12 @@ export default function LibraryScreen() {
             caption: shelfCaption(item, activeShelf),
             progress: activeShelf === 'started' ? (tab === 'books' ? bookFraction(item as Book) : gameFraction(item as Game)) : undefined,
             dim: activeShelf === 'dropped',
+            search: tab === 'books' ? [...(item as Book).authors, ...(item as Book).subjects, (item as Book).series?.name].filter(Boolean).join(' ') : [(item as Game).developer, ...(item as Game).platforms, ...(item as Game).genres, item.series?.name].filter(Boolean).join(' '),
           }));
 
-  const tiles = q ? allTiles.filter((tile) => norm(tile.title).includes(q)) : allTiles;
+  const tiles = q ? allTiles.filter((tile) => norm(tile.title).includes(q) || (!!tile.search && norm(tile.search).includes(q))) : allTiles;
+  const gridKey = `${tab}${showFilter}${movieFilter}${activeShelf}${columns}`;
+  const shown = useProgressive(tiles.length, `${gridKey}${q}${sort}`);
   const empty = !Object.keys(shows).length && !Object.keys(movies).length && !Object.keys(books).length && !Object.keys(games).length;
 
   return (
@@ -235,22 +243,10 @@ export default function LibraryScreen() {
           {tiles.length === 0 ? (
             <Text style={styles.none}>{t('library.none')}</Text>
           ) : (
-            <View style={[styles.grid, { gap, rowGap: gap + 8 }]} key={`${tab}${showFilter}${movieFilter}${activeShelf}${columns}`}>
-              {tiles.map((tile, i) => (
-                <FadeIn key={tile.key} index={i} distance={10}>
-                  <PressableScale onPress={() => router.push(tile.href as never)} style={{ width: poster, gap: 7 }} accessibilityLabel={tile.title}>
-                    <Poster uri={tile.poster} title={tile.title} width={poster} kind={TAB_KIND[tab]} progress={tile.progress} dim={tile.dim} />
-                    <View>
-                      <Text style={styles.title} numberOfLines={1}>
-                        {tile.title}
-                      </Text>
-                      {!!tile.caption && (
-                        <Text style={styles.caption} numberOfLines={1}>
-                          {tile.caption}
-                        </Text>
-                      )}
-                    </View>
-                  </PressableScale>
+            <View style={[styles.grid, { gap, rowGap: gap + 8 }]} key={gridKey}>
+              {tiles.slice(0, shown).map(({ key, search: _search, ...tile }, i) => (
+                <FadeIn key={key} index={i} distance={10}>
+                  <PosterTile {...tile} width={poster} kind={TAB_KIND[tab]} />
                 </FadeIn>
               ))}
             </View>
@@ -260,6 +256,27 @@ export default function LibraryScreen() {
     </Screen>
   );
 }
+
+/** One poster of the wall. Unchanged tiles skip re-rendering while you type or tick things elsewhere. */
+const PosterTile = memo(function PosterTile({ href, title, poster, caption, progress, dim, width, kind }: Omit<Tile, 'key' | 'search'> & { width: number; kind: MediaKind }) {
+  const router = useRouter();
+  const styles = useStyles();
+  return (
+    <PressableScale onPress={() => router.push(href as never)} style={{ width, gap: 7 }} accessibilityLabel={title}>
+      <Poster uri={poster} title={title} width={width} kind={kind} progress={progress} dim={dim} />
+      <View>
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        {!!caption && (
+          <Text style={styles.caption} numberOfLines={1}>
+            {caption}
+          </Text>
+        )}
+      </View>
+    </PressableScale>
+  );
+});
 
 const useStyles = makeStyles(({ palette, fonts, type }) => ({
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 20 },

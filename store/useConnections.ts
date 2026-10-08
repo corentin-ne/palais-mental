@@ -1,13 +1,37 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { persist } from 'zustand/middleware';
 
-/** Services read through public pages or feeds: no API key, no password, just a username. */
-export type Service = 'letterboxd' | 'serializd' | 'mal' | 'anilist';
-export const SERVICES: Service[] = ['letterboxd', 'serializd', 'mal', 'anilist'];
+import { lazyStorage } from '@/lib/storage';
+
+/**
+ * Services read from the phone, no server in between: public profiles and feeds (a username),
+ * personal API keys you create on the service, or your own media server (address + key).
+ */
+export type Service =
+  | 'letterboxd'
+  | 'serializd'
+  | 'trakt'
+  | 'mal'
+  | 'anilist'
+  | 'kitsu'
+  | 'plex'
+  | 'jellyfin'
+  | 'emby'
+  | 'goodreads'
+  | 'openlibrary'
+  | 'bookwyrm'
+  | 'hardcover'
+  | 'steam'
+  | 'retroachievements';
+export const SERVICES: Service[] = ['letterboxd', 'serializd', 'trakt', 'mal', 'anilist', 'kitsu', 'plex', 'jellyfin', 'emby', 'goodreads', 'openlibrary', 'bookwyrm', 'hardcover', 'steam', 'retroachievements'];
 
 export interface Account {
+  /** Username, profile id, or for media servers the user to read (empty: the first one). */
   username: string;
+  /** Personal key or token (Trakt client id, Steam Web API key, Plex token…), kept on this device only. */
+  token?: string;
+  /** Media server address (Plex, Jellyfin, Emby). */
+  server?: string;
   lastSync?: number;
   /** Titles added or updated by the last sync. */
   lastChanges?: number;
@@ -20,7 +44,7 @@ export interface Account {
 /** What an outside entry was matched to. `id` null: nothing found (retried after a while). */
 export interface Match {
   id: string | null;
-  kind: 'show' | 'movie';
+  kind: 'show' | 'movie' | 'book' | 'game';
   season?: number;
   malId?: number;
   /** Status, progress and rating last applied: unchanged entries are skipped. */
@@ -79,7 +103,7 @@ export const useConnections = create<ConnectionsState>()(
     {
       name: 'palais-mental/connections',
       version: 1,
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: lazyStorage(),
       partialize: (s) => ({ accounts: s.accounts, matches: s.matches, autoSync: s.autoSync, related: s.related }),
     },
   ),

@@ -11,17 +11,36 @@ import { Episode, MediaKind, Movie, MovieSource, Show } from './types';
 
 // ------------------------------------------------------------------ Fetch + cache
 const TTL = 5 * 60_000;
+/** Answers kept in memory; past this the oldest go (a Map iterates in insertion order). */
+const CACHE_MAX = 400;
 const cache = new Map<string, { at: number; value: Promise<unknown> }>();
+
+function remember(url: string, value: Promise<unknown>) {
+  cache.delete(url);
+  cache.set(url, { at: Date.now(), value });
+  if (cache.size > CACHE_MAX) for (const key of [...cache.keys()].slice(0, cache.size - CACHE_MAX)) cache.delete(key);
+  value.catch(() => cache.delete(url));
+}
+
+/** A slow source gives up after this long rather than holding a page on a spinner. */
+const TIMEOUT = 30_000;
+
+function request(url: string, init?: RequestInit) {
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : undefined;
+  const timer = ctrl && setTimeout(() => ctrl.abort(), TIMEOUT);
+  return fetch(url, { ...init, signal: init?.signal ?? ctrl?.signal })
+    .then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r;
+    })
+    .finally(() => clearTimeout(timer));
+}
 
 export async function getJson<T = any>(url: string, init?: RequestInit): Promise<T> {
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < TTL) return hit.value as Promise<T>;
-  const value = fetch(url, { ...init, headers: { Accept: 'application/json', ...init?.headers } }).then((r) => {
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
-  });
-  cache.set(url, { at: Date.now(), value });
-  value.catch(() => cache.delete(url));
+  const value = request(url, { ...init, headers: { Accept: 'application/json', ...init?.headers } }).then((r) => r.json());
+  remember(url, value);
   return value as Promise<T>;
 }
 
@@ -29,12 +48,8 @@ export async function getJson<T = any>(url: string, init?: RequestInit): Promise
 export function getText(url: string, init?: RequestInit): Promise<string> {
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < TTL) return hit.value as Promise<string>;
-  const value = fetch(url, init).then((r) => {
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.text();
-  });
-  cache.set(url, { at: Date.now(), value });
-  value.catch(() => cache.delete(url));
+  const value = request(url, init).then((r) => r.text());
+  remember(url, value);
   return value;
 }
 

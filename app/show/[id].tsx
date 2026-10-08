@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -9,16 +9,17 @@ import Extras, { Similar } from '@/components/media/Extras';
 import Button from '@/components/ui/Button';
 import CheckButton from '@/components/ui/CheckButton';
 import PressableScale from '@/components/ui/PressableScale';
-import StarRating from '@/components/ui/StarRating';
+import Icon from '@/components/ui/Icon';
+import StarRating, { StarBadge } from '@/components/ui/StarRating';
 import { FadeIn, animateLayout } from '@/components/ui/Motion';
-import { makeStyles, useTheme } from '@/constants/theme';
+import { makeStyles, noOutline, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
-import { Extras as ExtrasData, ShowDetails, fetchShow, fetchShowExtras, tvmazeIdByName } from '@/lib/api';
+import { Extras as ExtrasData, ShowDetails, fetchShow, fetchShowExtras, tvmazeIdByImdb, tvmazeIdByName } from '@/lib/api';
 import { removeShow, setDropped } from '@/lib/actions';
 import { countdown, fullDate, relativeDay, runtime } from '@/lib/format';
 import { episodeCode, hasAired, progressOf, seasonsOf, showState } from '@/lib/progress';
-import { Episode, Show } from '@/lib/types';
+import { Episode, EpisodeNote, Show } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
 import { useUi } from '@/store/useUi';
 
@@ -27,13 +28,15 @@ export default function ShowScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const raw = decodeURIComponent(String(params.id ?? ''));
-  // Recommendations arrive by name ("name:Severance"): find their TVmaze page, then swap in place.
+  // Recommendations arrive by name ("name:Severance") and adaptations by IMDb id ("imdb:tt…"):
+  // find their TVmaze page, then swap in place.
   const byName = raw.startsWith('name:') ? raw.slice(5) : undefined;
-  const id = byName ? '' : raw;
+  const byImdb = raw.startsWith('imdb:') ? raw.slice(5) : undefined;
+  const id = byName || byImdb ? '' : raw;
   useEffect(() => {
-    if (!byName) return;
-    tvmazeIdByName(byName).then((found) => (found ? router.replace(`/show/${found}`) : router.back()));
-  }, [byName, router]);
+    if (!byName && !byImdb) return;
+    (byImdb ? tvmazeIdByImdb(byImdb) : tvmazeIdByName(byName!)).then((found) => (found ? router.replace(`/show/${found}`) : router.back()));
+  }, [byName, byImdb, router]);
   const { palette } = useTheme();
   const styles = useStyles();
   const haptics = useHaptics();
@@ -155,6 +158,11 @@ export default function ShowScreen() {
                   <Text style={styles.rateLabel}>{t('rating.yours')}</Text>
                   <StarRating value={tracked.rating} onChange={(v) => useLibrary.getState().setShowRating(id, v)} size={24} />
                 </View>
+                <NoteInput
+                  value={tracked.review}
+                  placeholder={t('journal.reviewPlaceholder')}
+                  onSave={(text) => useLibrary.getState().setShowReview(id, text)}
+                />
                 <View style={styles.actions}>
                   <Button
                     label={state === 'dropped' ? t('show.resume') : t('show.drop')}
@@ -222,6 +230,11 @@ export default function ShowScreen() {
                     e={e}
                     index={i}
                     watched={!!show.watched[e.id]}
+                    note={show.notes?.[e.id]}
+                    onNote={(patch) => {
+                      ensureTracked();
+                      useLibrary.getState().setEpisodeNote(id, e.id, patch);
+                    }}
                     synopsis={details?.synopsis[e.id]}
                     open={expanded === e.id}
                     onOpen={() => {
@@ -248,45 +261,90 @@ function EpisodeRow({
   e,
   index,
   watched,
+  note,
   synopsis,
   open,
   onOpen,
   onToggle,
   onUpTo,
+  onNote,
 }: {
   e: Episode;
   index: number;
   watched: boolean;
+  note?: EpisodeNote;
   synopsis?: string;
   open: boolean;
   onOpen: () => void;
   onToggle: () => void;
   onUpTo: () => void;
+  onNote: (patch: Partial<Omit<EpisodeNote, 'at'>>) => void;
 }) {
   const { t } = useTranslation();
+  const { palette } = useTheme();
   const styles = useStyles();
   const aired = hasAired(e);
   return (
     <FadeIn index={index} distance={8}>
-      <PressableScale depth={0.99} onPress={onOpen} style={[styles.episode, !aired && { opacity: 0.6 }]}>
-        <View style={styles.epTop}>
-          <View style={styles.still}>
-            {e.image ? <Image source={{ uri: e.image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : <Text style={styles.stillNum}>{e.number}</Text>}
+      <View style={[styles.episode, !aired && { opacity: 0.6 }]}>
+        <PressableScale depth={0.99} onPress={onOpen} style={{ gap: 10 }}>
+          <View style={styles.epTop}>
+            <View style={styles.still}>
+              {e.image ? <Image source={{ uri: e.image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : <Text style={styles.stillNum}>{e.number}</Text>}
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <View style={styles.epCodeRow}>
+                <Text style={styles.epCode}>{episodeCode(e)}</Text>
+                {note?.rating != null && <StarBadge value={note.rating} />}
+                {!!note?.text && <Icon name="journal" size={13} color={palette.primary} />}
+              </View>
+              <Text style={styles.epName} numberOfLines={open ? undefined : 2}>
+                {e.name || t('show.episodeN', { n: e.number })}
+              </Text>
+              <Text style={styles.epDate}>
+                {e.airstamp ? (aired ? fullDate(e.airstamp) : `${relativeDay(e.airstamp)} · ${countdown(e.airstamp)}`) : t('show.tba')}
+              </Text>
+            </View>
+            <CheckButton checked={watched} onPress={onToggle} onLongPress={aired ? onUpTo : undefined} disabled={!aired} label={episodeCode(e)} />
           </View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={styles.epCode}>{episodeCode(e)}</Text>
-            <Text style={styles.epName} numberOfLines={open ? undefined : 2}>
-              {e.name || t('show.episodeN', { n: e.number })}
-            </Text>
-            <Text style={styles.epDate}>
-              {e.airstamp ? (aired ? fullDate(e.airstamp) : `${relativeDay(e.airstamp)} · ${countdown(e.airstamp)}`) : t('show.tba')}
-            </Text>
+          {open && !!synopsis && <Text style={styles.epSynopsis}>{synopsis}</Text>}
+        </PressableScale>
+        {/* Your own take, once the episode is out: a rating and a few words, kept for you. */}
+        {open && aired && (
+          <View style={styles.notePanel}>
+            <View style={styles.rate}>
+              <Text style={styles.rateLabel}>{t('journal.episodeRating')}</Text>
+              <StarRating value={note?.rating} onChange={(rating) => onNote({ rating })} size={20} />
+            </View>
+            <NoteInput value={note?.text} placeholder={t('journal.notePlaceholder')} onSave={(text) => onNote({ text })} />
           </View>
-          <CheckButton checked={watched} onPress={onToggle} onLongPress={aired ? onUpTo : undefined} disabled={!aired} label={episodeCode(e)} />
-        </View>
-        {open && !!synopsis && <Text style={styles.epSynopsis}>{synopsis}</Text>}
-      </PressableScale>
+        )}
+      </View>
     </FadeIn>
+  );
+}
+
+/** A quiet multi-line field, saved when you leave it. */
+function NoteInput({ value, placeholder, onSave }: { value?: string; placeholder: string; onSave: (text: string) => void }) {
+  const { palette } = useTheme();
+  const styles = useStyles();
+  const [draft, setDraft] = useState(value ?? '');
+  useEffect(() => setDraft(value ?? ''), [value]);
+  const save = () => {
+    if (draft.trim() !== (value ?? '')) onSave(draft);
+  };
+  return (
+    <TextInput
+      value={draft}
+      onChangeText={setDraft}
+      onBlur={save}
+      onEndEditing={save}
+      placeholder={placeholder}
+      placeholderTextColor={palette.inkFaint}
+      multiline
+      textAlignVertical="top"
+      style={[styles.note, noOutline]}
+    />
   );
 }
 
@@ -313,6 +371,9 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   hint: { ...type.small, fontSize: 12, marginTop: -4 },
   episodes: { gap: 8 },
   episode: { padding: 10, borderRadius: radii.md, backgroundColor: palette.surface, gap: 10 },
+  epCodeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  notePanel: { gap: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: palette.hairline },
+  note: { minHeight: 64, borderRadius: 12, padding: 12, backgroundColor: palette.field, fontFamily: fonts.displayItalic, fontSize: 17, lineHeight: 22, color: palette.ink },
   epTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   still: { width: 96, height: 56, borderRadius: 8, overflow: 'hidden', backgroundColor: palette.field, alignItems: 'center', justifyContent: 'center' },
   stillNum: { fontFamily: fonts.displayItalic, fontSize: 22, color: palette.inkFaint },

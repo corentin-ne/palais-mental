@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import PosterRail from './PosterRail';
 import { makeStyles } from '@/constants/theme';
 import { countdown } from '@/lib/format';
+import type { ExtraItem } from '@/lib/extras';
 import { SeriesEntry, SeriesKind, fetchSeries } from '@/lib/series';
 import { useLibrary } from '@/store/useLibrary';
 
@@ -12,7 +13,17 @@ import { useLibrary } from '@/store/useLibrary';
  * The rest of the series a book or game belongs to, prequels and sequels included, in order,
  * with release dates (announced ones as a countdown). Entries in your library are ticked.
  */
-export default function SeriesRail({ qid, kind, ordinal }: { qid?: string; kind: SeriesKind; ordinal?: string }) {
+interface Props {
+  qid?: string;
+  kind: SeriesKind;
+  ordinal?: string;
+  /** Open Library's take on the series, shown when Wikidata has none. */
+  fallback?: { name: string; items: ExtraItem[] };
+  /** Routes shown here, so other rails on the page can leave them out. */
+  onShown?: (hrefs: string[]) => void;
+}
+
+export default function SeriesRail({ qid, kind, ordinal, fallback, onShown }: Props) {
   const { t, i18n } = useTranslation();
   const styles = useStyles();
   const [entries, setEntries] = useState<SeriesEntry[]>([]);
@@ -34,7 +45,24 @@ export default function SeriesRail({ qid, kind, ordinal }: { qid?: string; kind:
     };
   }, [qid, kind, i18n.language]);
 
-  if (!entries.length) return null;
+  const shown = entries.length ? entries.map((e) => e.href) : (fallback?.items.map((i) => i.href) ?? []);
+  const shownKey = shown.join(',');
+  useEffect(() => {
+    onShown?.(shownKey ? shownKey.split(',') : []);
+  }, [shownKey, onShown]);
+
+  if (!entries.length) {
+    if (!fallback?.items.length) return null;
+    return (
+      <View style={{ marginTop: 30, gap: 14 }}>
+        <View style={{ gap: 2 }}>
+          <Text style={styles.title}>{fallback.name}</Text>
+          {!!ordinal && <Text style={styles.hint}>{t(kind === 'book' ? 'series.bookN' : 'series.gameN', { n: ordinal })}</Text>}
+        </View>
+        <PosterRail items={fallback.items} />
+      </View>
+    );
+  }
   const have = new Set(mine.split(','));
   const series = entries.find((e) => e.series)?.series;
   const now = Date.now();

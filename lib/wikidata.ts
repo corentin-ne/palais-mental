@@ -3,12 +3,13 @@
  * id, labels, Wikipedia summaries, SPARQL, and dates written in words ("Nov 14, 2025").
  */
 import { dateOf, getJson, quiet } from './api';
+import { persisted } from './cache';
 
 const API = 'https://www.wikidata.org/w/api.php?format=json&origin=*';
 const SPARQL = 'https://query.wikidata.org/sparql';
 export const WIKI_HEADERS = {
-  'User-Agent': 'PalaisMental/1.2 (https://github.com/corentin-ne/palais-mental)',
-  'Api-User-Agent': 'PalaisMental/1.2 (https://github.com/corentin-ne/palais-mental)',
+  'User-Agent': 'PalaisMental/1.3 (https://github.com/corentin-ne/palais-mental)',
+  'Api-User-Agent': 'PalaisMental/1.3 (https://github.com/corentin-ne/palais-mental)',
 };
 const enc = encodeURIComponent;
 
@@ -23,10 +24,22 @@ export interface Entity {
 }
 
 /** Q-id of the item carrying `prop` = `value` (P648 Open Library work, P1733 Steam app…). */
-export async function qidBy(prop: string, value: string) {
-  const r = await quiet(getJson<any>(`${API}&action=query&list=search&srsearch=haswbstatement:${prop}=${enc(value)}&srlimit=1`), null);
-  const qid: string | undefined = r?.query?.search?.[0]?.title;
-  return qid && /^Q\d+$/.test(qid) ? qid : undefined;
+export async function qidBy(prop: string, value: string): Promise<string | undefined> {
+  // Kept on the device: links between ids rarely change, and every refresh asks again.
+  const found = await quiet(
+    persisted(
+      `qid:${prop}=${value}`,
+      14 * 86_400_000,
+      async () => {
+        const r = await getJson<any>(`${API}&action=query&list=search&srsearch=haswbstatement:${prop}=${enc(value)}&srlimit=1`);
+        const qid: string | undefined = r?.query?.search?.[0]?.title;
+        return qid && /^Q\d+$/.test(qid) ? qid : '';
+      },
+      (v) => !v,
+    ),
+    '',
+  );
+  return found || undefined;
 }
 
 export async function entity(qid: string, lang: string): Promise<Entity | undefined> {
@@ -94,9 +107,24 @@ export async function wikiSummary(e: Entity, lang: string) {
 /** Commons file → a resized image URL. */
 export const commonsImage = (file?: string, width = 600) => (file ? `https://commons.wikimedia.org/wiki/Special:FilePath/${enc(file)}?width=${width}` : undefined);
 
-/** SPARQL through GET, so answers share the in-memory cache. */
-export function sparql<T = any>(query: string): Promise<T> {
-  return getJson<T>(`${SPARQL}?format=json&query=${enc(query)}`, { headers: { ...WIKI_HEADERS, Accept: 'application/sparql-results+json' } });
+/** SPARQL through GET, so answers share the in-memory cache. The service is often briefly busy (502, 429): one more try after a pause. */
+export async function sparql<T = any>(query: string): Promise<T> {
+  const url = `${SPARQL}?format=json&query=${enc(query)}`;
+  const init = { headers: { ...WIKI_HEADERS, Accept: 'application/sparql-results+json' } };
+  try {
+    return await getJson<T>(url, init);
+  } catch (e) {
+    if (!/HTTP (429|50[234])/.test(String(e))) throw e;
+    await new Promise((r) => setTimeout(r, 1500));
+    return getJson<T>(url, init);
+  }
+}
+
+/** Labels kept on the device for a month: names of people, studios and series rarely change. */
+export function cachedLabels(ids: string[], lang: string) {
+  const unique = [...new Set(ids)].sort();
+  if (!unique.length) return Promise.resolve({} as Record<string, string>);
+  return persisted(`labels:${lang}:${unique.join('|')}`, 30 * 86_400_000, () => labels(unique, lang), (v) => !Object.keys(v).length);
 }
 
 // ------------------------------------------------------------------ Dates in words

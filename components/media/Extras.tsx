@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
+import { shareTitle } from '@/lib/share';
 import { Extras as ExtrasData, Provider, imdbPage, justWatchSearch, youtubeSearch, youtubeWatch } from '@/lib/api';
 
 interface Props {
@@ -38,6 +39,7 @@ export default function Extras({ kind, title, year, imdbId, extras }: Props) {
         />
         <Button label={t('extras.whereToWatch')} icon="eye" variant="secondary" compact onPress={() => open(p?.link ?? justWatchSearch(title, i18n.language))} />
         {!!imdbId && <Button label="IMDb" icon="globe" variant="secondary" compact onPress={() => open(imdbPage(imdbId))} />}
+        <Button label={t('detail.share')} icon="upload" variant="secondary" compact onPress={() => shareTitle(title, year, imdbId ? imdbPage(imdbId) : undefined)} />
       </ScrollView>
 
       {groups.length > 0 && (

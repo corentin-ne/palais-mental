@@ -1,12 +1,13 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { LanguagePreference } from '@/locales/i18n';
+import { lazyStorage } from '@/lib/storage';
 import { hasAired, sortEpisodes } from '@/lib/progress';
-import { Book, Episode, Game, Movie, Settings, Show } from '@/lib/types';
+import { Book, Episode, EpisodeNote, Game, Movie, Settings, Show } from '@/lib/types';
 
-export type ShowData = Omit<Show, 'watched' | 'addedAt' | 'droppedAt' | 'rating'>;
+export type ShowData = Omit<Show, 'watched' | 'addedAt' | 'droppedAt' | 'rating' | 'review' | 'reviewedAt' | 'notes'>;
 export type MovieData = Omit<Movie, 'watchedAt' | 'addedAt' | 'rating'>;
 type Progressless = 'touchedAt' | 'startedAt' | 'finishedAt' | 'droppedAt' | 'rating' | 'addedAt';
 export type BookData = Omit<Book, Progressless | 'page'>;
@@ -37,6 +38,9 @@ interface LibraryState extends LibraryData {
   /** Marks every aired episode up to and including `episode`. */
   watchUpTo: (showId: string, episode: Episode) => void;
   setDropped: (showId: string, dropped: boolean) => void;
+  /** Patch an episode's note; a note left with neither rating nor text is removed. */
+  setEpisodeNote: (showId: string, episodeId: number, patch: Partial<Omit<EpisodeNote, 'at'>>) => void;
+  setShowReview: (showId: string, review: string) => void;
 
   addMovie: (data: MovieData) => void;
   updateMovie: (data: MovieData) => void;
@@ -171,6 +175,19 @@ export const useLibrary = create<LibraryState>()(
         get().setEpisodes(showId, ids, true);
       },
       setDropped: (showId, dropped) => set((s) => patchShow(s, showId, (show) => ({ ...show, droppedAt: dropped ? Date.now() : undefined }))),
+      setEpisodeNote: (showId, episodeId, patch) =>
+        set((s) =>
+          patchShow(s, showId, (show) => {
+            const notes = { ...show.notes };
+            const next: EpisodeNote = { ...notes[episodeId], ...patch, at: Date.now() };
+            if (!next.text?.trim()) delete next.text;
+            if (next.rating == null) delete next.rating;
+            if (next.rating == null && !next.text) delete notes[episodeId];
+            else notes[episodeId] = next;
+            return { ...show, notes };
+          }),
+        ),
+      setShowReview: (showId, review) => set((s) => patchShow(s, showId, (show) => ({ ...show, review: review.trim() || undefined, reviewedAt: review.trim() ? Date.now() : undefined }))),
 
       addMovie: (data) =>
         set((s) => ({ movies: { ...s.movies, [data.id]: { ...s.movies[data.id], ...data, addedAt: s.movies[data.id]?.addedAt ?? Date.now() } } })),
@@ -255,7 +272,17 @@ export const useLibrary = create<LibraryState>()(
           const shows = { ...s.shows };
           for (const [id, show] of Object.entries(data.shows)) {
             const mine = shows[id];
-            shows[id] = mine ? { ...show, ...mine, rating: mine.rating ?? show.rating, watched: { ...show.watched, ...mine.watched } } : show;
+            shows[id] = mine
+              ? {
+                  ...show,
+                  ...mine,
+                  rating: mine.rating ?? show.rating,
+                  review: mine.review ?? show.review,
+                  reviewedAt: mine.review ? mine.reviewedAt : show.reviewedAt,
+                  watched: { ...show.watched, ...mine.watched },
+                  notes: { ...show.notes, ...mine.notes },
+                }
+              : show;
           }
           const movies = { ...s.movies };
           for (const [id, movie] of Object.entries(data.movies)) {
@@ -270,7 +297,7 @@ export const useLibrary = create<LibraryState>()(
     {
       name: STORE_KEY,
       version: STORE_VERSION,
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: lazyStorage(),
       partialize: (s) => ({ shows: s.shows, movies: s.movies, books: s.books, games: s.games, settings: s.settings, language: s.language }),
       // v0 was the 3D palace: nothing in it maps to tracked shows, so start clean.
       // v1 → v2 → v3 only add optional fields and collections (books, games): the library is

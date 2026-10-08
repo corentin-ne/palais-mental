@@ -3,8 +3,8 @@
  * "follows" (P155), "followed by" (P156) and "part of the series" (P179) with each entry's
  * position and release date, announced ones included.
  */
-import { isbnCover } from './books';
-import { steamCover } from './games';
+import { persisted } from './cache';
+import { isbnCover, steamCover } from './covers';
 import { sparql } from './wikidata';
 
 export type SeriesKind = 'book' | 'game';
@@ -55,7 +55,12 @@ export function seriesHref(kind: SeriesKind, qid: string, ol?: string, steam?: s
 }
 
 /** Ordered: by position in the series when known, else by release date. */
-export async function fetchSeries(qid: string, kind: SeriesKind, lang: string): Promise<SeriesEntry[]> {
+export function fetchSeries(qid: string, kind: SeriesKind, lang: string): Promise<SeriesEntry[]> {
+  // Kept a day on the device: the query takes seconds, and series change rarely.
+  return persisted(`series:${qid}:${kind}:${lang}`, 86_400_000, () => querySeries(qid, kind, lang), (v) => !v.length);
+}
+
+async function querySeries(qid: string, kind: SeriesKind, lang: string): Promise<SeriesEntry[]> {
   const json = await sparql(query(qid, kind, lang === 'fr' ? 'fr' : 'en'));
   const found = new Map<string, SeriesEntry>();
   for (const b of json?.results?.bindings ?? []) {

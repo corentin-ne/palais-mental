@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
 import {
   InstrumentSans_400Regular,
   InstrumentSans_500Medium,
@@ -56,6 +57,11 @@ export default function RootLayout() {
     if (loaded || error) SplashScreen.hideAsync().catch(() => undefined);
   }, [loaded, error]);
 
+  // The window behind the app follows the theme: no light flash around transitions in dark mode.
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(palette.bg).catch(() => undefined);
+  }, [palette.bg]);
+
   // Hold on the background colour until the type is ready; on failure, system fonts take over.
   if (!loaded && !error) return <View style={{ flex: 1, backgroundColor: palette.bg }} />;
 
@@ -71,6 +77,7 @@ export default function RootLayout() {
         <Stack.Screen name="game/[id]" />
         <Stack.Screen name="history" />
         <Stack.Screen name="connections" />
+        <Stack.Screen name="settings" />
       </Stack>
       <Toast />
     </SafeBoundary>

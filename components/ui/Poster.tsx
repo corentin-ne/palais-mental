@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,7 +23,7 @@ interface Props {
 }
 
 /** 2:3 artwork with a soft fade-in; titles without art get a generated cover in the app's blues. */
-export default function Poster({ uri, title, width, kind = 'show', radius, progress, dim, elevated = true }: Props) {
+function Poster({ uri, title, width, kind = 'show', radius, progress, dim, elevated = true }: Props) {
   const { shadow, radii, palette } = useTheme();
   const styles = useStyles();
   const [failed, setFailed] = useState(false);
@@ -40,6 +40,8 @@ export default function Poster({ uri, title, width, kind = 'show', radius, progr
             contentFit="cover"
             transition={260}
             recyclingKey={uri}
+            // Decoded posters stay in memory: walls and rails scroll back without a reload.
+            cachePolicy="memory-disk"
             onError={() => setFailed(true)}
             accessibilityIgnoresInvertColors
           />
@@ -71,3 +73,6 @@ const useStyles = makeStyles(({ fonts, palette }) => ({
   track: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, backgroundColor: 'rgba(10,37,64,0.25)' },
   fill: { height: 4 },
 }));
+
+/** Posters re-render only when what they show changes. */
+export default memo(Poster);

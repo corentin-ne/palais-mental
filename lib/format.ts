@@ -53,3 +53,12 @@ export function duration(min: number) {
 }
 
 const capitalize = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1);
+
+/** "940", "2.4k", "1.2M" (",": French decimals). */
+export function compact(n: number) {
+  const dec = i18n.language === 'fr' ? ',' : '.';
+  const short = (v: number, unit: string) => `${(v >= 100 ? Math.round(v) : Math.round(v * 10) / 10).toString().replace('.', dec)}${unit}`;
+  if (n >= 1e6) return short(n / 1e6, 'M');
+  if (n >= 1e3) return short(n / 1e3, 'k');
+  return String(Math.round(n));
+}

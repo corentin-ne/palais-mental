@@ -1,45 +1,33 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
-import { Linking, Platform, Switch, Text, TextInput, View } from 'react-native';
+import { ReactNode, useMemo } from 'react';
+import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 
-import Button from '@/components/ui/Button';
 import Icon, { IconName } from '@/components/ui/Icon';
+import Poster from '@/components/ui/Poster';
 import PressableScale from '@/components/ui/PressableScale';
 import Screen, { Section } from '@/components/ui/Screen';
-import Segmented from '@/components/ui/Segmented';
+import { StarBadge } from '@/components/ui/StarRating';
 import { FadeIn, useCountUp } from '@/components/ui/Motion';
-import { makeStyles, noOutline, useTheme } from '@/constants/theme';
-import { useHaptics } from '@/hooks/useHaptics';
+import { makeStyles, useTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
-import { validateTmdbKey } from '@/lib/api';
-import { ExportKind, Snapshot, autoSnapshot, exportData, listSnapshots, pickBackup, restoreSnapshot } from '@/lib/backup';
-import { refreshRelated } from '@/lib/related';
-import { duration, fullDate } from '@/lib/format';
-import { minutesWatched } from '@/lib/progress';
+import { duration, relativeDay } from '@/lib/format';
+import { episodeCode, minutesWatched } from '@/lib/progress';
 import { pagesRead } from '@/lib/shelf';
-import { refreshLibrary, requestNotifications, scheduleNotifications } from '@/lib/sync';
-import type { LanguagePreference } from '@/locales/i18n';
-import type { Settings } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
-import { useUi } from '@/store/useUi';
 
-/** A few honest numbers, your settings, and your data to take anywhere. */
+const JOURNAL = 8;
+
+/** A few honest numbers and the notes you kept along the way. Settings live one tap away. */
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const { palette } = useTheme();
   const styles = useStyles();
-  const haptics = useHaptics();
   const { wide } = useLayout();
   const shows = useLibrary((s) => s.shows);
   const movies = useLibrary((s) => s.movies);
   const books = useLibrary((s) => s.books);
   const games = useLibrary((s) => s.games);
-  const settings = useLibrary((s) => s.settings);
-  const language = useLibrary((s) => s.language);
-  const setSettings = useLibrary((s) => s.setSettings);
-  const setLanguage = useLibrary((s) => s.setLanguage);
-  const toast = useUi((s) => s.showToast);
   const router = useRouter();
 
   const stats = useMemo(() => {
@@ -57,37 +45,14 @@ export default function ProfileScreen() {
     };
   }, [shows, movies, books, games]);
 
-  const onExport = async (kind: ExportKind) => {
-    try {
-      await exportData(kind);
-      haptics.success();
-    } catch {
-      toast(t('profile.exportFailed'));
-    }
-  };
-
-  const onImport = async () => {
-    try {
-      const data = await pickBackup();
-      if (!data) return;
-      useLibrary.getState().importData(data, 'merge');
-      haptics.success();
-      toast(
-        t('profile.imported', {
-          shows: Object.keys(data.shows).length,
-          movies: Object.keys(data.movies).length,
-          books: Object.keys(data.books ?? {}).length,
-          games: Object.keys(data.games ?? {}).length,
-        }),
-      );
-      refreshLibrary(true);
-    } catch {
-      toast(t('profile.importFailed'));
-    }
-  };
+  const settingsButton = (
+    <PressableScale onPress={() => router.push('/settings')} style={styles.gear} accessibilityLabel={t('settings.title')}>
+      <Icon name="settings" size={22} color={palette.ink} />
+    </PressableScale>
+  );
 
   return (
-    <Screen title={t('profile.title')}>
+    <Screen title={t('profile.title')} right={settingsButton}>
       <View style={[styles.stats, wide && { flexWrap: 'nowrap' }]}>
         <Stat index={0} icon="series" value={stats.episodes} label={t('profile.episodes')} />
         <Stat index={1} icon="clock" text={duration(stats.showMinutes)} label={t('profile.showTime')} />
@@ -105,92 +70,80 @@ export default function ProfileScreen() {
 
       <View style={[styles.group, { marginTop: 12 }]}>
         <ActionRow icon="clock" label={t('history.title')} hint={t('history.hint')} onPress={() => router.push('/history')} />
-        <ActionRow icon="link" label={t('connect.title')} hint={t('connect.rowHint')} onPress={() => router.push('/connections')} />
+        <ActionRow icon="settings" label={t('settings.title')} hint={t('settings.hint')} onPress={() => router.push('/settings')} last />
       </View>
 
-      <Section title={t('profile.settings')}>
-        <Group>
-          <Row icon="bell" label={t('profile.notifications')} hint={Platform.OS === 'web' ? t('profile.notificationsWeb') : t('profile.notificationsHint')}>
-            <Switch
-              value={settings.notifications}
-              disabled={Platform.OS === 'web'}
-              trackColor={{ true: palette.primary, false: palette.fieldActive }}
-              thumbColor="#fff"
-              onValueChange={async (v) => {
-                haptics.select();
-                setSettings({ notifications: v });
-                if (v) await requestNotifications();
-                scheduleNotifications();
-              }}
-            />
-          </Row>
-          {Platform.OS !== 'web' && (
-            <Row icon="sparkle" label={t('profile.haptics')}>
-              <Switch value={settings.haptics} trackColor={{ true: palette.primary, false: palette.fieldActive }} thumbColor="#fff" onValueChange={(v) => setSettings({ haptics: v })} />
-            </Row>
-          )}
-          <Row icon="movies" label={t('related.setting')} hint={t('related.settingHint')}>
-            <Switch
-              value={settings.related}
-              trackColor={{ true: palette.primary, false: palette.fieldActive }}
-              thumbColor="#fff"
-              onValueChange={(v) => {
-                haptics.select();
-                setSettings({ related: v });
-                if (v) refreshRelated(true);
-              }}
-            />
-          </Row>
-          <View style={[styles.block, styles.blockLine]}>
-            <View style={styles.rowHead}>
-              <Icon name="eye" size={20} color={palette.ink} />
-              <Text style={styles.rowLabel}>{t('profile.appearance')}</Text>
-            </View>
-            <Segmented<Settings['appearance']>
-              value={settings.appearance}
-              onChange={(appearance) => setSettings({ appearance })}
-              options={[
-                { value: 'system', label: t('profile.system') },
-                { value: 'light', label: t('profile.light') },
-                { value: 'dark', label: t('profile.dark') },
-              ]}
-            />
-          </View>
-          <View style={styles.block}>
-            <View style={styles.rowHead}>
-              <Icon name="globe" size={20} color={palette.ink} />
-              <Text style={styles.rowLabel}>{t('profile.language')}</Text>
-            </View>
-            <Segmented<LanguagePreference>
-              value={language}
-              onChange={setLanguage}
-              options={[
-                { value: 'system', label: t('profile.system') },
-                { value: 'en', label: 'English' },
-                { value: 'fr', label: 'Français' },
-              ]}
-            />
-          </View>
-        </Group>
-      </Section>
-
-      <Section title={t('profile.sources')}>
-        <TmdbKey />
-        <Text style={styles.footnote}>{t('profile.sourcesNote')}</Text>
-      </Section>
-
-      <Section title={t('profile.data')}>
-        <Group>
-          <ActionRow icon="download" label={t('profile.exportJson')} hint={t('profile.exportJsonHint')} onPress={() => onExport('json')} />
-          <ActionRow icon="series" label={t('profile.exportShows')} onPress={() => onExport('shows-csv')} />
-          <ActionRow icon="movies" label={t('profile.exportMovies')} onPress={() => onExport('movies-csv')} />
-          <ActionRow icon="journal" label={t('profile.exportBooks')} onPress={() => onExport('books-csv')} />
-          <ActionRow icon="play" label={t('profile.exportGames')} onPress={() => onExport('games-csv')} />
-          <ActionRow icon="upload" label={t('profile.import')} hint={t('profile.importHint')} onPress={onImport} />
-        </Group>
-        <Snapshots />
-      </Section>
+      <Journal />
     </Screen>
+  );
+}
+
+/** Your latest episode notes and series reviews: just for you, for now. */
+function Journal() {
+  const { t } = useTranslation();
+  const { palette } = useTheme();
+  const styles = useStyles();
+  const router = useRouter();
+  const shows = useLibrary((s) => s.shows);
+
+  const entries = useMemo(() => {
+    const out: { key: string; at: number; title: string; detail: string; poster?: string; rating?: number; text?: string; href: string }[] = [];
+    for (const show of Object.values(shows)) {
+      const byId = new Map(show.episodes.map((e) => [String(e.id), e]));
+      const href = `/show/${show.tvmazeId}`;
+      for (const [id, note] of Object.entries(show.notes ?? {})) {
+        const e = byId.get(id);
+        out.push({
+          key: `${show.id}-${id}`,
+          at: note.at,
+          title: show.title,
+          detail: e ? `${episodeCode(e)}${e.name ? ` · ${e.name}` : ''}` : t('journal.episode'),
+          poster: show.poster,
+          rating: note.rating,
+          text: note.text,
+          href,
+        });
+      }
+      if (show.review) out.push({ key: `${show.id}-review`, at: show.reviewedAt ?? show.addedAt, title: show.title, detail: t('journal.review'), poster: show.poster, rating: show.rating, text: show.review, href });
+    }
+    return out.sort((a, b) => b.at - a.at).slice(0, JOURNAL);
+  }, [shows, t]);
+
+  return (
+    <Section title={t('journal.title')}>
+      {entries.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Icon name="journal" size={22} color={palette.primary} />
+          <Text style={styles.emptyText}>{t('journal.empty')}</Text>
+        </View>
+      ) : (
+        <View style={{ gap: 8 }}>
+          {entries.map((e, i) => (
+            <FadeIn key={e.key} index={i} distance={8}>
+              <PressableScale depth={0.98} style={styles.entry} onPress={() => router.push(e.href as never)}>
+                <Poster uri={e.poster} title={e.title} width={44} kind="show" elevated={false} radius={6} />
+                <View style={{ flex: 1, gap: 3 }}>
+                  <View style={styles.entryHead}>
+                    <Text style={styles.entryTitle} numberOfLines={1}>
+                      {e.title}
+                    </Text>
+                    {e.rating != null && <StarBadge value={e.rating} />}
+                  </View>
+                  <Text style={styles.entryDetail} numberOfLines={1}>
+                    {e.detail} · {relativeDay(e.at)}
+                  </Text>
+                  {!!e.text && (
+                    <Text style={styles.entryText} numberOfLines={3}>
+                      {e.text}
+                    </Text>
+                  )}
+                </View>
+              </PressableScale>
+            </FadeIn>
+          ))}
+        </View>
+      )}
+    </Section>
   );
 }
 
@@ -211,16 +164,11 @@ function Stat({ icon, value, text, label, index }: { icon: IconName; value?: num
   );
 }
 
-function Group({ children }: { children: ReactNode }) {
-  const styles = useStyles();
-  return <View style={styles.group}>{children}</View>;
-}
-
-function Row({ icon, label, hint, children }: { icon: IconName; label: string; hint?: string; children: ReactNode }) {
+function Row({ icon, label, hint, last, children }: { icon: IconName; label: string; hint?: string; last?: boolean; children: ReactNode }) {
   const styles = useStyles();
   const { palette } = useTheme();
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, !last && styles.line]}>
       <Icon name={icon} size={20} color={palette.ink} />
       <View style={{ flex: 1 }}>
         <Text style={styles.rowLabel}>{label}</Text>
@@ -231,126 +179,33 @@ function Row({ icon, label, hint, children }: { icon: IconName; label: string; h
   );
 }
 
-function ActionRow({ icon, label, hint, onPress }: { icon: IconName; label: string; hint?: string; onPress: () => void }) {
+function ActionRow({ icon, label, hint, last, onPress }: { icon: IconName; label: string; hint?: string; last?: boolean; onPress: () => void }) {
   const { palette } = useTheme();
   return (
     <PressableScale depth={0.98} onPress={onPress} accessibilityLabel={label}>
-      <Row icon={icon} label={label} hint={hint}>
+      <Row icon={icon} label={label} hint={hint} last={last}>
         <Icon name="chevronRight" size={16} color={palette.inkFaint} />
       </Row>
     </PressableScale>
   );
 }
 
-/** Copies kept on the device every few days: merged back in, never replacing anything. */
-function Snapshots() {
-  const { t } = useTranslation();
-  const styles = useStyles();
-  const [list, setList] = useState<Snapshot[]>([]);
-  useEffect(() => {
-    autoSnapshot().then(listSnapshots).then(setList);
-  }, []);
-  if (!list.length) return null;
-  return (
-    <View style={{ gap: 8 }}>
-      <Text style={styles.footnote}>{t('profile.snapshotsHint')}</Text>
-      <Group>
-        {list.map((s) => (
-          <ActionRow
-            key={s.at}
-            icon="undo"
-            label={t('profile.snapshot', { date: fullDate(s.at) })}
-            hint={t('profile.snapshotCounts', { shows: s.shows, movies: s.movies, books: s.books ?? 0, games: s.games ?? 0 })}
-            onPress={async () => {
-              const ok = await restoreSnapshot(s.at);
-              useUi.getState().showToast(t(ok ? 'profile.snapshotRestored' : 'profile.importFailed'));
-              if (ok) refreshLibrary();
-            }}
-          />
-        ))}
-      </Group>
-    </View>
-  );
-}
-
-/** Optional TMDB key: better film search, backdrops, cast and exact release dates. */
-function TmdbKey() {
-  const { t } = useTranslation();
-  const { palette } = useTheme();
-  const styles = useStyles();
-  const saved = useLibrary((s) => s.settings.tmdbKey);
-  const setSettings = useLibrary((s) => s.setSettings);
-  const [draft, setDraft] = useState(saved);
-  const [state, setState] = useState<'idle' | 'checking' | 'bad'>('idle');
-  const save = async () => {
-    const key = draft.trim();
-    if (!key) {
-      setSettings({ tmdbKey: '' });
-      return;
-    }
-    setState('checking');
-    const ok = await validateTmdbKey(key);
-    setState(ok ? 'idle' : 'bad');
-    if (ok) {
-      setSettings({ tmdbKey: key });
-      useUi.getState().showToast(t('profile.tmdbSaved'));
-      refreshLibrary(true);
-    }
-  };
-  return (
-    <View style={styles.group}>
-      <View style={styles.block}>
-        <View style={styles.rowHead}>
-          <Icon name="key" size={20} color={palette.ink} />
-          <Text style={[styles.rowLabel, { flex: 1 }]}>{t('profile.tmdb')}</Text>
-          {!!saved && (
-            <View style={styles.on}>
-              <Text style={styles.onText}>{t('profile.active')}</Text>
-            </View>
-          )}
-        </View>
-        <Text style={styles.rowHint}>{t('profile.tmdbHint')}</Text>
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-          <TextInput
-            value={draft}
-            onChangeText={(v) => {
-              setDraft(v);
-              setState('idle');
-            }}
-            placeholder={t('profile.tmdbPlaceholder')}
-            placeholderTextColor={palette.inkFaint}
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry={!!saved && draft === saved}
-            style={[styles.input, state === 'bad' && { borderColor: palette.danger }, noOutline]}
-            onSubmitEditing={save}
-          />
-          <Button label={t('common.save')} compact onPress={save} loading={state === 'checking'} disabled={draft.trim() === saved} />
-        </View>
-        {state === 'bad' && <Text style={[styles.rowHint, { color: palette.danger }]}>{t('profile.tmdbBad')}</Text>}
-        <PressableScale onPress={() => Linking.openURL('https://www.themoviedb.org/settings/api')} style={{ alignSelf: 'flex-start' }}>
-          <Text style={styles.link}>{t('profile.tmdbGet')}</Text>
-        </PressableScale>
-      </View>
-    </View>
-  );
-}
-
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
+  gear: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surface, marginBottom: 2 },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 },
   stat: { flexGrow: 1, flexBasis: '45%', padding: 16, gap: 6, borderRadius: radii.lg, backgroundColor: palette.surface },
   statValue: { fontFamily: fonts.bold, fontSize: 26, letterSpacing: -0.8, color: palette.ink },
   statLabel: { ...type.small },
   group: { borderRadius: radii.lg, backgroundColor: palette.surface, overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: palette.hairline },
-  rowHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  block: { padding: 16, gap: 12 },
-  blockLine: { borderBottomWidth: 1, borderBottomColor: palette.hairline },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14 },
+  line: { borderBottomWidth: 1, borderBottomColor: palette.hairline },
   rowLabel: { fontFamily: fonts.medium, fontSize: 15, color: palette.ink },
   rowHint: { ...type.small, fontSize: 12.5, lineHeight: 17 },
-  input: { flex: 1, height: 40, borderRadius: 12, paddingHorizontal: 12, backgroundColor: palette.field, borderWidth: 1, borderColor: 'transparent', fontFamily: fonts.body, fontSize: 14, color: palette.ink },
-  link: { fontFamily: fonts.semibold, fontSize: 13, color: palette.primary },
-  on: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: palette.successTint },
-  onText: { fontFamily: fonts.semibold, fontSize: 11, color: palette.success },
-  footnote: { ...type.small, fontSize: 12, marginTop: -4 },
+  emptyCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: radii.lg, backgroundColor: palette.surface },
+  emptyText: { ...type.small, flex: 1 },
+  entry: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 10, borderRadius: radii.md, backgroundColor: palette.surface },
+  entryHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  entryTitle: { flex: 1, fontFamily: fonts.semibold, fontSize: 14.5, color: palette.ink },
+  entryDetail: { fontFamily: fonts.body, fontSize: 12.5, color: palette.inkSoft },
+  entryText: { fontFamily: fonts.displayItalic, fontSize: 16, lineHeight: 21, color: palette.ink, marginTop: 2 },
 }));

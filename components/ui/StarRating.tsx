@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import Icon from './Icon';
@@ -44,6 +44,17 @@ export default function StarRating({ value, onChange, size = 26 }: Props) {
           </PressableScale>
         );
       })}
+    </View>
+  );
+}
+
+/** Read-only rating as a small pill: "★ 4.5". */
+export function StarBadge({ value }: { value: number }) {
+  const { palette, fonts } = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: palette.primaryTint }}>
+      <Icon name="starFill" size={11} color={palette.primary} />
+      <Text style={{ fontFamily: fonts.semibold, fontSize: 12, color: palette.primary }}>{(value / 2).toLocaleString(undefined, { maximumFractionDigits: 1 })}</Text>
     </View>
   );
 }

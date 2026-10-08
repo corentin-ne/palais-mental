@@ -27,10 +27,10 @@ export function buildBackup(): string {
 
 
 export function buildShowsCsv(shows: Show[]) {
-  const rows: unknown[][] = [['show', 'tvmaze_id', 'imdb_id', 'season', 'episode', 'code', 'title', 'aired', 'watched_at', 'dropped', 'rating_10']];
+  const rows: unknown[][] = [['show', 'tvmaze_id', 'imdb_id', 'season', 'episode', 'code', 'title', 'aired', 'watched_at', 'dropped', 'rating_10', 'episode_rating_10', 'episode_note']];
   for (const s of shows)
     for (const e of sortEpisodes(s.episodes))
-      rows.push([s.title, s.tvmazeId, s.imdbId ?? '', e.season, e.number, episodeCode(e), e.name, iso(e.airstamp), iso(s.watched[e.id]), s.droppedAt ? 'yes' : '', s.rating ?? '']);
+      rows.push([s.title, s.tvmazeId, s.imdbId ?? '', e.season, e.number, episodeCode(e), e.name, iso(e.airstamp), iso(s.watched[e.id]), s.droppedAt ? 'yes' : '', s.rating ?? '', s.notes?.[e.id]?.rating ?? '', s.notes?.[e.id]?.text ?? '']);
   return csv(rows);
 }
 
@@ -109,6 +109,8 @@ export async function pickBackup(): Promise<LibraryData | undefined> {
 // ------------------------------------------------------------------ Automatic snapshots
 /** A copy of the library kept on the device every few days, restorable from Profile. */
 const SNAPSHOTS = 'palais-mental/snapshots';
+/** When the last copy was made, apart: checking it doesn't read three whole libraries. */
+const SNAPSHOT_AT = 'palais-mental/snapshots-at';
 const SNAPSHOT_EVERY = 3 * 86_400_000;
 const KEEP = 3;
 
@@ -135,10 +137,19 @@ export async function autoSnapshot(force = false) {
   const { shows, movies, books, games } = useLibrary.getState();
   const counts = { shows: Object.keys(shows).length, movies: Object.keys(movies).length, books: Object.keys(books).length, games: Object.keys(games).length };
   if (!counts.shows && !counts.movies && !counts.books && !counts.games) return;
+  const lastAt = Number(await AsyncStorage.getItem(SNAPSHOT_AT).catch(() => null));
+  if (!force && lastAt && Date.now() - lastAt < SNAPSHOT_EVERY) return;
   const list = await readSnapshots();
-  if (!force && list[0] && Date.now() - list[0].at < SNAPSHOT_EVERY) return;
-  const next = [{ at: Date.now(), ...counts, data: compactLibrary({ shows, movies, books, games }) }, ...list].slice(0, KEEP);
-  await AsyncStorage.setItem(SNAPSHOTS, JSON.stringify(next)).catch(() => undefined);
+  if (!force && list[0] && Date.now() - list[0].at < SNAPSHOT_EVERY) {
+    await AsyncStorage.setItem(SNAPSHOT_AT, String(list[0].at)).catch(() => undefined);
+    return;
+  }
+  const at = Date.now();
+  const next = [{ at, ...counts, data: compactLibrary({ shows, movies, books, games }) }, ...list].slice(0, KEEP);
+  await AsyncStorage.multiSet([
+    [SNAPSHOTS, JSON.stringify(next)],
+    [SNAPSHOT_AT, String(at)],
+  ]).catch(() => undefined);
 }
 
 export async function listSnapshots(): Promise<Snapshot[]> {

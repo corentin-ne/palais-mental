@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, LayoutAnimation, Platform, StyleProp, UIManager, View, ViewStyle } from 'react-native';
 
 import { useTheme } from '@/constants/theme';
@@ -17,22 +17,26 @@ export function animateLayout(duration = 260) {
   });
 }
 
-/**
- * Enters with a short rise and fade, staggered by `index`.
- */
-export function FadeIn({
-  children,
-  index = 0,
-  style,
-  distance = 14,
-  delay = 0,
-}: {
+interface FadeInProps {
   children: ReactNode;
   index?: number;
   style?: StyleProp<ViewStyle>;
   distance?: number;
   delay?: number;
-}) {
+}
+
+/** Past this many items a list is off screen by the time it would animate: they just appear. */
+const ANIMATED_ITEMS = 24;
+
+/**
+ * Enters with a short rise and fade, staggered by `index`.
+ */
+export function FadeIn(props: FadeInProps) {
+  if ((props.index ?? 0) >= ANIMATED_ITEMS) return <View style={props.style}>{props.children}</View>;
+  return <Rise {...props} />;
+}
+
+function Rise({ children, index = 0, style, distance = 14, delay = 0 }: FadeInProps) {
   const { motion } = useTheme();
   const t = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -45,9 +49,10 @@ export function FadeIn({
       mass: 0.9,
     }).start();
   }, [t, index, delay, motion.stagger]);
+  const translateY = useMemo(() => t.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] }), [t, distance]);
   return (
     <Animated.View
-      style={[style, { opacity: t, transform: [{ translateY: t.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] }) }] }]}
+      style={[style, { opacity: t, transform: [{ translateY }] }]}
     >
       {children}
     </Animated.View>

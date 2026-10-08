@@ -31,8 +31,22 @@ export interface Show {
   droppedAt?: number;
   /** Your rating, 1–10 (half stars). */
   rating?: number;
+  /** What you thought of the series as a whole. */
+  review?: string;
+  reviewedAt?: number;
+  /** Episode id → your rating and note on that episode. */
+  notes?: Record<string, EpisodeNote>;
   addedAt: number;
   syncedAt: number;
+}
+
+/** A private note on one episode: a rating, a few words, or both. */
+export interface EpisodeNote {
+  /** 1–10 (half stars). */
+  rating?: number;
+  text?: string;
+  /** Last time it changed. */
+  at: number;
 }
 
 /** Where a film's metadata comes from. TMDB when a key is set, else keyless sources. */
