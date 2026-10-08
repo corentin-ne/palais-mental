@@ -68,6 +68,11 @@ export interface Movie {
   genres: string[];
   director?: string;
   imdbId?: string;
+  /** The film series it belongs to (Wikidata, looked up by IMDb id). */
+  wikidataId?: string;
+  series?: SeriesInfo;
+  /** Last time Wikidata was asked for the series. */
+  seriesAt?: number;
   watchedAt?: number;
   /** Your rating, 1–10 (half stars). */
   rating?: number;
@@ -86,6 +91,8 @@ export type BookSource = 'ol' | 'gb' | 'wd';
 /** A previous or next entry, or the series a book or game belongs to (Wikidata). */
 export interface SeriesInfo {
   name: string;
+  /** The series' Wikidata id, when it comes from there. */
+  id?: string;
   /** Position in the series ("3", "1.5"). */
   ordinal?: string;
 }

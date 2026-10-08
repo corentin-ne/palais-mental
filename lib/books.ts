@@ -173,7 +173,7 @@ async function wikidataBits(qid: string | undefined, lang: string) {
   if (!e) return undefined;
   const series = seriesClaim(e.claims);
   const names = series ? await cachedLabels([series.id], lang) : {};
-  return { qid, release: releaseOf(e.claims), series: series && names[series.id] ? { name: names[series.id], ordinal: series.ordinal } : undefined, entity: e };
+  return { qid, release: releaseOf(e.claims), series: series && names[series.id] ? { name: names[series.id], id: series.id, ordinal: series.ordinal } : undefined, entity: e };
 }
 
 export async function fetchBook(id: string, lang: string): Promise<BookDetails> {
@@ -288,7 +288,7 @@ export async function fetchBook(id: string, lang: string): Promise<BookDetails> 
       subjects: genreIds.map((g) => names[g]).filter(Boolean),
       isbn,
       wikidataId: sourceId,
-      series: series && names[series.id] ? { name: names[series.id], ordinal: series.ordinal } : undefined,
+      series: series && names[series.id] ? { name: names[series.id], id: series.id, ordinal: series.ordinal } : undefined,
     },
   };
 }

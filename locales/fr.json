@@ -505,7 +505,8 @@
     "pageOf_other": "Page {{page}} sur {{count}}",
     "pageN": "Page {{page}}",
     "notStartedPage": "Page 1",
-    "nextPage": "Page suivante (maintenir pour dix)"
+    "nextPage": "Page suivante (maintenir pour dix)",
+    "alreadyRead": "Je l'ai lu"
   },
   "game": {
     "released": "Sorti le",
@@ -519,7 +520,11 @@
     "hoursN_one": "{{count}} h",
     "hoursN_other": "{{count}} h",
     "justStarted": "Tout juste commencé",
-    "addHour": "Une heure de plus"
+    "addHour": "Une heure de plus",
+    "alreadyPlayed": "J'y ai joué",
+    "typical": "Durée",
+    "mainStory": "{{count}} h (histoire)",
+    "allStyles": "{{count}} h en moyenne"
   },
   "settings": {
     "title": "Réglages",
@@ -557,5 +562,39 @@
     "download": "Télécharger",
     "notes": "Nouveautés",
     "later": "Plus tard"
+  },
+  "collection": {
+    "tile": {
+      "movie": "{{done}}/{{count}} vus",
+      "book": "{{done}}/{{count}} lus",
+      "game": "{{done}}/{{count}} joués"
+    },
+    "count": {
+      "movie_one": "{{count}} film",
+      "movie_other": "{{count}} films",
+      "book_one": "{{count}} livre",
+      "book_other": "{{count}} livres",
+      "game_one": "{{count}} jeu",
+      "game_other": "{{count}} jeux"
+    },
+    "done": {
+      "movie": "{{done}} sur {{count}} vus",
+      "book": "{{done}} sur {{count}} lus",
+      "game": "{{done}} sur {{count}} joués"
+    },
+    "upTo": {
+      "movie_one": "{{count}} film marqué vu",
+      "movie_other": "{{count}} films marqués vus",
+      "book_one": "{{count}} livre marqué lu",
+      "book_other": "{{count}} livres marqués lus",
+      "game_one": "{{count}} jeu marqué joué",
+      "game_other": "{{count}} jeux marqués joués"
+    },
+    "hint": "Cochez-en un pour le marquer, maintenez une coche pour tout marquer jusque-là. Les titres absents sont ajoutés.",
+    "inLibrary": "Dans votre bibliothèque",
+    "failed": "Impossible d'ajouter {{title}}, réessayez",
+    "partOf": "Fait partie d'une série",
+    "seeAll": "Tout voir",
+    "open": "Ouvrir la série {{name}}"
   }
 }

@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import CollectionLink from '@/components/media/CollectionLink';
 import DetailLayout, { CastRail, Synopsis } from '@/components/media/DetailLayout';
 import Extras, { Similar } from '@/components/media/Extras';
 import Button from '@/components/ui/Button';
@@ -118,6 +119,7 @@ export default function MovieScreen() {
               </View>
             )}
           </FadeIn>
+          <CollectionLink kind="movie" item={movie} />
           <Extras kind="movie" title={movie.title} year={movie.year} imdbId={movie.imdbId} extras={extras} />
           <Synopsis text={movie.overview} />
           <CastRail cast={details?.cast ?? []} />

@@ -505,7 +505,8 @@
     "pageOf_other": "Page {{page}} of {{count}}",
     "pageN": "Page {{page}}",
     "notStartedPage": "Page 1",
-    "nextPage": "Next page (hold for ten)"
+    "nextPage": "Next page (hold for ten)",
+    "alreadyRead": "I've read it"
   },
   "game": {
     "released": "Released",
@@ -519,7 +520,11 @@
     "hoursN_one": "{{count}} h",
     "hoursN_other": "{{count}} h",
     "justStarted": "Just started",
-    "addHour": "One more hour"
+    "addHour": "One more hour",
+    "alreadyPlayed": "I've played it",
+    "typical": "Takes",
+    "mainStory": "{{count}} h (story)",
+    "allStyles": "{{count}} h on average"
   },
   "settings": {
     "title": "Settings",
@@ -557,5 +562,39 @@
     "download": "Download",
     "notes": "What's new",
     "later": "Later"
+  },
+  "collection": {
+    "tile": {
+      "movie": "{{done}}/{{count}} seen",
+      "book": "{{done}}/{{count}} read",
+      "game": "{{done}}/{{count}} played"
+    },
+    "count": {
+      "movie_one": "{{count}} film",
+      "movie_other": "{{count}} films",
+      "book_one": "{{count}} book",
+      "book_other": "{{count}} books",
+      "game_one": "{{count}} game",
+      "game_other": "{{count}} games"
+    },
+    "done": {
+      "movie": "{{done}} of {{count}} seen",
+      "book": "{{done}} of {{count}} read",
+      "game": "{{done}} of {{count}} played"
+    },
+    "upTo": {
+      "movie_one": "Marking {{count}} film as seen",
+      "movie_other": "Marking {{count}} films as seen",
+      "book_one": "Marking {{count}} book as read",
+      "book_other": "Marking {{count}} books as read",
+      "game_one": "Marking {{count}} game as played",
+      "game_other": "Marking {{count}} games as played"
+    },
+    "hint": "Tick one to mark it, hold a tick to mark everything up to it. Titles you don't have are added.",
+    "inLibrary": "In your library",
+    "failed": "Couldn't add {{title}}, try again",
+    "partOf": "Part of a series",
+    "seeAll": "See all",
+    "open": "Open the series {{name}}"
   }
 }

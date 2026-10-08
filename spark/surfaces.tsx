@@ -105,19 +105,30 @@ export interface PressProps extends Omit<PressableProps, 'style' | 'children'> {
   style?: StyleProp<ViewStyle>;
   /** Scale under the finger: 0.97 for controls (default), 0.98–0.99 for large surfaces, 1 for none. */
   depth?: number;
+  /** The accent ring that lights the edge under the finger (on by default). */
+  ring?: boolean;
 }
 
 /**
- * Press feedback (motion §2.8): a spring down to `depth` and back, composited (transform only).
+ * Press feedback (motion §2.8): a spring down to `depth` and back, composited (transform only), and
+ * the web's rim light made for touch: the edge takes the accent while pressed and fades out after
+ * (buttons.css hover border, rim-light.css). Opacity only, so it costs nothing on lite phones.
  */
 /** One element carries the layout (flex, width, margins) and the scale, so a pressable lays out like a View. */
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function Press({ children, style, depth, disabled, ...rest }: PressProps) {
+export function Press({ children, style, depth, disabled, ring = true, ...rest }: PressProps) {
   const t = useSpark();
+  const s = usePressStyles();
   const scale = useRef(new Animated.Value(1)).current;
+  const lit = useRef(new Animated.Value(0)).current;
   const to = (v: number) => Animated.spring(scale, { toValue: v, useNativeDriver: true, ...t.motion.spring }).start();
+  const light = (v: number) => Animated.timing(lit, { toValue: v, duration: v ? 60 : 520, useNativeDriver: true }).start();
   const d = t.reduceMotion ? 1 : (depth ?? t.motion.pressScale);
+  // The ring follows the control's corners; a bare layout box (a poster tile) gets a soft halo around it.
+  const flat = StyleSheet.flatten(style) ?? {};
+  const bare = flat.borderRadius == null;
+  const radius = bare ? 14 : Number(flat.borderRadius);
   return (
     <AnimatedPressable
       accessibilityRole="button"
@@ -127,15 +138,28 @@ export function Press({ children, style, depth, disabled, ...rest }: PressProps)
       {...rest}
       onPressIn={(e) => {
         to(d);
+        if (ring) light(1);
         rest.onPressIn?.(e);
       }}
       onPressOut={(e) => {
         to(1);
+        if (ring) light(0);
         rest.onPressOut?.(e);
       }}
       style={[style, { transform: [{ scale }] }, disabled && { opacity: 0.45 }]}
     >
       {children}
+      {ring && (
+        <Animated.View
+          pointerEvents="none"
+          style={[s.ring, bare ? s.halo : null, { borderRadius: bare ? radius + 4 : radius, opacity: lit }]}
+        />
+      )}
     </AnimatedPressable>
   );
 }
+
+const usePressStyles = sparkStyles((t) => ({
+  ring: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderWidth: 1.5, borderColor: t.color.accent, backgroundColor: t.color.accentSoft },
+  halo: { top: -4, left: -4, right: -4, bottom: -4 },
+}));

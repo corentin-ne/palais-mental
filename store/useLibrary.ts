@@ -46,6 +46,8 @@ interface LibraryState extends LibraryData {
   setMovieWatched: (id: string, watched: boolean, at?: number) => void;
   setShowRating: (id: string, rating: number | undefined) => void;
   setMovieRating: (id: string, rating: number | undefined) => void;
+  /** Several films at once (series found in the background), without touching anything else. */
+  patchMovies: (patches: Record<string, Partial<Movie>>) => void;
 
   addBook: (data: BookData) => void;
   updateBook: (data: BookData) => void;
@@ -196,6 +198,12 @@ export const useLibrary = create<LibraryState>()(
         set((s) => (s.movies[id] ? { movies: { ...s.movies, [id]: { ...s.movies[id], watchedAt: watched ? (at ?? Date.now()) : undefined } } } : s)),
       setShowRating: (id, rating) => set((s) => patchShow(s, id, (show) => ({ ...show, rating }))),
       setMovieRating: (id, rating) => set((s) => (s.movies[id] ? { movies: { ...s.movies, [id]: { ...s.movies[id], rating } } } : s)),
+      patchMovies: (patches) =>
+        set((s) => {
+          const movies = { ...s.movies };
+          for (const [id, patch] of Object.entries(patches)) if (movies[id]) movies[id] = { ...movies[id], ...patch };
+          return { movies };
+        }),
 
       addBook: (data) =>
         set((s) => ({ books: { ...s.books, [data.id]: { ...s.books[data.id], ...data, addedAt: s.books[data.id]?.addedAt ?? Date.now() } } })),

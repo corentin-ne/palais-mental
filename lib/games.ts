@@ -112,7 +112,7 @@ async function wikidataBits(qid: string | undefined, lang: string) {
     platforms: platformIds.map((p) => names[p]).filter(Boolean),
     genres: genreIds.map((g) => names[g]).filter(Boolean),
     developer: devIds.map((d) => names[d]).filter(Boolean).join(', ') || undefined,
-    series: series && names[series.id] ? { name: names[series.id], ordinal: series.ordinal } : undefined,
+    series: series && names[series.id] ? { name: names[series.id], id: series.id, ordinal: series.ordinal } : undefined,
     image: claimString(e.claims, 'P18'),
   };
 }

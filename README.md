@@ -16,9 +16,11 @@ npm run typecheck
 
 ## What it does
 
-- **Spark UI kit look.** Frosted glass over a soft aurora, one accent colour you pick in Settings (every decorative colour derives from it, with readable text on any of them), fixed colours for states and data, system fonts and measured motion. Light and dark, plus a lite display mode for older phones (opaque surfaces, no blur, no looping animation). Built on the kit's native layer, vendored in `spark/`.
+- **Spark UI kit look.** Frosted glass over a soft aurora, one accent colour you pick in Settings (every decorative colour derives from it, with readable text on any of them), fixed colours for states and data, system fonts and measured motion: anything you press lights its edge in the accent, and the tab you're on is all accent, icon and label in bold. Light and dark, plus a lite display mode for older phones (opaque surfaces, no blur, no looping animation). Built on the kit's native layer, vendored in `spark/`.
 - **Up next.** The next episode of every show you're watching, with its still, progress and one tick to mark it watched; the next one slides in. It picks up after the furthest episode you ticked, so starting a show mid-way doesn't send you back to the pilot. Below: what's airing soon, shows you haven't started, and films waiting on your watchlist.
 - **Books and games.** Search Open Library, Google Books, Steam and Wikidata; keep your place (the page you're at, hours played and completion), finish, drop or start again. Books you're reading and games you're playing sit in **Up next** with a one-tap + (a page, or ten on a long press; an hour of play). Each page shows the release date (with a countdown when it's announced) and the rest of the series in order: prequels, sequels and every entry with its number and date.
+- **Series kept together.** Like a show's seasons: films, books and games of the same series sit on one poster in the library (a little pile, with how many you've seen, read or played), placed by where you are in it. Its page lists every entry in order, the ones you don't have too (Toy Story 1–5, every *One Piece* volume), each with a tick: tick one to mark it (it's added if needed), hold a tick to mark everything up to it. Series come from Wikidata, or from the number in the title when it has none ("ONE PIECE 12", "Part Two", "Tome 3"). Every film, book or game page links to its series.
+- **Playtime filled in.** Mark a game played ("I've played it", or finished) without hours and it gets the average playtime from HowLongToBeat; each game page shows how long the story and the whole game take on average.
 - **Calendar.** Every upcoming episode, film, book and game release you follow, day by day, with premieres and new seasons flagged. Local notifications when an episode airs or a film comes out (phones).
 - **Library.** Shows by state (watching, not started, up to date, finished, dropped), films (to watch, coming soon, watched), books and games (reading or playing, to read or play, coming soon, finished, dropped), as a poster wall with progress bars; filter by title and sort by recent, A–Z or next out.
 - **Detail pages.** Parallax backdrop, synopsis, cast, seasons and episodes. Tick an episode (with undo), long-press a tick to mark everything up to it, mark a whole season, or catch up on every episode left in one tap (each with undo). The episode you pick up at is highlighted, and episodes you skipped can be marked in one tap. Drop a show and resume it later.
@@ -52,6 +54,8 @@ npm run typecheck
 | Book ratings, readers, characters, places, authors, more by the author, same publisher, books alike, Open Library series | Open Library | none |
 | Awards, characters, settings, publisher, engine, modes, director, composer, age ratings, adaptations (films, series, games) and sources | Wikidata | none |
 | Game reviews, Metacritic, price, features, screenshots, more from the developer and publisher | Steam store | none |
+| Average playtime (story, all styles) | HowLongToBeat | none |
+| Film series (for the library's piles), numbered book volumes | Wikidata, Open Library | none |
 | Linux and Steam Deck compatibility | ProtonDB | none |
 | Best price across stores | CheapShark | none |
 

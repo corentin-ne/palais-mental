@@ -7,12 +7,14 @@ import { persisted } from './cache';
 import { isbnCover, steamCover } from './covers';
 import { sparql } from './wikidata';
 
-export type SeriesKind = 'book' | 'game';
+export type SeriesKind = 'book' | 'game' | 'movie';
 
 /** Literary work, written work, novel, book, novella, short story, graphic novel, manga, light novel. */
 export const BOOK_TYPES = ['Q7725634', 'Q47461344', 'Q8261', 'Q571', 'Q149537', 'Q49084', 'Q725377', 'Q8274', 'Q747381'];
 /** Video game, expansion pack. */
 export const GAME_TYPES = ['Q7889', 'Q865493'];
+/** Instances of: film, feature, animated and TV film. */
+export const FILM_TYPES = ['Q11424', 'Q24869', 'Q29168811', 'Q202866', 'Q506240'];
 
 export interface SeriesEntry {
   qid: string;
@@ -25,13 +27,15 @@ export interface SeriesEntry {
   exact: boolean;
   href: string;
   cover?: string;
+  /** Films: matched to the library by IMDb id. */
+  imdb?: string;
 }
 
 const RANK = { prequel: 0, sequel: 0, series: 1 } as const;
 
 function query(qid: string, kind: SeriesKind, lang: string) {
-  const types = (kind === 'book' ? BOOK_TYPES : GAME_TYPES).map((q) => `wd:${q}`).join(' ');
-  return `SELECT ?item ?itemLabel ?rel ?ord ?seriesLabel ?date ?prec ?ol ?steam ?isbn WHERE {
+  const types = (kind === 'book' ? BOOK_TYPES : kind === 'movie' ? FILM_TYPES : GAME_TYPES).map((q) => `wd:${q}`).join(' ');
+  return `SELECT ?item ?itemLabel ?rel ?ord ?seriesLabel ?date ?prec ?ol ?steam ?isbn ?imdb WHERE {
   { wd:${qid} wdt:P155 ?item . BIND("prequel" AS ?rel) }
   UNION { ?item wdt:P156 wd:${qid} . BIND("prequel" AS ?rel) }
   UNION { wd:${qid} wdt:P156 ?item . BIND("sequel" AS ?rel) }
@@ -44,12 +48,31 @@ function query(qid: string, kind: SeriesKind, lang: string) {
   OPTIONAL { ?item wdt:P648 ?ol }
   OPTIONAL { ?item wdt:P1733 ?steam }
   OPTIONAL { ?item wdt:P212 ?isbn }
+  OPTIONAL { ?item wdt:P345 ?imdb }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "${lang},en". }
 } LIMIT 400`;
 }
 
+/** Every entry of one series (its Wikidata id), with positions and dates. */
+function membersQuery(series: string, kind: SeriesKind, lang: string) {
+  const types = (kind === 'book' ? BOOK_TYPES : kind === 'movie' ? FILM_TYPES : GAME_TYPES).map((q) => `wd:${q}`).join(' ');
+  return `SELECT ?item ?itemLabel ?rel ?ord ?seriesLabel ?date ?prec ?ol ?steam ?isbn ?imdb WHERE {
+  ?item p:P179 ?st . ?st ps:P179 wd:${series} . OPTIONAL { ?st pq:P1545 ?ord }
+  BIND(wd:${series} AS ?series) BIND("series" AS ?rel)
+  VALUES ?type { ${types} }
+  ?item wdt:P31 ?type .
+  OPTIONAL { ?item p:P577/psv:P577 [ wikibase:timeValue ?date ; wikibase:timePrecision ?prec ] }
+  OPTIONAL { ?item wdt:P648 ?ol }
+  OPTIONAL { ?item wdt:P1733 ?steam }
+  OPTIONAL { ?item wdt:P212 ?isbn }
+  OPTIONAL { ?item wdt:P345 ?imdb }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "${lang},en". }
+} LIMIT 600`;
+}
+
 /** Route to an entry: its Open Library or Steam page when Wikidata links one. */
-export function seriesHref(kind: SeriesKind, qid: string, ol?: string, steam?: string) {
+export function seriesHref(kind: SeriesKind, qid: string, ol?: string, steam?: string, imdb?: string) {
+  if (kind === 'movie') return `/movie/imdb-${imdb}`;
   if (kind === 'book') return ol && /^OL\d+W$/.test(ol) ? `/book/ol-${ol}` : `/book/wd-${qid}`;
   return steam && /^\d+$/.test(steam) ? `/game/steam-${steam}` : `/game/wd-${qid}`;
 }
@@ -57,11 +80,16 @@ export function seriesHref(kind: SeriesKind, qid: string, ol?: string, steam?: s
 /** Ordered: by position in the series when known, else by release date. */
 export function fetchSeries(qid: string, kind: SeriesKind, lang: string): Promise<SeriesEntry[]> {
   // Kept a day on the device: the query takes seconds, and series change rarely.
-  return persisted(`series:${qid}:${kind}:${lang}`, 86_400_000, () => querySeries(qid, kind, lang), (v) => !v.length);
+  return persisted(`series:${qid}:${kind}:${lang}`, 86_400_000, () => querySeries(query(qid, kind, lang === 'fr' ? 'fr' : 'en'), kind), (v) => !v.length);
 }
 
-async function querySeries(qid: string, kind: SeriesKind, lang: string): Promise<SeriesEntry[]> {
-  const json = await sparql(query(qid, kind, lang === 'fr' ? 'fr' : 'en'));
+/** The whole of one series, by the series' own Wikidata id (a film can be in several: Toy Story, and Pixar's). */
+export function fetchSeriesMembers(series: string, kind: SeriesKind, lang: string): Promise<SeriesEntry[]> {
+  return persisted(`seriesof:${series}:${kind}:${lang}`, 86_400_000, () => querySeries(membersQuery(series, kind, lang === 'fr' ? 'fr' : 'en'), kind), (v) => !v.length);
+}
+
+async function querySeries(q: string, kind: SeriesKind): Promise<SeriesEntry[]> {
+  const json = await sparql(q);
   const found = new Map<string, SeriesEntry>();
   for (const b of json?.results?.bindings ?? []) {
     const id = String(b.item?.value ?? '').split('/').pop()!;
@@ -73,6 +101,9 @@ async function querySeries(qid: string, kind: SeriesKind, lang: string): Promise
     const ol: string | undefined = b.ol?.value;
     const steam: string | undefined = b.steam?.value;
     const isbn: string | undefined = b.isbn?.value?.replace(/-/g, '');
+    const imdb: string | undefined = b.imdb?.value;
+    // A film nobody can open (no IMDb id) is left out.
+    if (kind === 'movie' && !(found.get(id)?.imdb ?? imdb)) continue;
     const prev = found.get(id);
     const date = Number.isFinite(t) ? (prev?.date != null ? Math.min(prev.date, t) : t) : prev?.date;
     const entry: SeriesEntry = {
@@ -83,7 +114,8 @@ async function querySeries(qid: string, kind: SeriesKind, lang: string): Promise
       series: prev?.series ?? (b.seriesLabel?.value && !/^Q\d+$/.test(b.seriesLabel.value) ? b.seriesLabel.value : undefined),
       date,
       exact: (prev?.exact ?? false) || (exact && date === t),
-      href: prev?.href && !prev.href.includes('/wd-') ? prev.href : seriesHref(kind, id, ol, steam),
+      href: prev?.href && !prev.href.includes('/wd-') ? prev.href : seriesHref(kind, id, ol, steam, imdb),
+      imdb: prev?.imdb ?? imdb,
       cover: prev?.cover ?? (kind === 'game' && steam ? steamCover(steam) : kind === 'book' && isbn ? isbnCover(isbn) : undefined),
     };
     found.set(id, entry);

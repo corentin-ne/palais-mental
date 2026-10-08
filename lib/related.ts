@@ -8,7 +8,7 @@ import i18n from '@/locales/i18n';
 import { imdbTitle, postJson, quiet, tvmazeIdByImdb } from './api';
 import { persisted } from './cache';
 import { isbnCover, steamCover } from './covers';
-import { BOOK_TYPES, GAME_TYPES, seriesHref } from './series';
+import { BOOK_TYPES, FILM_TYPES, GAME_TYPES, seriesHref } from './series';
 import { WIKI_HEADERS } from './wikidata';
 import { useLibrary } from '@/store/useLibrary';
 import { RelatedRelease, useConnections } from '@/store/useConnections';
@@ -19,8 +19,7 @@ const REFRESH = 86_400_000;
 export const OUT_NOW = 120 * 86_400_000;
 const MAX = 80;
 
-/** Instances of: film, feature, animated and TV film; TV, web, animated and anime series, miniseries. */
-const FILM_TYPES = ['Q11424', 'Q24869', 'Q29168811', 'Q202866', 'Q506240'];
+/** Instances of: TV, web, animated and anime series, miniseries (films: FILM_TYPES). */
 const SERIES_TYPES = ['Q5398426', 'Q1259759', 'Q526877', 'Q117467246', 'Q63952888', 'Q581714', 'Q15416'];
 
 function query(seeds: string[], from: string, lang: string) {

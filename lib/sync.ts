@@ -12,6 +12,7 @@ import { fetchBook } from './books';
 import { fetchGame } from './games';
 import { autoSnapshot } from './backup';
 import { autoSyncAccounts } from './connect';
+import { refreshMovieSeries } from './collections';
 import { refreshRelated, relationLabel, visibleRelated } from './related';
 import { episodeCode } from './progress';
 import { Book, Episode, Game, Movie, Show } from './types';
@@ -188,7 +189,8 @@ export function startSync() {
       await autoSnapshot();
       await refreshLibrary();
       // Notifications don't wait on connected accounts; related releases do (a sync can add seeds).
-      await Promise.all([scheduleNotifications(), autoSyncAccounts().catch(() => undefined).then(() => refreshRelated())]);
+      // Film series (for the library's collections) come after: films a sync adds are looked up too.
+      await Promise.all([scheduleNotifications(), autoSyncAccounts().catch(() => undefined).then(() => Promise.all([refreshRelated(), refreshMovieSeries()]))]);
     })().finally(() => {
       pass = undefined;
     }));

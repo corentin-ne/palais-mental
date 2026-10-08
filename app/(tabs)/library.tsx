@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -15,10 +15,11 @@ import { makeStyles, noOutline, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
 import { useProgressive } from '@/hooks/useProgressive';
+import { Collection, CollectionItem, artOf, collectionHref, groupCollections, isDone, refreshMovieSeries } from '@/lib/collections';
 import { countdown } from '@/lib/format';
 import { progressOf, showState } from '@/lib/progress';
 import { SHELF_STATES, bookFraction, gameFraction, shelfActivity, shelfState } from '@/lib/shelf';
-import { Book, Game, MediaKind, ShelfState, ShowState } from '@/lib/types';
+import { Book, Game, MediaKind, Movie, ShelfState, ShowState } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
 import { usePrefs } from '@/store/usePrefs';
 
@@ -30,6 +31,40 @@ type Sort = 'recent' | 'title' | 'next' | 'rating';
 const SORTS: Sort[] = ['recent', 'title', 'next', 'rating'];
 const norm = (s: string) => s.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
+/** A title on its own, or a series kept together (two or more of it in the library; `item` is its first). */
+type Unit<T extends CollectionItem> = { item: T; group?: Collection<T> };
+const unitsOf = <T extends CollectionItem>(list: T[]): Unit<T>[] => {
+  const { singles, groups } = groupCollections(list);
+  return [...singles.map((item) => ({ item })), ...groups.map((group) => ({ item: group.members[0].item, group }))];
+};
+const itemsOf = <T extends CollectionItem>(u: Unit<T>): T[] => (u.group ? u.group.members.map((m) => m.item) : [u.item]);
+/** A value over a unit: the item's, or the highest (lowest with `min`) of the series'. */
+const over = <T extends CollectionItem>(u: Unit<T>, f: (i: T) => number | undefined, min = false) => {
+  const v = itemsOf(u)
+    .map(f)
+    .filter((x): x is number => x != null);
+  return v.length ? (min ? Math.min(...v) : Math.max(...v)) : undefined;
+};
+const titleOf = <T extends CollectionItem>(u: Unit<T>) => (u.group ? u.group.name : u.item.title);
+
+/** A film series is on the watchlist while one that is out is left, coming soon while only announced ones are, else watched. */
+function movieUnitState(u: Unit<Movie>, now: number): MovieFilter {
+  const left = itemsOf(u).filter((m) => !m.watchedAt);
+  if (left.some((m) => !m.releaseDate || m.releaseDate <= now)) return 'watchlist';
+  return left.length ? 'upcoming' : 'watched';
+}
+
+/** A book or game series reads like a show: started once you are in it, finished once all of it is. */
+function shelfUnitState(u: Unit<Book | Game>, now: number): ShelfState {
+  if (!u.group) return shelfState(u.item, now);
+  const states = u.group.members.map((m) => shelfState(m.item, now));
+  const has = (s: ShelfState) => states.includes(s);
+  if (has('started') || (has('finished') && has('want'))) return 'started';
+  if (has('want')) return 'want';
+  if (has('upcoming')) return 'upcoming';
+  return has('finished') ? 'finished' : 'dropped';
+}
+
 interface Tile {
   key: string;
   href: string;
@@ -40,6 +75,8 @@ interface Tile {
   dim?: boolean;
   /** Also matched by the filter: authors, developer, director, network, genres. */
   search?: string;
+  /** A series: posters stacked. */
+  stack?: boolean;
 }
 
 /** Everything you follow, read and play, as a wall of posters. */
@@ -93,39 +130,67 @@ export default function LibraryScreen() {
     return c;
   }, [showTiles]);
 
+  // Films of the same series come as one poster, like a show (their series is looked up in the background).
+  const movieCount = Object.keys(movies).length;
+  useEffect(() => {
+    refreshMovieSeries();
+  }, [movieCount]);
   const movieGroups = useMemo(() => {
     const now = Date.now();
-    const list = Object.values(movies);
-    return {
-      watchlist: list
-        .filter((m) => !m.watchedAt && (!m.releaseDate || m.releaseDate <= now))
-        .sort((a, b) => (sort === 'title' ? a.title.localeCompare(b.title) : sort === 'next' ? (b.releaseDate ?? 0) - (a.releaseDate ?? 0) : b.addedAt - a.addedAt)),
-      upcoming: list.filter((m) => !m.watchedAt && m.releaseDate && m.releaseDate > now).sort((a, b) => a.releaseDate! - b.releaseDate!),
-      watched: list
-        .filter((m) => m.watchedAt)
-        .sort((a, b) => (sort === 'title' ? a.title.localeCompare(b.title) : sort === 'rating' ? (b.rating ?? 0) - (a.rating ?? 0) || b.watchedAt! - a.watchedAt! : b.watchedAt! - a.watchedAt!)),
-    };
+    const groups: Record<MovieFilter, Unit<Movie>[]> = { watchlist: [], upcoming: [], watched: [] };
+    for (const u of unitsOf(Object.values(movies))) groups[movieUnitState(u, now)].push(u);
+    const added = (u: Unit<Movie>) => over(u, (m) => m.addedAt) ?? 0;
+    const watched = (u: Unit<Movie>) => over(u, (m) => m.watchedAt) ?? 0;
+    const nextOut = (u: Unit<Movie>) => over(u, (m) => (m.watchedAt || !m.releaseDate || m.releaseDate <= now ? undefined : m.releaseDate), true) ?? Infinity;
+    groups.watchlist.sort((a, b) =>
+      sort === 'title' ? titleOf(a).localeCompare(titleOf(b)) : sort === 'next' ? (over(b, (m) => m.releaseDate) ?? 0) - (over(a, (m) => m.releaseDate) ?? 0) : added(b) - added(a),
+    );
+    groups.upcoming.sort((a, b) => nextOut(a) - nextOut(b));
+    groups.watched.sort((a, b) =>
+      sort === 'title' ? titleOf(a).localeCompare(titleOf(b)) : sort === 'rating' ? (over(b, (m) => m.rating) ?? 0) - (over(a, (m) => m.rating) ?? 0) || watched(b) - watched(a) : watched(b) - watched(a),
+    );
+    return groups;
   }, [movies, sort]);
 
   // Books and games share their states: reading or playing, on the list, coming soon, finished, dropped.
   const shelf = useMemo(() => {
     const now = Date.now();
     const list: (Book | Game)[] = tab === 'books' ? Object.values(books) : tab === 'games' ? Object.values(games) : [];
-    const groups: Record<ShelfState, (Book | Game)[]> = { started: [], want: [], upcoming: [], finished: [], dropped: [] };
-    for (const item of list) groups[shelfState(item, now)].push(item);
-    const bySort = (a: Book | Game, b: Book | Game) =>
+    type U = Unit<Book | Game>;
+    const groups: Record<ShelfState, U[]> = { started: [], want: [], upcoming: [], finished: [], dropped: [] };
+    for (const u of unitsOf(list)) groups[shelfUnitState(u, now)].push(u);
+    const activity = (u: U) => over(u, shelfActivity) ?? 0;
+    const release = (u: U) => over(u, (i) => (i.finishedAt ? undefined : i.releaseDate), true);
+    const bySort = (a: U, b: U) =>
       sort === 'title'
-        ? a.title.localeCompare(b.title)
+        ? titleOf(a).localeCompare(titleOf(b))
         : sort === 'rating'
-          ? (b.rating ?? 0) - (a.rating ?? 0) || shelfActivity(b) - shelfActivity(a)
+          ? (over(b, (i) => i.rating) ?? 0) - (over(a, (i) => i.rating) ?? 0) || activity(b) - activity(a)
           : sort === 'next'
-            ? (a.releaseDate ?? Infinity) - (b.releaseDate ?? Infinity)
-            : shelfActivity(b) - shelfActivity(a);
-    for (const state of SHELF_STATES) groups[state].sort(state === 'upcoming' ? (a, b) => (a.releaseDate ?? 0) - (b.releaseDate ?? 0) : bySort);
+            ? (release(a) ?? Infinity) - (release(b) ?? Infinity)
+            : activity(b) - activity(a);
+    for (const state of SHELF_STATES) groups[state].sort(state === 'upcoming' ? (a, b) => (release(a) ?? 0) - (release(b) ?? 0) : bySort);
     return groups;
   }, [tab, books, games, sort]);
   // Open on the first state that has something in it.
   const activeShelf = shelf[shelfFilter].length ? shelfFilter : (SHELF_STATES.find((f) => shelf[f].length) ?? shelfFilter);
+
+  /** A series' poster: the first one's art, and how far through it you are. */
+  const groupTile = (kind: 'movie' | 'book' | 'game', c: Collection<CollectionItem>, dim?: boolean): Tile => {
+    const list = c.members.map((m) => m.item);
+    const done = list.filter((i) => isDone(kind, i)).length;
+    return {
+      key: `series:${c.key}`,
+      href: collectionHref(kind, c, list.find((i) => i.wikidataId)?.wikidataId),
+      title: c.name,
+      poster: list.map(artOf).find(Boolean),
+      caption: t(`collection.tile.${kind}`, { done, count: list.length }),
+      progress: done ? done / list.length : undefined,
+      dim,
+      stack: true,
+      search: list.map((i) => i.title).join(' '),
+    };
+  };
 
   const shelfCaption = (item: Book | Game, state: ShelfState) => {
     if (state === 'upcoming' && item.releaseDate) return countdown(item.releaseDate);
@@ -161,15 +226,19 @@ export default function LibraryScreen() {
                   : t(`state.${state}`),
           }))
       : tab === 'movies'
-        ? movieGroups[movieFilter].map((m) => ({
-            key: m.id,
-            href: `/movie/${m.id}`,
-            title: m.title,
-            poster: m.poster,
-            search: [m.director, ...m.genres].filter(Boolean).join(' '),
-            caption: movieFilter === 'upcoming' && m.releaseDate ? countdown(m.releaseDate) : m.year ? String(m.year) : undefined,
-          }))
-        : shelf[activeShelf].map((item) => ({
+        ? movieGroups[movieFilter].map(({ item: m, group }) =>
+            group
+              ? groupTile('movie', group)
+              : {
+                  key: m.id,
+                  href: `/movie/${m.id}`,
+                  title: m.title,
+                  poster: m.poster,
+                  search: [m.director, ...m.genres].filter(Boolean).join(' '),
+                  caption: movieFilter === 'upcoming' && m.releaseDate ? countdown(m.releaseDate) : m.year ? String(m.year) : undefined,
+                },
+          )
+        : shelf[activeShelf].map(({ item, group }) => group ? groupTile(tab === 'books' ? 'book' : 'game', group, activeShelf === 'dropped') : ({
             key: item.id,
             href: `/${TAB_KIND[tab]}/${item.id}`,
             title: item.title,
@@ -269,12 +338,21 @@ export default function LibraryScreen() {
 }
 
 /** One poster of the wall. Unchanged tiles skip re-rendering while you type or tick things elsewhere. */
-const PosterTile = memo(function PosterTile({ href, title, poster, caption, progress, dim, width, kind }: Omit<Tile, 'key' | 'search'> & { width: number; kind: MediaKind }) {
+const PosterTile = memo(function PosterTile({ href, title, poster, caption, progress, dim, stack, width, kind }: Omit<Tile, 'key' | 'search'> & { width: number; kind: MediaKind }) {
   const router = useRouter();
   const styles = useStyles();
   return (
     <PressableScale onPress={() => router.push(href as never)} style={{ width, gap: 7 }} accessibilityLabel={title}>
-      <Poster uri={poster} title={title} width={width} kind={kind} progress={progress} dim={dim} />
+      <View>
+        {/* A series: the next posters peek out above the first, like a pile. */}
+        {stack && (
+          <>
+            <View style={[styles.pile, { left: 12, right: 12, top: -8, opacity: 0.55 }]} />
+            <View style={[styles.pile, { left: 6, right: 6, top: -4 }]} />
+          </>
+        )}
+        <Poster uri={poster} title={title} width={width} kind={kind} progress={progress} dim={dim} />
+      </View>
       <View>
         <Text style={styles.title} numberOfLines={1}>
           {title}
@@ -291,6 +369,7 @@ const PosterTile = memo(function PosterTile({ href, title, poster, caption, prog
 
 const useStyles = makeStyles(({ palette, fonts, type }) => ({
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 20 },
+  pile: { position: 'absolute', height: 24, borderRadius: 8, backgroundColor: palette.surfaceRaised, borderWidth: 1, borderColor: palette.hairline },
   title: { ...fonts.semibold, fontSize: 13, color: palette.ink },
   caption: { ...fonts.body, fontSize: 11.5, color: palette.inkSoft },
   none: { ...type.small, textAlign: 'center', marginTop: 40 },

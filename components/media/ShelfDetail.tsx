@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import CollectionLink from './CollectionLink';
 import DetailLayout, { Synopsis } from './DetailLayout';
 import SeriesRail from './SeriesRail';
 import { ExtraDetails, ExtraLinks, ExtraRails, ExtraScores } from './ShelfExtras';
@@ -18,6 +19,7 @@ import { BookMeta, bookPage, fetchBook, loadBookExtras } from '@/lib/books';
 import { ShelfExtras, mergeExtras } from '@/lib/extras';
 import { countdown, fullDate } from '@/lib/format';
 import { GameMeta, fetchGame, gamePage, loadGameExtras } from '@/lib/games';
+import { Playtime, playtimeOf } from '@/lib/playtime';
 import { bookFraction, gameFraction, shelfState } from '@/lib/shelf';
 import { shareTitle } from '@/lib/share';
 import { Book, Game } from '@/lib/types';
@@ -85,18 +87,35 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
     // Only a new title (or language) reloads: progress changes keep what is there.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extrasKey]);
+  // How long it takes most people (HowLongToBeat), for games.
+  const [playtime, setPlaytime] = useState<Playtime | null>(null);
+  const gameTitle = game?.title;
+  const gameYear = game?.year;
+  useEffect(() => {
+    setPlaytime(null);
+    if (!gameTitle) return;
+    let live = true;
+    playtimeOf(gameTitle, gameYear)
+      .then((p) => live && setPlaytime(p))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [gameTitle, gameYear]);
+
   const exclude = useMemo(() => [`/${kind}/${id}`, ...seriesShown], [kind, id, seriesShown]);
 
   const status = (s: ShelfStatus) => {
     setShelfStatus(kind, id, s);
     s === 'finished' ? haptics.success() : haptics.tap();
   };
-  const add = (start: boolean) => {
+  const add = (then?: 'started' | 'finished') => {
     if (!meta) return;
     const lib = useLibrary.getState();
     if (isBook) lib.addBook(meta as BookMeta);
     else lib.addGame(meta as GameMeta);
-    if (start) status('started');
+    // Played it already: finished, with the average playtime when you don't say otherwise.
+    if (then) status(then);
     else {
       haptics.success();
       useUi.getState().showToast(t(upcoming ? 'toast.awaitMovie' : isBook ? 'toast.addedBook' : 'toast.addedGame', { title: meta.title }));
@@ -145,11 +164,26 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
               </Text>
             )}
 
+            {!!game && !!(playtime?.main || playtime?.all) && (
+              <View style={styles.release}>
+                <Text style={styles.label}>{t('game.typical')}</Text>
+                <Text style={styles.date}>
+                  {[
+                    playtime.main ? t('game.mainStory', { count: playtime.main }) : undefined,
+                    playtime.all && playtime.all !== playtime.main ? t('game.allStyles', { count: playtime.all }) : undefined,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Text>
+              </View>
+            )}
+
             {!tracked ? (
               // Two labelled actions don't fit side by side on a phone: stacked, the main one first.
               <View style={styles.stacked}>
-                <Button label={upcoming ? t('movie.remind') : t('shelf.add')} icon={upcoming ? 'bell' : 'plus'} onPress={() => add(false)} disabled={!meta} style={styles.block} />
-                {!upcoming && <Button label={t(isBook ? 'book.start' : 'game.start')} icon={isBook ? 'journal' : 'gamepad'} variant="secondary" onPress={() => add(true)} disabled={!meta} style={styles.block} />}
+                <Button label={upcoming ? t('movie.remind') : t('shelf.add')} icon={upcoming ? 'bell' : 'plus'} onPress={() => add()} disabled={!meta} style={styles.block} />
+                {!upcoming && <Button label={t(isBook ? 'book.start' : 'game.start')} icon={isBook ? 'journal' : 'gamepad'} variant="secondary" onPress={() => add('started')} disabled={!meta} style={styles.block} />}
+                {!upcoming && <Button label={t(isBook ? 'book.alreadyRead' : 'game.alreadyPlayed')} icon="check" variant="secondary" onPress={() => add('finished')} disabled={!meta} style={styles.block} />}
               </View>
             ) : state === 'upcoming' ? (
               <>
@@ -163,10 +197,13 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
                 <Text style={styles.hint}>{t('shelf.remindHint')}</Text>
               </>
             ) : state === 'want' ? (
-              <View style={styles.actions}>
-                <Button label={t(isBook ? 'book.start' : 'game.start')} icon={isBook ? 'journal' : 'gamepad'} onPress={() => status('started')} style={{ flex: 1 }} />
-                <Button label={t('common.remove')} icon="trash" variant="danger" iconOnly onPress={remove} />
-              </View>
+              <>
+                <View style={styles.actions}>
+                  <Button label={t(isBook ? 'book.start' : 'game.start')} icon={isBook ? 'journal' : 'gamepad'} onPress={() => status('started')} style={{ flex: 1 }} />
+                  <Button label={t('common.remove')} icon="trash" variant="danger" iconOnly onPress={remove} />
+                </View>
+                <Button label={t(isBook ? 'book.alreadyRead' : 'game.alreadyPlayed')} icon="check" variant="secondary" onPress={() => status('finished')} style={styles.block} />
+              </>
             ) : state === 'started' ? (
               <>
                 {book && (
@@ -207,7 +244,7 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
               <>
                 <Text style={styles.done}>
                   {state === 'finished'
-                    ? t(isBook ? 'book.finishedOn' : 'game.finishedOn', { date: fullDate(item.finishedAt!) })
+                    ? [t(isBook ? 'book.finishedOn' : 'game.finishedOn', { date: fullDate(item.finishedAt!) }), game?.hours ? t('game.hoursN', { count: game.hours }) : undefined].filter(Boolean).join(' · ')
                     : t('shelf.droppedOn', { date: fullDate(item.droppedAt!) })}
                 </Text>
                 <View style={styles.actions}>
@@ -238,6 +275,7 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
           <ExtraScores scores={extras.scores ?? []} />
           <Synopsis text={item.overview} />
           <ExtraDetails extras={extras} kind={kind} />
+          <CollectionLink kind={kind} item={item} />
           <SeriesRail qid={item.wikidataId} kind={kind} ordinal={item.series?.ordinal} fallback={extras.series} onShown={setSeriesShown} />
           <ExtraRails rails={extras.rails ?? []} exclude={exclude} />
         </>

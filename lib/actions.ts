@@ -3,6 +3,7 @@ import i18n from '@/locales/i18n';
 import { SearchResult, fetchMovie, fetchShow } from './api';
 import { fetchBook } from './books';
 import { fetchGame } from './games';
+import { fillPlaytime } from './playtime';
 import { Book, Game } from './types';
 import { ShelfStatus, useLibrary } from '@/store/useLibrary';
 import { useUi } from '@/store/useUi';
@@ -76,9 +77,56 @@ export function setShelfStatus(kind: 'book' | 'game', id: string, status: ShelfS
   if (!before) return;
   if (kind === 'book') lib.setBookStatus(id, status);
   else lib.setGameStatus(id, status);
+  if (kind === 'game' && status === 'finished') fillPlaytime(id);
   const key = status === 'finished' ? (kind === 'book' ? 'toast.finishedBook' : 'toast.finishedGame') : status === 'dropped' ? 'toast.dropped' : undefined;
   if (key)
     toast(key, { title: before.title }, () =>
       kind === 'book' ? useLibrary.getState().restoreBook(before as Book) : useLibrary.getState().restoreGame(before as Game),
     );
+}
+
+/**
+ * Seen, read or played, straight from a series page: added to the library if it isn't there,
+ * then marked (a game gets the average playtime). Quiet: the page ticks the entry itself.
+ */
+export async function markDone(kind: 'movie' | 'book' | 'game', id: string) {
+  const lib = useLibrary.getState();
+  if (kind === 'movie') {
+    if (!lib.movies[id]) {
+      const { movie } = await fetchMovie(id, { tmdbKey: tmdbKey(), lang: i18n.language });
+      useLibrary.getState().addMovie(movie);
+      id = movie.id;
+    }
+    useLibrary.getState().setMovieWatched(id, true);
+    return id;
+  }
+  if (kind === 'book') {
+    if (!lib.books[id]) {
+      const { book, redirect } = await fetchBook(id, i18n.language);
+      const final = redirect ? (await fetchBook(redirect, i18n.language)).book : book;
+      useLibrary.getState().addBook(final);
+      id = final.id;
+    }
+    useLibrary.getState().setBookStatus(id, 'finished');
+    return id;
+  }
+  if (!lib.games[id]) {
+    const { game, redirect } = await fetchGame(id, i18n.language);
+    const final = redirect ? (await fetchGame(redirect, i18n.language)).game : game;
+    useLibrary.getState().addGame(final);
+    id = final.id;
+  }
+  useLibrary.getState().setGameStatus(id, 'finished');
+  fillPlaytime(id);
+  return id;
+}
+
+/** Back to not seen, read or played: on the list again (a game you put hours in stays started). */
+export function unmarkDone(kind: 'movie' | 'book' | 'game', id: string) {
+  const lib = useLibrary.getState();
+  if (kind === 'movie') return lib.setMovieWatched(id, false);
+  const book = lib.books[id];
+  if (kind === 'book' && book) return lib.restoreBook({ ...book, startedAt: undefined, finishedAt: undefined, droppedAt: undefined, page: undefined });
+  const game = lib.games[id];
+  if (kind === 'game' && game) lib.restoreGame({ ...game, finishedAt: undefined, droppedAt: undefined, percent: game.percent === 100 ? undefined : game.percent, startedAt: game.hours ? game.startedAt : undefined });
 }

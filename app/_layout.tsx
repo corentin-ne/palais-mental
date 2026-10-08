@@ -77,6 +77,7 @@ export default function RootLayout() {
           <Stack.Screen name="movie/[id]" />
           <Stack.Screen name="book/[id]" />
           <Stack.Screen name="game/[id]" />
+          <Stack.Screen name="collection/[kind]/[key]" />
           <Stack.Screen name="history" />
           <Stack.Screen name="connections" />
           <Stack.Screen name="settings" />
