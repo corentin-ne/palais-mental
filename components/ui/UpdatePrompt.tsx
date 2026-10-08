@@ -1,26 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Linking, Modal, Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { makeStyles, useTheme } from '@/constants/theme';
-import { Update, checkForUpdate } from '@/lib/updates';
+import { checkForUpdate } from '@/lib/updates';
 import { Button, Glass, Icon } from '@/spark';
+import { useUi } from '@/store/useUi';
 
 /** At launch, when a newer release is out: what it is, and a way to download it. Later closes it until next launch. */
 export default function UpdatePrompt() {
   const { t } = useTranslation();
   const { palette } = useTheme();
   const styles = useStyles();
-  const [update, setUpdate] = useState<Update>();
+  const update = useUi((s) => s.update);
 
   useEffect(() => {
     // A moment after opening: the first screen comes first.
-    const timer = setTimeout(() => checkForUpdate().then(setUpdate), 2500);
+    const timer = setTimeout(() => checkForUpdate().then((u) => u && useUi.getState().setUpdate(u)), 2500);
     return () => clearTimeout(timer);
   }, []);
 
   if (!update) return null;
-  const close = () => setUpdate(undefined);
+  const close = () => useUi.getState().setUpdate(undefined);
   return (
     <Modal transparent animationType="fade" visible onRequestClose={close} statusBarTranslucent>
       <Pressable style={styles.scrim} onPress={close} accessibilityLabel={t('update.later')} />

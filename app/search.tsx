@@ -19,7 +19,9 @@ import { addBook, addGame, addMovie, followShow } from '@/lib/actions';
 import { searchBooks, trendingBooks } from '@/lib/books';
 import { popularGames, searchGames } from '@/lib/games';
 import { countdown } from '@/lib/format';
+import { Chip, ChipRow } from '@/spark';
 import { useLibrary } from '@/store/useLibrary';
+import { usePrefs } from '@/store/usePrefs';
 import { Aurora } from '@/spark';
 
 type Scope = 'all' | 'shows' | 'movies' | 'books' | 'games';
@@ -38,6 +40,7 @@ export default function SearchScreen() {
   const { gutter, content, wide, inner, gap } = useLayout();
   const tmdbKey = useLibrary((s) => s.settings.tmdbKey) || undefined;
   const [q, setQ] = useState('');
+  const recent = usePrefs((p) => p.recentSearches);
   const [scope, setScope] = useState<Scope>('all');
   const [shows, setShows] = useState<SearchResult[]>([]);
   const [movies, setMovies] = useState<SearchResult[]>([]);
@@ -102,7 +105,7 @@ export default function SearchScreen() {
     <View style={[styles.results, { gap: wide ? gap : 4 }]}>
       {items.map((r, i) => (
         <FadeIn key={`${r.kind}${r.id}`} index={i} distance={8} style={{ width: colW }}>
-          <ResultRow r={r} />
+          <ResultRow r={r} onUse={() => usePrefs.getState().addSearch(q)} />
         </FadeIn>
       ))}
     </View>
@@ -124,7 +127,10 @@ export default function SearchScreen() {
               returnKeyType="search"
               autoCorrect={false}
               style={[styles.input, noOutline]}
-              onSubmitEditing={() => Keyboard.dismiss()}
+              onSubmitEditing={() => {
+                usePrefs.getState().addSearch(q);
+                Keyboard.dismiss();
+              }}
             />
             {loading ? (
               <ActivityIndicator size="small" color={palette.inkFaint} />
@@ -147,6 +153,23 @@ export default function SearchScreen() {
         <View style={{ width: content, paddingHorizontal: gutter }}>
           {!searching ? (
             <>
+              {recent.length > 0 && (
+                <Section
+                  title={t('search.recent')}
+                  style={{ marginTop: 22 }}
+                  action={
+                    <PressableScale onPress={() => usePrefs.getState().clearSearches()} hitSlop={8}>
+                      <Text style={styles.cancel}>{t('search.clearRecent')}</Text>
+                    </PressableScale>
+                  }
+                >
+                  <ChipRow inset={gutter}>
+                    {recent.map((r) => (
+                      <Chip key={r} label={r} icon="history" onPress={() => setQ(r)} />
+                    ))}
+                  </ChipRow>
+                </Section>
+              )}
               {(scope === 'all' || scope === 'shows') && discover.shows.length > 0 && (
                 <Section title={t('search.onTonight')} style={{ marginTop: 22 }}>
                   <PosterRail items={rail(discover.shows)} />
@@ -211,7 +234,8 @@ export default function SearchScreen() {
   );
 }
 
-function ResultRow({ r }: { r: SearchResult }) {
+/** One result: the row opens it, the round button adds it (siblings, not a button inside a button). */
+function ResultRow({ r, onUse }: { r: SearchResult; onUse?: () => void }) {
   const { t } = useTranslation();
   const { palette } = useTheme();
   const styles = useStyles();
@@ -224,6 +248,7 @@ function ResultRow({ r }: { r: SearchResult }) {
 
   const add = async () => {
     if (inLibrary || busy) return;
+    onUse?.();
     setBusy(true);
     haptics.tap();
     try {
@@ -240,19 +265,29 @@ function ResultRow({ r }: { r: SearchResult }) {
   };
 
   return (
-    <PressableScale depth={0.98} onPress={() => router.push(hrefOf(r) as never)} style={styles.row} accessibilityLabel={r.title}>
-      <Poster uri={r.poster} title={r.title} width={50} kind={r.kind} elevated={false} radius={7} />
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={styles.title} numberOfLines={2}>
-          {r.title}
-        </Text>
-        {!!meta && (
-          <Text style={styles.meta} numberOfLines={1}>
-            {meta}
+    <View style={styles.row}>
+      <PressableScale
+        depth={0.98}
+        onPress={() => {
+          onUse?.();
+          router.push(hrefOf(r) as never);
+        }}
+        style={styles.open}
+        accessibilityLabel={r.title}
+      >
+        <Poster uri={r.poster} title={r.title} width={50} kind={r.kind} elevated={false} radius={7} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={styles.title} numberOfLines={2}>
+            {r.title}
           </Text>
-        )}
-        {upcoming && <Text style={styles.soon}>{countdown(r.releaseDate!)}</Text>}
-      </View>
+          {!!meta && (
+            <Text style={styles.meta} numberOfLines={1}>
+              {meta}
+            </Text>
+          )}
+          {upcoming && <Text style={styles.soon}>{countdown(r.releaseDate!)}</Text>}
+        </View>
+      </PressableScale>
       <PressableScale
         onPress={add}
         depth={0.85}
@@ -265,7 +300,7 @@ function ResultRow({ r }: { r: SearchResult }) {
           <Icon name={inLibrary ? 'check' : 'plus'} size={18} color={inLibrary ? palette.primaryText : palette.onInk} strokeWidth={2.4} />
         )}
       </PressableScale>
-    </PressableScale>
+    </View>
   );
 }
 
@@ -277,7 +312,8 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   clear: { width: 20, height: 20, borderRadius: 10, backgroundColor: palette.inkFaint, alignItems: 'center', justifyContent: 'center' },
   cancel: { ...fonts.semibold, fontSize: 15, color: palette.primaryText },
   results: { flexDirection: 'row', flexWrap: 'wrap' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 8, borderRadius: radii.md, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  open: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 8, paddingRight: 10, borderRadius: radii.md, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   title: { ...fonts.semibold, fontSize: 15, color: palette.ink, letterSpacing: -0.2 },
   meta: { ...fonts.body, fontSize: 12.5, color: palette.inkSoft },
   soon: { ...fonts.semibold, fontSize: 12, color: palette.primaryText },

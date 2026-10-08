@@ -20,6 +20,7 @@ import { progressOf, showState } from '@/lib/progress';
 import { SHELF_STATES, bookFraction, gameFraction, shelfActivity, shelfState } from '@/lib/shelf';
 import { Book, Game, MediaKind, ShelfState, ShowState } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
+import { usePrefs } from '@/store/usePrefs';
 
 type Tab = 'shows' | 'movies' | 'books' | 'games';
 const TAB_KIND: Record<Tab, MediaKind> = { shows: 'show', movies: 'movie', books: 'book', games: 'game' };
@@ -53,13 +54,23 @@ export default function LibraryScreen() {
   const movies = useLibrary((s) => s.movies);
   const books = useLibrary((s) => s.books);
   const games = useLibrary((s) => s.games);
-  const [shelfFilter, setShelfFilter] = useState<ShelfState>('started');
-  // Open on the first kind you have something of.
-  const [tab, setTab] = useState<Tab>(() => (Object.keys(shows).length ? 'shows' : Object.keys(movies).length ? 'movies' : Object.keys(books).length ? 'books' : Object.keys(games).length ? 'games' : 'shows'));
-  const [showFilter, setShowFilter] = useState<ShowFilter>('all');
-  const [movieFilter, setMovieFilter] = useState<MovieFilter>('watchlist');
+  // The tab, filters and sort you left the library on come back next time (prefs, kept across launches).
+  const prefs = usePrefs();
+  const setPrefs = usePrefs((p) => p.set);
+  const pick = <T extends string>(v: string | undefined, allowed: readonly T[], fallback: T): T => (allowed.includes(v as T) ? (v as T) : fallback);
+  const shelfFilter = pick<ShelfState>(prefs.shelfFilter, SHELF_STATES, 'started');
+  const setShelfFilter = (shelfFilter: ShelfState) => setPrefs({ shelfFilter });
+  // Else open on the first kind you have something of.
+  const firstKind: Tab = Object.keys(shows).length ? 'shows' : Object.keys(movies).length ? 'movies' : Object.keys(books).length ? 'books' : Object.keys(games).length ? 'games' : 'shows';
+  const tab = pick<Tab>(prefs.libraryTab, ['shows', 'movies', 'books', 'games'], firstKind);
+  const setTab = (libraryTab: Tab) => setPrefs({ libraryTab });
+  const showFilter = pick<ShowFilter>(prefs.showFilter, ['all', 'watching', 'notStarted', 'upToDate', 'finished', 'dropped'], 'all');
+  const setShowFilter = (showFilter: ShowFilter) => setPrefs({ showFilter });
+  const movieFilter = pick<MovieFilter>(prefs.movieFilter, ['watchlist', 'upcoming', 'watched'], 'watchlist');
+  const setMovieFilter = (movieFilter: MovieFilter) => setPrefs({ movieFilter });
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<Sort>('recent');
+  const sort = pick<Sort>(prefs.sort, SORTS, 'recent');
+  const setSort = (sort: Sort) => setPrefs({ sort });
 
   const showTiles = useMemo(() => {
     const now = Date.now();

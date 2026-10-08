@@ -43,7 +43,9 @@
     "added": "Dans votre bibliothèque",
     "trendingBooks": "Lus cette semaine",
     "topGames": "Meilleures ventes",
-    "soonGames": "Bientôt disponibles"
+    "soonGames": "Bientôt disponibles",
+    "recent": "Recherches récentes",
+    "clearRecent": "Effacer"
   },
   "upNext": {
     "title": "À suivre",
@@ -523,7 +525,13 @@
     "quality": "Qualité d’affichage",
     "qualityFull": "Verre",
     "qualityLite": "Allégée",
-    "qualityHint": "Le mode allégé coupe le flou et les halos et rend les surfaces opaques : plus fluide sur les téléphones anciens, plus économe en batterie."
+    "qualityHint": "Le mode allégé coupe le flou et les halos et rend les surfaces opaques : plus fluide sur les téléphones anciens, plus économe en batterie.",
+    "about": "À propos",
+    "checkUpdates": "Rechercher une mise à jour",
+    "checking": "Recherche…",
+    "versionN": "Version {{version}} installée",
+    "upToDate": "Vous avez la dernière version",
+    "updateFailed": "Impossible de joindre GitHub. Vérifiez votre connexion."
   },
   "journal": {
     "title": "Carnet",

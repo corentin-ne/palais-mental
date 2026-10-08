@@ -7,6 +7,8 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 const REPO = 'corentin-ne/palais-mental';
+/** Where every release (and its APK) is listed. */
+export const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`;
 
 export interface Update {
   version: string;
@@ -34,23 +36,28 @@ export function isNewer(a: string, b: string) {
   return false;
 }
 
-/** The latest release when it is newer than this install (Android only: that is what releases carry). */
-export async function checkForUpdate(): Promise<Update | undefined> {
-  if (Platform.OS !== 'android' || __DEV__) return undefined;
+/**
+ * The latest release when it is newer than this install (Android only: that is what releases carry).
+ * `manual`: asked from Settings, so it runs in development builds too, and a failure throws (rather than
+ * reading as "up to date").
+ */
+export async function checkForUpdate(manual = false): Promise<Update | undefined> {
+  if (Platform.OS !== 'android' || (__DEV__ && !manual)) return undefined;
   const current = Constants.expoConfig?.version;
   if (!current) return undefined;
   try {
     // `latest` skips drafts and pre-releases.
     const r = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });
-    if (!r.ok) return undefined;
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const release: { tag_name?: string; html_url?: string; assets?: { name?: string; browser_download_url?: string }[] } = await r.json();
     const version = release.tag_name?.replace(/^v/i, '');
     if (!version || !isNewer(version, current)) return undefined;
     const apk = release.assets?.find((a) => a.name?.endsWith('.apk'))?.browser_download_url;
-    const page = release.html_url ?? `https://github.com/${REPO}/releases/latest`;
+    const page = release.html_url ?? RELEASES_PAGE;
     return { version, current, url: apk ?? page, page };
-  } catch {
-    // Offline: ask again next launch.
+  } catch (err) {
+    if (manual) throw err;
+    // Offline at launch: ask again next time.
     return undefined;
   }
 }

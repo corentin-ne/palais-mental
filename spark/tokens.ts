@@ -222,7 +222,8 @@ export function createTokens({ scheme, accent: accentBase = NATIVE_BLUE, lite = 
       tint: (dark ? 'dark' : 'light') as 'dark' | 'light',
       supported: !lite && Platform.OS !== 'android',
       /** The fill of a floating layer that can't blur: nothing behind reads through it. */
-      solid: dark ? 'rgba(22, 27, 40, 0.97)' : 'rgba(248, 250, 253, 0.97)',
+      // Fully opaque: Android lets bright text read through even a 97 % fill.
+      solid: dark ? '#161b28' : '#f8fafd',
     },
     /**
      * Phone metrics. Targets are 44 pt (Apple HIG) / 48 dp (Material): WCAG's 24 px is a floor, not a size.

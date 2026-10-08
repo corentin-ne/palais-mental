@@ -43,7 +43,9 @@
     "added": "In your library",
     "trendingBooks": "Read this week",
     "topGames": "Top sellers",
-    "soonGames": "Coming soon"
+    "soonGames": "Coming soon",
+    "recent": "Recent searches",
+    "clearRecent": "Clear"
   },
   "upNext": {
     "title": "Up next",
@@ -523,7 +525,13 @@
     "quality": "Display quality",
     "qualityFull": "Glass",
     "qualityLite": "Lite",
-    "qualityHint": "Lite turns off blur and glow and makes surfaces opaque: smoother on older phones, easier on the battery."
+    "qualityHint": "Lite turns off blur and glow and makes surfaces opaque: smoother on older phones, easier on the battery.",
+    "about": "About",
+    "checkUpdates": "Check for updates",
+    "checking": "Checking…",
+    "versionN": "Version {{version}} installed",
+    "upToDate": "You have the latest version",
+    "updateFailed": "Couldn't reach GitHub. Check your connection."
   },
   "journal": {
     "title": "Journal",

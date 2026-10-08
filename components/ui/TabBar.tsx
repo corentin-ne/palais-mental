@@ -96,6 +96,8 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View style={[styles.wrap, { paddingBottom: insets.bottom + 8 }]} pointerEvents="box-none">
+      {/* The page fades out under the floating bar: nothing scrolls visibly around or beneath it. */}
+      <LinearGradient pointerEvents="none" colors={[palette.scrimClear, palette.bg]} locations={[0, 0.55]} style={[styles.fade, { height: insets.bottom + 96 }]} />
       <Glass radius={30} contentStyle={styles.bar} strong>
         <View style={styles.row} onLayout={(e: LayoutChangeEvent) => setBar(e.nativeEvent.layout.width)}>
           {bar > 0 && <Animated.View style={[styles.pill, { transform: [{ translateX: x }] }]} />}
@@ -116,7 +118,6 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
             depth={0.9}
           >
             <LinearGradient colors={spark.color.primaryGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: 29 }]} />
-            <View style={styles.addHighlight} />
             <Icon name="search" size={24} color={palette.onInk} strokeWidth={2.3} />
           </PressableScale>
         </Animated.View>
@@ -127,6 +128,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
 
 const useStyles = makeStyles(({ palette, fonts }) => ({
   wrap: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', paddingHorizontal: 16 },
+  fade: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   bar: { paddingHorizontal: 8, paddingVertical: 6 },
   row: { flexDirection: 'row', alignItems: 'center' },
   // The kit's active nav item: an accent tint with a hairline ring, under the accent icon and label.
@@ -138,5 +140,4 @@ const useStyles = makeStyles(({ palette, fonts }) => ({
   addSlot: { width: ADD_W },
   addWrap: { position: 'absolute', top: -12, left: 0, right: 0, alignItems: 'center' },
   add: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center' },
-  addHighlight: { position: 'absolute', top: 0, left: 14, right: 14, height: 1, backgroundColor: 'rgba(255,255,255,0.35)' },
 }));

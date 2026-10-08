@@ -20,6 +20,7 @@ import { refreshRelated } from '@/lib/related';
 import { refreshLibrary, requestNotifications, scheduleNotifications } from '@/lib/sync';
 import type { LanguagePreference } from '@/locales/i18n';
 import type { Settings } from '@/lib/types';
+import { RELEASES_PAGE, checkForUpdate } from '@/lib/updates';
 import { useLibrary } from '@/store/useLibrary';
 import { useUi } from '@/store/useUi';
 import { Aurora, Switch } from '@/spark';
@@ -65,6 +66,25 @@ export default function SettingsScreen() {
       refreshLibrary(true);
     } catch {
       toast(t('profile.importFailed'));
+    }
+  };
+
+  // Android installs come from GitHub releases: ask for a newer one now. Elsewhere, the releases page.
+  const [checking, setChecking] = useState(false);
+  const onCheckUpdates = async () => {
+    if (Platform.OS !== 'android') {
+      Linking.openURL(RELEASES_PAGE).catch(() => undefined);
+      return;
+    }
+    setChecking(true);
+    try {
+      const update = await checkForUpdate(true);
+      if (update) useUi.getState().setUpdate(update);
+      else toast(t('settings.upToDate'));
+    } catch {
+      toast(t('settings.updateFailed'));
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -166,6 +186,16 @@ export default function SettingsScreen() {
         </Group>
         <Snapshots />
 
+        <Group index={6} title={t('settings.about')}>
+          <ActionRow
+            icon="download"
+            tint=""
+            label={t('settings.checkUpdates')}
+            hint={checking ? t('settings.checking') : t('settings.versionN', { version: Constants.expoConfig?.version ?? '' })}
+            onPress={onCheckUpdates}
+            last
+          />
+        </Group>
         <Text style={styles.version}>Palais Mental {Constants.expoConfig?.version ?? ''}</Text>
       </ScrollView>
     </View>
