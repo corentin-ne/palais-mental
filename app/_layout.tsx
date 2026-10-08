@@ -23,7 +23,7 @@ import { startSync } from '@/lib/sync';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
-/** Tapping a release notification opens that show or film. */
+/** Tapping a release notification opens that show, film, book or game. */
 function useNotificationRouting() {
   const router = useRouter();
   useEffect(() => {
@@ -67,6 +67,8 @@ export default function RootLayout() {
         <Stack.Screen name="search" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="show/[id]" />
         <Stack.Screen name="movie/[id]" />
+        <Stack.Screen name="book/[id]" />
+        <Stack.Screen name="game/[id]" />
         <Stack.Screen name="history" />
         <Stack.Screen name="connections" />
       </Stack>

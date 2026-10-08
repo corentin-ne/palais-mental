@@ -13,9 +13,10 @@ import PressableScale from '@/components/ui/PressableScale';
 import { FadeIn, Skeleton } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
+import type { MediaKind } from '@/lib/types';
 
 interface Props {
-  kind: 'show' | 'movie';
+  kind: MediaKind;
   title?: string;
   poster?: string;
   backdrop?: string;

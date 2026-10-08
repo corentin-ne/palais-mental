@@ -7,7 +7,7 @@
  * Every request is cached in memory for a few minutes and fetchers never throw for a
  * single failed source: a search returns what the other sources found.
  */
-import { Episode, Movie, MovieSource, Show } from './types';
+import { Episode, MediaKind, Movie, MovieSource, Show } from './types';
 
 // ------------------------------------------------------------------ Fetch + cache
 const TTL = 5 * 60_000;
@@ -85,8 +85,8 @@ export const norm = (s: string) =>
 
 // ------------------------------------------------------------------ Search results
 export interface SearchResult {
-  kind: 'show' | 'movie';
-  /** Show: TVmaze id. Movie: Movie.id. */
+  kind: MediaKind;
+  /** Show: TVmaze id. Film, book, game: their id. */
   id: string;
   title: string;
   year?: number;

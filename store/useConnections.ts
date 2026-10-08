@@ -26,13 +26,16 @@ export interface Match {
   at: number;
 }
 
-/** A film or series from the universe of something you follow (Wikidata). */
+/** A film, series, book or game from the universe of something you follow (Wikidata). */
 export interface RelatedRelease {
+  /** IMDb id for films and series; Wikidata id (Q…) for books and games. */
   imdbId: string;
   title: string;
   date: number;
-  kind: 'show' | 'movie';
-  relation: 'sequel' | 'series' | 'universe';
+  kind: 'show' | 'movie' | 'book' | 'game';
+  /** Route for books and games. */
+  href?: string;
+  relation: 'sequel' | 'prequel' | 'series' | 'universe';
   /** The series, franchise or universe they share. */
   group?: string;
   /** Title in your library it comes from. */

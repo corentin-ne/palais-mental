@@ -6,13 +6,14 @@ import PressableScale from '@/components/ui/PressableScale';
 import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
+import type { MediaKind } from '@/lib/types';
 
 export interface RailItem {
   key: string;
   href: string;
   title: string;
   poster?: string;
-  kind: 'show' | 'movie';
+  kind: MediaKind;
   caption?: string;
   progress?: number;
 }

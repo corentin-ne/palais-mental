@@ -8,11 +8,13 @@ import * as Notifications from 'expo-notifications';
 
 import i18n from '@/locales/i18n';
 import { fetchMovie, fetchShow } from './api';
+import { fetchBook } from './books';
+import { fetchGame } from './games';
 import { autoSnapshot } from './backup';
 import { autoSyncAccounts } from './connect';
 import { refreshRelated, relationLabel, visibleRelated } from './related';
 import { episodeCode } from './progress';
-import { Episode, Movie, Show } from './types';
+import { Book, Episode, Game, Movie, Show } from './types';
 import { useLibrary } from '@/store/useLibrary';
 import { RelatedRelease, useConnections } from '@/store/useConnections';
 
@@ -26,10 +28,19 @@ const MAX_SCHEDULED = 60;
 export type UpcomingEntry =
   | { kind: 'episode'; date: number; show: Show; episode: Episode }
   | { kind: 'movie'; date: number; movie: Movie }
+  | { kind: 'book'; date: number; book: Book }
+  | { kind: 'game'; date: number; game: Game }
   | { kind: 'related'; date: number; related: RelatedRelease };
 
 /** Everything still to come, soonest first. Anything from today stays visible all day. */
-export function getUpcoming(shows: Record<string, Show>, movies: Record<string, Movie>, now = Date.now(), related: RelatedRelease[] = []): UpcomingEntry[] {
+export function getUpcoming(
+  shows: Record<string, Show>,
+  movies: Record<string, Movie>,
+  now = Date.now(),
+  related: RelatedRelease[] = [],
+  books: Record<string, Book> = {},
+  games: Record<string, Game> = {},
+): UpcomingEntry[] {
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
   const from = start.getTime();
@@ -39,6 +50,8 @@ export function getUpcoming(shows: Record<string, Show>, movies: Record<string, 
     for (const episode of show.episodes) if (episode.airstamp && episode.airstamp >= from) out.push({ kind: 'episode', date: episode.airstamp, show, episode });
   }
   for (const movie of Object.values(movies)) if (!movie.watchedAt && movie.releaseDate && movie.releaseDate >= from) out.push({ kind: 'movie', date: movie.releaseDate, movie });
+  for (const book of Object.values(books)) if (!book.finishedAt && !book.droppedAt && book.releaseDate && book.releaseDate >= from) out.push({ kind: 'book', date: book.releaseDate, book });
+  for (const game of Object.values(games)) if (!game.finishedAt && !game.droppedAt && game.releaseDate && game.releaseDate >= from) out.push({ kind: 'game', date: game.releaseDate, game });
   for (const r of related) if (r.date >= from) out.push({ kind: 'related', date: r.date, related: r });
   return out.sort((a, b) => a.date - b.date);
 }
@@ -50,9 +63,14 @@ export async function refreshLibrary(force = false) {
   if (refreshing) return;
   refreshing = true;
   try {
-    const { shows, movies, settings } = useLibrary.getState();
+    const { shows, movies, books, games, settings } = useLibrary.getState();
     const now = Date.now();
     const lang = i18n.language;
+    // Books and games are refreshed while their date is unknown or near: dates move before release.
+    const awaited = (x: { releaseDate?: number; finishedAt?: number; syncedAt: number }) =>
+      force || (!x.finishedAt && (!x.releaseDate || x.releaseDate > now - 30 * 86_400_000) && now - x.syncedAt > MOVIE_EVERY);
+    const staleBooks = Object.values(books).filter(awaited);
+    const staleGames = Object.values(games).filter(awaited);
     const staleShows = Object.values(shows).filter((s) => force || now - s.syncedAt > (s.status === 'Ended' ? ENDED_EVERY : SHOW_EVERY));
     const staleMovies = Object.values(movies).filter((m) => force || (!m.watchedAt && (!m.releaseDate || m.releaseDate > now - 30 * 86_400_000) && now - m.syncedAt > MOVIE_EVERY));
     // A few at a time: TVmaze allows about 20 calls per 10 seconds.
@@ -78,6 +96,28 @@ export async function refreshLibrary(force = false) {
         }
       }),
     );
+    for (let i = 0; i < staleBooks.length; i += 4)
+      await Promise.all(
+        staleBooks.slice(i, i + 4).map(async (b) => {
+          try {
+            const { book, redirect } = await fetchBook(b.id, lang);
+            if (!redirect) useLibrary.getState().updateBook({ ...book, cover: book.cover ?? b.cover });
+          } catch {
+            // keep what we have
+          }
+        }),
+      );
+    for (let i = 0; i < staleGames.length; i += 4)
+      await Promise.all(
+        staleGames.slice(i, i + 4).map(async (g) => {
+          try {
+            const { game, redirect } = await fetchGame(g.id, lang);
+            if (!redirect) useLibrary.getState().updateGame({ ...game, cover: game.cover ?? g.cover });
+          } catch {
+            // keep what we have
+          }
+        }),
+      );
   } finally {
     refreshing = false;
   }
@@ -109,10 +149,28 @@ const morningOf = (date: number) => {
   return d.getTime();
 };
 
+function notificationFor(u: UpcomingEntry) {
+  switch (u.kind) {
+    case 'movie':
+      return { title: i18n.t('notify.movieTitle'), body: u.movie.title, data: { url: `/movie/${u.movie.id}` } };
+    case 'book':
+      return { title: i18n.t('notify.bookTitle'), body: [u.book.title, u.book.authors[0]].filter(Boolean).join(' · '), data: { url: `/book/${u.book.id}` } };
+    case 'game':
+      return { title: i18n.t('notify.gameTitle'), body: u.game.title, data: { url: `/game/${u.game.id}` } };
+    case 'related': {
+      const r = u.related;
+      const url = r.href ?? (r.kind === 'movie' ? `/movie/imdb-${r.imdbId}` : `/show/name:${encodeURIComponent(r.title)}`);
+      return { title: i18n.t(r.relation === 'sequel' ? 'notify.sequelTitle' : 'notify.relatedTitle'), body: `${r.title} · ${relationLabel(r)}`, data: { url } };
+    }
+    default:
+      return { title: u.show.title, body: i18n.t('notify.episode', { code: episodeCode(u.episode), name: u.episode.name }), data: { url: `/show/${u.show.tvmazeId}` } };
+  }
+}
+
 /** Rebuild every scheduled notification from the library (idempotent). */
 export async function scheduleNotifications() {
   if (Platform.OS === 'web') return;
-  const { shows, movies, settings } = useLibrary.getState();
+  const { shows, movies, books, games, settings } = useLibrary.getState();
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
     if (!settings.notifications || (await notificationPermission()) !== 'granted') return;
@@ -121,26 +179,13 @@ export async function scheduleNotifications() {
     }
     const now = Date.now();
     const related = settings.related ? visibleRelated(useConnections.getState().related.entries) : [];
-    const entries = getUpcoming(shows, movies, now, related)
+    const entries = getUpcoming(shows, movies, now, related, books, games)
       .map((u) => ({ u, at: u.kind === 'episode' ? u.date : morningOf(u.date) }))
       .filter(({ at }) => at > now + 60_000)
       .slice(0, MAX_SCHEDULED);
     for (const { u, at } of entries) {
       await Notifications.scheduleNotificationAsync({
-        content:
-          u.kind === 'movie'
-            ? { title: i18n.t('notify.movieTitle'), body: u.movie.title, data: { url: `/movie/${u.movie.id}` } }
-            : u.kind === 'related'
-              ? {
-                  title: i18n.t(u.related.relation === 'sequel' ? 'notify.sequelTitle' : 'notify.relatedTitle'),
-                  body: `${u.related.title} · ${relationLabel(u.related)}`,
-                  data: { url: u.related.kind === 'movie' ? `/movie/imdb-${u.related.imdbId}` : `/show/name:${encodeURIComponent(u.related.title)}` },
-                }
-              : {
-                title: u.show.title,
-                body: i18n.t('notify.episode', { code: episodeCode(u.episode), name: u.episode.name }),
-                data: { url: `/show/${u.show.tvmazeId}` },
-              },
+        content: notificationFor(u),
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(at), channelId: CHANNEL },
       });
     }
@@ -170,7 +215,7 @@ export function startSync() {
   const sub = AppState.addEventListener('change', (s) => s === 'active' && run());
   let timer: ReturnType<typeof setTimeout> | undefined;
   const unsub = useLibrary.subscribe((s, prev) => {
-    if (s.shows === prev.shows && s.movies === prev.movies && s.settings === prev.settings) return;
+    if (s.shows === prev.shows && s.movies === prev.movies && s.books === prev.books && s.games === prev.games && s.settings === prev.settings) return;
     clearTimeout(timer);
     timer = setTimeout(scheduleNotifications, 2000);
   });

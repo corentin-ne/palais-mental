@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import PosterRail, { RailItem } from '@/components/media/PosterRail';
+import ShelfCard from '@/components/media/ShelfCard';
 import UpNextCard from '@/components/media/UpNextCard';
 import Button from '@/components/ui/Button';
 import Empty from '@/components/ui/Empty';
@@ -17,12 +18,14 @@ import { useLayout } from '@/hooks/useLayout';
 import { SearchResult, popularShows } from '@/lib/api';
 import { countdown, relativeDay } from '@/lib/format';
 import { episodeCode, progressOf, showState } from '@/lib/progress';
+import { shelfActivity, shelfState } from '@/lib/shelf';
 import { OUT_NOW, refreshRelated, relatedHref, relationLabel, visibleRelated } from '@/lib/related';
 import { getUpcoming, refreshLibrary } from '@/lib/sync';
+import { Book, Game } from '@/lib/types';
 import { RelatedRelease, useConnections } from '@/store/useConnections';
 import { useLibrary } from '@/store/useLibrary';
 
-/** What to watch now: the next episode of every show in progress, then what is waiting. */
+/** What to watch now: the next episode of every show in progress, the books and games you're in, then what is waiting. */
 export default function UpNextScreen() {
   const { t } = useTranslation();
   const { palette } = useTheme();
@@ -31,6 +34,8 @@ export default function UpNextScreen() {
   const { inner, gap, wide } = useLayout();
   const shows = useLibrary((s) => s.shows);
   const movies = useLibrary((s) => s.movies);
+  const books = useLibrary((s) => s.books);
+  const games = useLibrary((s) => s.games);
   const relatedOn = useLibrary((s) => s.settings.related);
   const related = useConnections((s) => s.related.entries);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,11 +63,21 @@ export default function UpNextScreen() {
         .filter((m) => !m.watchedAt && (!m.releaseDate || m.releaseDate <= now))
         .sort((a, b) => b.addedAt - a.addedAt)
         .map((m): RailItem => ({ key: m.id, href: `/movie/${m.id}`, title: m.title, poster: m.poster, kind: 'movie', caption: m.year ? String(m.year) : undefined })),
-      soon: getUpcoming(shows, movies, now)
+      soon: getUpcoming(shows, movies, now, [], books, games)
         .filter((u) => u.date > now)
-        .slice(0, 4),
+        .slice(0, 5),
     };
-  }, [shows, movies, t]);
+  }, [shows, movies, books, games, t]);
+
+  // Books and games you're in the middle of, last touched first.
+  const { reading, playing } = useMemo(() => {
+    const now = Date.now();
+    const byActivity = (a: Book | Game, b: Book | Game) => shelfActivity(b) - shelfActivity(a);
+    return {
+      reading: Object.values(books).filter((b) => shelfState(b, now) === 'started').sort(byActivity),
+      playing: Object.values(games).filter((g) => shelfState(g, now) === 'started').sort(byActivity),
+    };
+  }, [books, games]);
 
   // Sequels and same-universe titles released lately that you don't have yet.
   const outNow = useMemo(() => {
@@ -80,7 +95,7 @@ export default function UpNextScreen() {
     setRefreshing(false);
   }, []);
 
-  const empty = !Object.keys(shows).length && !Object.keys(movies).length;
+  const empty = !Object.keys(shows).length && !Object.keys(movies).length && !Object.keys(books).length && !Object.keys(games).length;
   const cols = wide ? 2 : 1;
   const cardW = Math.floor((inner - gap * (cols - 1)) / cols);
 
@@ -90,7 +105,7 @@ export default function UpNextScreen() {
         <Welcome />
       ) : (
         <>
-          {upNext.length > 0 ? (
+          {upNext.length > 0 || !Object.keys(shows).length ? (
             <View style={[styles.cards, { gap }]}>
               {upNext.map(({ show, progress }, i) => (
                 <FadeIn key={show.id} index={i}>
@@ -103,6 +118,30 @@ export default function UpNextScreen() {
               <Icon name="check" size={20} color={palette.success} strokeWidth={2.4} />
               <Text style={styles.allCaughtText}>{t('upNext.caughtUp')}</Text>
             </FadeIn>
+          )}
+
+          {reading.length > 0 && (
+            <Section title={t('upNext.reading')}>
+              <View style={[styles.cards, { gap, marginTop: 0 }]}>
+                {reading.map((b, i) => (
+                  <FadeIn key={b.id} index={i}>
+                    <ShelfCard kind="book" item={b} width={cardW} />
+                  </FadeIn>
+                ))}
+              </View>
+            </Section>
+          )}
+
+          {playing.length > 0 && (
+            <Section title={t('upNext.playing')}>
+              <View style={[styles.cards, { gap, marginTop: 0 }]}>
+                {playing.map((g, i) => (
+                  <FadeIn key={g.id} index={i}>
+                    <ShelfCard kind="game" item={g} width={cardW} />
+                  </FadeIn>
+                ))}
+              </View>
+            </Section>
           )}
 
           {soon.length > 0 && (
@@ -118,9 +157,14 @@ export default function UpNextScreen() {
               <View style={styles.soonList}>
                 {soon.map((u, i) => {
                   if (u.kind === 'related') return null;
-                  const title = u.kind === 'episode' ? u.show.title : u.movie.title;
-                  const detail = u.kind === 'episode' ? `${episodeCode(u.episode)} · ${u.episode.name}` : t('calendar.inTheaters');
-                  const href = u.kind === 'episode' ? `/show/${u.show.tvmazeId}` : `/movie/${u.movie.id}`;
+                  const { title, detail, href, icon } =
+                    u.kind === 'episode'
+                      ? { title: u.show.title, detail: `${episodeCode(u.episode)} · ${u.episode.name}`, href: `/show/${u.show.tvmazeId}`, icon: 'series' as const }
+                      : u.kind === 'movie'
+                        ? { title: u.movie.title, detail: t('calendar.inTheaters'), href: `/movie/${u.movie.id}`, icon: 'movies' as const }
+                        : u.kind === 'book'
+                          ? { title: u.book.title, detail: t('calendar.bookOut'), href: `/book/${u.book.id}`, icon: 'journal' as const }
+                          : { title: u.game.title, detail: t('calendar.gameOut'), href: `/game/${u.game.id}`, icon: 'play' as const };
                   return (
                     <FadeIn key={`${title}${u.date}${i}`} index={i}>
                       <PressableScale depth={0.98} onPress={() => router.push(href as never)} style={styles.soonRow}>
@@ -137,7 +181,7 @@ export default function UpNextScreen() {
                             {detail}
                           </Text>
                         </View>
-                        <Icon name={u.kind === 'episode' ? 'series' : 'movies'} size={18} color={palette.inkFaint} />
+                        <Icon name={icon} size={18} color={palette.inkFaint} />
                       </PressableScale>
                     </FadeIn>
                   );

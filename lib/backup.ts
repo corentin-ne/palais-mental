@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { toCsv as csv } from './csv';
 import { episodeCode, sortEpisodes } from './progress';
-import { Movie, Show } from './types';
+import { Book, Game, Movie, Show } from './types';
 import { LibraryData, compactLibrary, useLibrary } from '@/store/useLibrary';
 
 const FORMAT = 'palais-mental';
@@ -21,8 +21,8 @@ const stamp = () => new Date().toISOString().slice(0, 10);
 const iso = (ms?: number) => (ms ? new Date(ms).toISOString() : '');
 
 export function buildBackup(): string {
-  const { shows, movies } = useLibrary.getState();
-  return JSON.stringify({ format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), shows, movies }, null, 2);
+  const { shows, movies, books, games } = useLibrary.getState();
+  return JSON.stringify({ format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), shows, movies, books, games }, null, 2);
 }
 
 
@@ -38,6 +38,20 @@ export function buildMoviesCsv(movies: Movie[]) {
   const rows: unknown[][] = [['title', 'year', 'release_date', 'director', 'runtime_min', 'imdb_id', 'source', 'watched_at', 'added_at', 'rating_10']];
   for (const m of movies)
     rows.push([m.title, m.year ?? '', iso(m.releaseDate).slice(0, 10), m.director ?? '', m.runtime ?? '', m.imdbId ?? '', `${m.source}:${m.sourceId}`, iso(m.watchedAt), iso(m.addedAt), m.rating ?? '']);
+  return csv(rows);
+}
+
+export function buildBooksCsv(books: Book[]) {
+  const rows: unknown[][] = [['title', 'authors', 'year', 'release_date', 'pages', 'page', 'isbn', 'source', 'started_at', 'finished_at', 'dropped', 'rating_10']];
+  for (const b of books)
+    rows.push([b.title, b.authors.join(', '), b.year ?? '', iso(b.releaseDate).slice(0, 10), b.pages ?? '', b.page ?? '', b.isbn ?? '', `${b.source}:${b.sourceId}`, iso(b.startedAt), iso(b.finishedAt), b.droppedAt ? 'yes' : '', b.rating ?? '']);
+  return csv(rows);
+}
+
+export function buildGamesCsv(games: Game[]) {
+  const rows: unknown[][] = [['title', 'developer', 'year', 'release_date', 'platforms', 'hours', 'percent', 'steam_id', 'source', 'started_at', 'finished_at', 'dropped', 'rating_10']];
+  for (const g of games)
+    rows.push([g.title, g.developer ?? '', g.year ?? '', iso(g.releaseDate).slice(0, 10), g.platforms.join(', '), g.hours ?? '', g.percent ?? '', g.steamId ?? '', `${g.source}:${g.sourceId}`, iso(g.startedAt), iso(g.finishedAt), g.droppedAt ? 'yes' : '', g.rating ?? '']);
   return csv(rows);
 }
 
@@ -58,10 +72,12 @@ export async function deliver(name: string, content: string, mime: string) {
   if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(file.uri, { mimeType: mime, dialogTitle: name });
 }
 
-export type ExportKind = 'json' | 'shows-csv' | 'movies-csv';
+export type ExportKind = 'json' | 'shows-csv' | 'movies-csv' | 'books-csv' | 'games-csv';
 
 export async function exportData(kind: ExportKind) {
-  const { shows, movies } = useLibrary.getState();
+  const { shows, movies, books, games } = useLibrary.getState();
+  if (kind === 'books-csv') return deliver(`palais-mental-books-${stamp()}.csv`, buildBooksCsv(Object.values(books)), 'text/csv');
+  if (kind === 'games-csv') return deliver(`palais-mental-games-${stamp()}.csv`, buildGamesCsv(Object.values(games)), 'text/csv');
   if (kind === 'json') return deliver(`palais-mental-${stamp()}.json`, buildBackup(), 'application/json');
   if (kind === 'shows-csv') return deliver(`palais-mental-shows-${stamp()}.csv`, buildShowsCsv(Object.values(shows)), 'text/csv');
   return deliver(`palais-mental-films-${stamp()}.csv`, buildMoviesCsv(Object.values(movies)), 'text/csv');
@@ -70,7 +86,7 @@ export async function exportData(kind: ExportKind) {
 export function parseBackup(text: string): LibraryData {
   const json = JSON.parse(text);
   if (json?.format !== FORMAT || typeof json.shows !== 'object' || typeof json.movies !== 'object') throw new Error('Not a Palais Mental backup');
-  return { shows: json.shows ?? {}, movies: json.movies ?? {} };
+  return { shows: json.shows ?? {}, movies: json.movies ?? {}, books: json.books ?? {}, games: json.games ?? {} };
 }
 
 type PickedAsset = DocumentPicker.DocumentPickerAsset;
@@ -100,6 +116,9 @@ export interface Snapshot {
   at: number;
   shows: number;
   movies: number;
+  /** Absent from copies made before 1.2. */
+  books?: number;
+  games?: number;
 }
 
 async function readSnapshots(): Promise<(Snapshot & { data: LibraryData })[]> {
@@ -113,17 +132,17 @@ async function readSnapshots(): Promise<(Snapshot & { data: LibraryData })[]> {
 }
 
 export async function autoSnapshot(force = false) {
-  const { shows, movies } = useLibrary.getState();
-  const counts = { shows: Object.keys(shows).length, movies: Object.keys(movies).length };
-  if (!counts.shows && !counts.movies) return;
+  const { shows, movies, books, games } = useLibrary.getState();
+  const counts = { shows: Object.keys(shows).length, movies: Object.keys(movies).length, books: Object.keys(books).length, games: Object.keys(games).length };
+  if (!counts.shows && !counts.movies && !counts.books && !counts.games) return;
   const list = await readSnapshots();
   if (!force && list[0] && Date.now() - list[0].at < SNAPSHOT_EVERY) return;
-  const next = [{ at: Date.now(), ...counts, data: compactLibrary({ shows, movies }) }, ...list].slice(0, KEEP);
+  const next = [{ at: Date.now(), ...counts, data: compactLibrary({ shows, movies, books, games }) }, ...list].slice(0, KEEP);
   await AsyncStorage.setItem(SNAPSHOTS, JSON.stringify(next)).catch(() => undefined);
 }
 
 export async function listSnapshots(): Promise<Snapshot[]> {
-  return (await readSnapshots()).map(({ at, shows, movies }) => ({ at, shows, movies }));
+  return (await readSnapshots()).map(({ at, shows, movies, books, games }) => ({ at, shows, movies, books, games }));
 }
 
 /** Merges a snapshot back in: nothing you logged since is lost. */

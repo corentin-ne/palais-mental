@@ -15,13 +15,19 @@ import { makeStyles, noOutline, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
 import { SearchResult, popularMovies, popularShows, searchMovies, searchShows } from '@/lib/api';
-import { addMovie, followShow } from '@/lib/actions';
+import { addBook, addGame, addMovie, followShow } from '@/lib/actions';
+import { searchBooks, trendingBooks } from '@/lib/books';
+import { popularGames, searchGames } from '@/lib/games';
 import { countdown } from '@/lib/format';
 import { useLibrary } from '@/store/useLibrary';
 
-type Scope = 'all' | 'shows' | 'movies';
+type Scope = 'all' | 'shows' | 'movies' | 'books' | 'games';
+const SCOPES: Scope[] = ['all', 'shows', 'movies', 'books', 'games'];
+const hrefOf = (r: SearchResult) => `/${r.kind}/${r.id}`;
+const caption = (r: SearchResult) => (r.releaseDate && r.releaseDate > Date.now() ? countdown(r.releaseDate) : r.subtitle ?? (r.year ? String(r.year) : undefined));
+const rail = (items: SearchResult[]) => items.map((p) => ({ key: p.id, href: hrefOf(p), title: p.title, poster: p.poster, kind: p.kind, caption: caption(p) }));
 
-/** One field for every show and film; add straight from the results. */
+/** One field for every show, film, book and game; add straight from the results. */
 export default function SearchScreen() {
   const { t, i18n } = useTranslation();
   const { palette } = useTheme();
@@ -34,12 +40,22 @@ export default function SearchScreen() {
   const [scope, setScope] = useState<Scope>('all');
   const [shows, setShows] = useState<SearchResult[]>([]);
   const [movies, setMovies] = useState<SearchResult[]>([]);
+  const [books, setBooks] = useState<SearchResult[]>([]);
+  const [games, setGames] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [discover, setDiscover] = useState<{ shows: SearchResult[]; movies: SearchResult[] }>({ shows: [], movies: [] });
+  const [discover, setDiscover] = useState<{ shows: SearchResult[]; movies: SearchResult[]; books: SearchResult[]; games: SearchResult[]; gamesSoon: SearchResult[] }>({
+    shows: [],
+    movies: [],
+    books: [],
+    games: [],
+    gamesSoon: [],
+  });
   const request = useRef(0);
 
   useEffect(() => {
-    Promise.all([popularShows(), popularMovies({ tmdbKey, lang: i18n.language })]).then(([s, m]) => setDiscover({ shows: s, movies: m }));
+    Promise.all([popularShows(), popularMovies({ tmdbKey, lang: i18n.language }), trendingBooks(), popularGames(i18n.language)]).then(([s, m, b, g]) =>
+      setDiscover({ shows: s, movies: m, books: b, games: g.top, gamesSoon: g.soon }),
+    );
   }, [tmdbKey, i18n.language]);
 
   useEffect(() => {
@@ -47,19 +63,27 @@ export default function SearchScreen() {
     if (query.length < 2) {
       setShows([]);
       setMovies([]);
+      setBooks([]);
+      setGames([]);
       setLoading(false);
       return;
     }
     const id = ++request.current;
     setLoading(true);
     const timer = setTimeout(async () => {
-      const [s, m] = await Promise.all([
-        scope !== 'movies' ? searchShows(query) : Promise.resolve([]),
-        scope !== 'shows' ? searchMovies(query, { tmdbKey, lang: i18n.language }) : Promise.resolve([]),
+      const wants = (s: Scope) => scope === 'all' || scope === s;
+      const none = Promise.resolve([] as SearchResult[]);
+      const [s, m, b, g] = await Promise.all([
+        wants('shows') ? searchShows(query) : none,
+        wants('movies') ? searchMovies(query, { tmdbKey, lang: i18n.language }) : none,
+        wants('books') ? searchBooks(query, i18n.language) : none,
+        wants('games') ? searchGames(query, i18n.language) : none,
       ]);
       if (id !== request.current) return;
       setShows(s);
       setMovies(m);
+      setBooks(b);
+      setGames(g);
       setLoading(false);
     }, 280);
     return () => clearTimeout(timer);
@@ -108,41 +132,46 @@ export default function SearchScreen() {
             <Text style={styles.cancel}>{t('common.cancel')}</Text>
           </PressableScale>
         </View>
-        <Segmented
-          value={scope}
-          onChange={setScope}
-          options={[
-            { value: 'all', label: t('common.all') },
-            { value: 'shows', label: t('common.shows') },
-            { value: 'movies', label: t('common.movies') },
-          ]}
-        />
+        <Segmented value={scope} onChange={setScope} options={SCOPES.map((value) => ({ value, label: t(`common.${value}`) }))} />
       </View>
 
       <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: insets.bottom + 40, alignItems: 'center' }}>
         <View style={{ width: content, paddingHorizontal: gutter }}>
           {!searching ? (
             <>
-              {scope !== 'movies' && discover.shows.length > 0 && (
+              {(scope === 'all' || scope === 'shows') && discover.shows.length > 0 && (
                 <Section title={t('search.onTonight')} style={{ marginTop: 22 }}>
-                  <PosterRail items={discover.shows.map((p) => ({ key: p.id, href: `/show/${p.id}`, title: p.title, poster: p.poster, kind: 'show', caption: p.subtitle }))} />
+                  <PosterRail items={rail(discover.shows)} />
                 </Section>
               )}
-              {scope !== 'shows' && discover.movies.length > 0 && (
+              {(scope === 'all' || scope === 'movies') && discover.movies.length > 0 && (
                 <Section title={t('search.popularFilms')} style={{ marginTop: 22 }}>
-                  <PosterRail
-                    items={discover.movies.map((p) => ({ key: p.id, href: `/movie/${p.id}`, title: p.title, poster: p.poster, kind: 'movie', caption: p.year ? String(p.year) : undefined }))}
-                  />
+                  <PosterRail items={discover.movies.map((p) => ({ ...rail([p])[0], caption: p.year ? String(p.year) : undefined }))} />
+                </Section>
+              )}
+              {(scope === 'all' || scope === 'books') && discover.books.length > 0 && (
+                <Section title={t('search.trendingBooks')} style={{ marginTop: 22 }}>
+                  <PosterRail items={rail(discover.books)} />
+                </Section>
+              )}
+              {(scope === 'all' || scope === 'games') && discover.games.length > 0 && (
+                <Section title={t('search.topGames')} style={{ marginTop: 22 }}>
+                  <PosterRail items={rail(discover.games)} />
+                </Section>
+              )}
+              {scope === 'games' && discover.gamesSoon.length > 0 && (
+                <Section title={t('search.soonGames')} style={{ marginTop: 22 }}>
+                  <PosterRail items={rail(discover.gamesSoon)} />
                 </Section>
               )}
             </>
-          ) : loading && !shows.length && !movies.length ? (
+          ) : loading && !shows.length && !movies.length && !books.length && !games.length ? (
             <View style={{ marginTop: 18 }}>
               {[0, 1, 2, 3, 4].map((i) => (
                 <ResultSkeleton key={i} />
               ))}
             </View>
-          ) : !shows.length && !movies.length ? (
+          ) : !shows.length && !movies.length && !books.length && !games.length ? (
             <Text style={styles.none}>{t('search.none', { q: q.trim() })}</Text>
           ) : (
             <>
@@ -154,6 +183,16 @@ export default function SearchScreen() {
               {movies.length > 0 && (
                 <Section title={t('common.movies')} style={{ marginTop: 26 }}>
                   {list(scope === 'all' ? movies.slice(0, 8) : movies)}
+                </Section>
+              )}
+              {books.length > 0 && (
+                <Section title={t('common.books')} style={{ marginTop: 26 }}>
+                  {list(scope === 'all' ? books.slice(0, 6) : books)}
+                </Section>
+              )}
+              {games.length > 0 && (
+                <Section title={t('common.games')} style={{ marginTop: 26 }}>
+                  {list(scope === 'all' ? games.slice(0, 6) : games)}
                 </Section>
               )}
             </>
@@ -170,7 +209,7 @@ function ResultRow({ r }: { r: SearchResult }) {
   const styles = useStyles();
   const router = useRouter();
   const haptics = useHaptics();
-  const inLibrary = useLibrary((s) => (r.kind === 'show' ? !!s.shows[r.id] : !!s.movies[r.id]));
+  const inLibrary = useLibrary((s) => !!(r.kind === 'show' ? s.shows : r.kind === 'movie' ? s.movies : r.kind === 'book' ? s.books : s.games)[r.id]);
   const [busy, setBusy] = useState(false);
   const upcoming = r.releaseDate && r.releaseDate > Date.now();
   const meta = [r.year, r.subtitle].filter(Boolean).join(' · ');
@@ -181,6 +220,8 @@ function ResultRow({ r }: { r: SearchResult }) {
     haptics.tap();
     try {
       if (r.kind === 'show') await followShow(r.id);
+      else if (r.kind === 'book') await addBook(r.id);
+      else if (r.kind === 'game') await addGame(r.id);
       else await addMovie(r.id, r);
       haptics.success();
     } catch {
@@ -191,7 +232,7 @@ function ResultRow({ r }: { r: SearchResult }) {
   };
 
   return (
-    <PressableScale depth={0.98} onPress={() => router.push((r.kind === 'show' ? `/show/${r.id}` : `/movie/${r.id}`) as never)} style={styles.row} accessibilityLabel={r.title}>
+    <PressableScale depth={0.98} onPress={() => router.push(hrefOf(r) as never)} style={styles.row} accessibilityLabel={r.title}>
       <Poster uri={r.poster} title={r.title} width={50} kind={r.kind} elevated={false} radius={7} />
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={styles.title} numberOfLines={2}>

@@ -13,15 +13,16 @@ import { makeStyles, useTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 import { dayKey, relativeDay, timeOf } from '@/lib/format';
 import { episodeCode } from '@/lib/progress';
+import type { MediaKind } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
 
 type Row =
   | { type: 'day'; key: string; day: number }
-  | { type: 'item'; key: string; at: number; title: string; detail: string; poster?: string; kind: 'show' | 'movie'; href: string };
+  | { type: 'item'; key: string; at: number; title: string; detail: string; poster?: string; kind: MediaKind; href: string };
 
 const LIMIT = 300;
 
-/** Everything you watched, most recent first. */
+/** Everything you watched, read and played, most recent first. */
 export default function HistoryScreen() {
   const { t } = useTranslation();
   const { palette, type } = useTheme();
@@ -31,6 +32,8 @@ export default function HistoryScreen() {
   const { gutter, content } = useLayout();
   const shows = useLibrary((s) => s.shows);
   const movies = useLibrary((s) => s.movies);
+  const books = useLibrary((s) => s.books);
+  const games = useLibrary((s) => s.games);
 
   const rows = useMemo(() => {
     const events: Extract<Row, { type: 'item' }>[] = [];
@@ -44,6 +47,16 @@ export default function HistoryScreen() {
     }
     for (const m of Object.values(movies))
       if (m.watchedAt) events.push({ type: 'item', key: `m${m.id}`, at: m.watchedAt, title: m.title, detail: t('history.film'), poster: m.poster, kind: 'movie', href: `/movie/${m.id}` });
+    for (const b of Object.values(books)) {
+      const base = { type: 'item' as const, title: b.title, poster: b.cover, kind: 'book' as const, href: `/book/${b.id}` };
+      if (b.finishedAt) events.push({ ...base, key: `bf${b.id}`, at: b.finishedAt, detail: t('history.bookFinished') });
+      if (b.startedAt && b.startedAt !== b.finishedAt) events.push({ ...base, key: `bs${b.id}`, at: b.startedAt, detail: t('history.bookStarted') });
+    }
+    for (const g of Object.values(games)) {
+      const base = { type: 'item' as const, title: g.title, poster: g.cover, kind: 'game' as const, href: `/game/${g.id}` };
+      if (g.finishedAt) events.push({ ...base, key: `gf${g.id}`, at: g.finishedAt, detail: t('history.gameFinished') });
+      if (g.startedAt && g.startedAt !== g.finishedAt) events.push({ ...base, key: `gs${g.id}`, at: g.startedAt, detail: t('history.gameStarted') });
+    }
     events.sort((a, b) => b.at - a.at);
     const out: Row[] = [];
     let last = -1;
@@ -54,7 +67,7 @@ export default function HistoryScreen() {
       out.push(ev);
     }
     return out;
-  }, [shows, movies, t]);
+  }, [shows, movies, books, games, t]);
 
   return (
     <View style={styles.root}>

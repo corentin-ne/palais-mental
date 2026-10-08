@@ -16,7 +16,9 @@
     "save": "Save",
     "remove": "Remove",
     "retry": "Try again",
-    "back": "Back"
+    "back": "Back",
+    "books": "Books",
+    "games": "Games"
   },
   "greeting": {
     "night": "Late night viewing?",
@@ -26,19 +28,22 @@
   },
   "welcome": {
     "title": "Everything you watch, in one place",
-    "body": "Follow shows and films, tick episodes as you go, and know the day anything new comes out.",
-    "cta": "Find a show or film",
+    "body": "Follow shows, films, books and games, keep your place as you go, and know the day anything new comes out.",
+    "cta": "Find something",
     "import": "Restore a backup",
     "connect": "Bring your Letterboxd or anime lists"
   },
   "search": {
     "title": "Search",
-    "placeholder": "Shows and films",
+    "placeholder": "Shows, films, books, games",
     "onTonight": "On tonight",
     "popularFilms": "Popular films",
     "none": "Nothing found for “{{q}}”.",
     "add": "Add",
-    "added": "In your library"
+    "added": "In your library",
+    "trendingBooks": "Read this week",
+    "topGames": "Top sellers",
+    "soonGames": "Coming soon"
   },
   "upNext": {
     "title": "Up next",
@@ -49,7 +54,9 @@
     "caughtUp": "You're all caught up.",
     "comingUp": "Coming up",
     "notStarted": "Haven't started",
-    "watchlist": "Films to watch"
+    "watchlist": "Films to watch",
+    "reading": "Reading",
+    "playing": "Playing"
   },
   "calendar": {
     "title": "Calendar",
@@ -63,13 +70,17 @@
     "askBody": "Get a notification when a new episode airs or a film comes out. Nothing else.",
     "askCta": "Turn on",
     "emptyTitle": "Nothing scheduled yet",
-    "emptyBody": "Follow shows still airing or films not out yet, and their dates will appear here."
+    "emptyBody": "Follow shows still airing, or add films, books and games not out yet, and their dates will appear here.",
+    "bookOut": "Out in bookshops",
+    "gameOut": "Release day"
   },
   "notify": {
     "movieTitle": "Out today",
     "episode": "{{code}} is out · {{name}}",
     "sequelTitle": "A sequel is out",
-    "relatedTitle": "New in a universe you follow"
+    "relatedTitle": "New in a universe you follow",
+    "bookTitle": "New book out today",
+    "gameTitle": "Out today, ready to play"
   },
   "date": {
     "today": "Today",
@@ -101,7 +112,7 @@
   "library": {
     "title": "Library",
     "emptyTitle": "Your library is empty",
-    "emptyBody": "Shows and films you add will gather here.",
+    "emptyBody": "Shows, films, books and games you add will gather here.",
     "watchlist": "To watch",
     "upcoming": "Coming soon",
     "watched": "Watched",
@@ -162,7 +173,11 @@
     "dropped": "{{title}} dropped",
     "resumed": "{{title}} is back in Up next",
     "upTo": "Watched up to {{code}}",
-    "watchedEp": "{{code}} watched"
+    "watchedEp": "{{code}} watched",
+    "addedBook": "{{title}} added to your reading list",
+    "addedGame": "{{title}} added to your games",
+    "finishedBook": "{{title}} finished",
+    "finishedGame": "{{title}} finished"
   },
   "profile": {
     "title": "You",
@@ -178,7 +193,7 @@
     "language": "Language",
     "system": "System",
     "sources": "Sources",
-    "sourcesNote": "Shows come from TVmaze. Films come from IMDb, iTunes, Wikidata and Wikipedia, or TMDB with a key.",
+    "sourcesNote": "Shows come from TVmaze. Films from IMDb, iTunes, Wikidata and Wikipedia, or TMDB with a key. Books from Open Library and Google Books, games from Steam and Wikidata.",
     "tmdb": "TMDB key",
     "active": "Active",
     "tmdbHint": "Optional. A free TMDB key adds film backdrops, cast, trending films and exact release dates.",
@@ -194,15 +209,21 @@
     "import": "Import backup",
     "importHint": "Merged with what's already here",
     "exportFailed": "Export failed",
-    "imported": "Imported {{shows}} shows and {{movies}} films",
+    "imported": "Imported {{shows}} shows, {{movies}} films, {{books}} books and {{games}} games",
     "importFailed": "That file isn't a Palais Mental backup",
     "appearance": "Appearance",
     "light": "Light",
     "dark": "Dark",
     "snapshotsHint": "Automatic copies kept on this phone. Restoring merges them in: nothing logged since is lost.",
     "snapshot": "Copy from {{date}}",
-    "snapshotCounts": "{{shows}} shows · {{movies}} films",
-    "snapshotRestored": "Copy merged back in"
+    "snapshotCounts": "{{shows}} shows · {{movies}} films · {{books}} books · {{games}} games",
+    "snapshotRestored": "Copy merged back in",
+    "books": "Books read",
+    "pages": "Pages read",
+    "games": "Games finished",
+    "playTime": "Hours played",
+    "exportBooks": "Export books (CSV)",
+    "exportGames": "Export games (CSV)"
   },
   "extras": {
     "trailer": "Trailer",
@@ -215,10 +236,14 @@
   },
   "history": {
     "title": "History",
-    "hint": "Everything you watched, by day",
+    "hint": "Everything you watched, read and played, by day",
     "film": "Film",
     "emptyTitle": "Nothing watched yet",
-    "emptyBody": "Episodes and films you mark as watched appear here."
+    "emptyBody": "Episodes and films you watch, books and games you start and finish appear here.",
+    "bookStarted": "Started reading",
+    "bookFinished": "Finished reading",
+    "gameStarted": "Started playing",
+    "gameFinished": "Finished"
   },
   "rating": {
     "label": "Your rating",
@@ -234,7 +259,9 @@
     "sameUniverse": "Same universe as {{title}}",
     "outNow": "Out now in your universes",
     "setting": "Sequels and universes",
-    "settingHint": "Sequels and titles from the same universe (MCU, Star Wars…) as what you watch, in the calendar"
+    "settingHint": "Sequels, prequels and titles from the same series or universe as what you watch, read and play, in the calendar",
+    "prequel": "Prequel",
+    "prequelTo": "Prequel to {{title}}"
   },
   "connect": {
     "title": "Connections",
@@ -267,5 +294,64 @@
     "unmatchedHint": "These couldn’t be matched to TVmaze or a film source. They are retried in a few days.",
     "serializdHint": "Your diary: shows, seasons and episodes (public profile)",
     "exportSerializd": "Serializd has no import page yet, so it can only be read from. Shows from TVmaze are matched by title, or exactly with a TMDB key."
+  },
+  "series": {
+    "title": "In the same series",
+    "prequel": "Before",
+    "sequel": "Next",
+    "expected": "Expected {{year}}",
+    "announced": "Announced",
+    "bookN": "This is book {{n}}",
+    "gameN": "This is game {{n}}"
+  },
+  "shelf": {
+    "add": "Add to my list",
+    "remindHint": "It will show in your calendar, with a notification on release day.",
+    "droppedOn": "Dropped on {{date}}",
+    "book": {
+      "started": "Reading",
+      "want": "To read",
+      "upcoming": "Coming soon",
+      "finished": "Read",
+      "dropped": "Dropped"
+    },
+    "game": {
+      "started": "Playing",
+      "want": "To play",
+      "upcoming": "Coming soon",
+      "finished": "Finished",
+      "dropped": "Dropped"
+    }
+  },
+  "book": {
+    "pages_one": "{{count}} page",
+    "pages_other": "{{count}} pages",
+    "published": "Published",
+    "start": "Start reading",
+    "yourPage": "Your page",
+    "ofPages_one": "of {{count}}",
+    "ofPages_other": "of {{count}}",
+    "finished": "Finished",
+    "finishedOn": "Read on {{date}}",
+    "again": "Read again",
+    "pageOf_one": "Page {{page}} of {{count}}",
+    "pageOf_other": "Page {{page}} of {{count}}",
+    "pageN": "Page {{page}}",
+    "notStartedPage": "Page 1",
+    "nextPage": "Next page (hold for ten)"
+  },
+  "game": {
+    "released": "Released",
+    "start": "Start playing",
+    "hours": "Hours played",
+    "hoursUnit": "h",
+    "completion": "Completion",
+    "finished": "Finished",
+    "finishedOn": "Finished on {{date}}",
+    "again": "Play again",
+    "hoursN_one": "{{count}} h",
+    "hoursN_other": "{{count}} h",
+    "justStarted": "Just started",
+    "addHour": "One more hour"
   }
 }

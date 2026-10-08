@@ -17,6 +17,7 @@ import { ExportKind, Snapshot, autoSnapshot, exportData, listSnapshots, pickBack
 import { refreshRelated } from '@/lib/related';
 import { duration, fullDate } from '@/lib/format';
 import { minutesWatched } from '@/lib/progress';
+import { pagesRead } from '@/lib/shelf';
 import { refreshLibrary, requestNotifications, scheduleNotifications } from '@/lib/sync';
 import type { LanguagePreference } from '@/locales/i18n';
 import type { Settings } from '@/lib/types';
@@ -32,6 +33,8 @@ export default function ProfileScreen() {
   const { wide } = useLayout();
   const shows = useLibrary((s) => s.shows);
   const movies = useLibrary((s) => s.movies);
+  const books = useLibrary((s) => s.books);
+  const games = useLibrary((s) => s.games);
   const settings = useLibrary((s) => s.settings);
   const language = useLibrary((s) => s.language);
   const setSettings = useLibrary((s) => s.setSettings);
@@ -47,8 +50,12 @@ export default function ProfileScreen() {
       showMinutes: showList.reduce((n, s) => n + minutesWatched(s), 0),
       films: watchedMovies.length,
       filmMinutes: watchedMovies.reduce((n, m) => n + (m.runtime ?? 0), 0),
+      books: Object.values(books).filter((b) => b.finishedAt).length,
+      pages: Object.values(books).reduce((n, b) => n + pagesRead(b), 0),
+      games: Object.values(games).filter((g) => g.finishedAt).length,
+      hours: Object.values(games).reduce((n, g) => n + (g.hours ?? 0), 0),
     };
-  }, [shows, movies]);
+  }, [shows, movies, books, games]);
 
   const onExport = async (kind: ExportKind) => {
     try {
@@ -65,7 +72,14 @@ export default function ProfileScreen() {
       if (!data) return;
       useLibrary.getState().importData(data, 'merge');
       haptics.success();
-      toast(t('profile.imported', { shows: Object.keys(data.shows).length, movies: Object.keys(data.movies).length }));
+      toast(
+        t('profile.imported', {
+          shows: Object.keys(data.shows).length,
+          movies: Object.keys(data.movies).length,
+          books: Object.keys(data.books ?? {}).length,
+          games: Object.keys(data.games ?? {}).length,
+        }),
+      );
       refreshLibrary(true);
     } catch {
       toast(t('profile.importFailed'));
@@ -80,6 +94,14 @@ export default function ProfileScreen() {
         <Stat index={2} icon="movies" value={stats.films} label={t('profile.films')} />
         <Stat index={3} icon="clock" text={duration(stats.filmMinutes)} label={t('profile.filmTime')} />
       </View>
+      {(stats.books > 0 || stats.pages > 0 || stats.games > 0 || stats.hours > 0) && (
+        <View style={[styles.stats, { marginTop: 10 }, wide && { flexWrap: 'nowrap' }]}>
+          <Stat index={4} icon="journal" value={stats.books} label={t('profile.books')} />
+          <Stat index={5} icon="journal" value={stats.pages} label={t('profile.pages')} />
+          <Stat index={6} icon="play" value={stats.games} label={t('profile.games')} />
+          <Stat index={7} icon="clock" value={Math.round(stats.hours)} label={t('profile.playTime')} />
+        </View>
+      )}
 
       <View style={[styles.group, { marginTop: 12 }]}>
         <ActionRow icon="clock" label={t('history.title')} hint={t('history.hint')} onPress={() => router.push('/history')} />
@@ -162,6 +184,8 @@ export default function ProfileScreen() {
           <ActionRow icon="download" label={t('profile.exportJson')} hint={t('profile.exportJsonHint')} onPress={() => onExport('json')} />
           <ActionRow icon="series" label={t('profile.exportShows')} onPress={() => onExport('shows-csv')} />
           <ActionRow icon="movies" label={t('profile.exportMovies')} onPress={() => onExport('movies-csv')} />
+          <ActionRow icon="journal" label={t('profile.exportBooks')} onPress={() => onExport('books-csv')} />
+          <ActionRow icon="play" label={t('profile.exportGames')} onPress={() => onExport('games-csv')} />
           <ActionRow icon="upload" label={t('profile.import')} hint={t('profile.importHint')} onPress={onImport} />
         </Group>
         <Snapshots />
@@ -236,7 +260,7 @@ function Snapshots() {
             key={s.at}
             icon="undo"
             label={t('profile.snapshot', { date: fullDate(s.at) })}
-            hint={t('profile.snapshotCounts', { shows: s.shows, movies: s.movies })}
+            hint={t('profile.snapshotCounts', { shows: s.shows, movies: s.movies, books: s.books ?? 0, games: s.games ?? 0 })}
             onPress={async () => {
               const ok = await restoreSnapshot(s.at);
               useUi.getState().showToast(t(ok ? 'profile.snapshotRestored' : 'profile.importFailed'));

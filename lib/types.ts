@@ -63,6 +63,85 @@ export interface Movie {
 
 export type ShowState = 'watching' | 'notStarted' | 'upToDate' | 'finished' | 'dropped';
 
+/** Everything the library holds, for posters and routes. */
+export type MediaKind = 'show' | 'movie' | 'book' | 'game';
+
+/** Where a book comes from: Open Library, Google Books or Wikidata (all keyless). */
+export type BookSource = 'ol' | 'gb' | 'wd';
+
+/** A previous or next entry, or the series a book or game belongs to (Wikidata). */
+export interface SeriesInfo {
+  name: string;
+  /** Position in the series ("3", "1.5"). */
+  ordinal?: string;
+}
+
+export interface Book {
+  /** `${source}-${sourceId}`, also the route parameter. */
+  id: string;
+  source: BookSource;
+  sourceId: string;
+  title: string;
+  authors: string[];
+  cover?: string;
+  year?: number;
+  /** Publication date (ms). In the future → shown in the calendar and notified. */
+  releaseDate?: number;
+  pages?: number;
+  overview?: string;
+  subjects: string[];
+  isbn?: string;
+  wikidataId?: string;
+  series?: SeriesInfo;
+  /** The page you are at. */
+  page?: number;
+  /** Last time the page changed. */
+  touchedAt?: number;
+  startedAt?: number;
+  finishedAt?: number;
+  droppedAt?: number;
+  /** Your rating, 1–10 (half stars). */
+  rating?: number;
+  addedAt: number;
+  syncedAt: number;
+}
+
+/** Where a game comes from: the Steam store or Wikidata (keyless). */
+export type GameSource = 'steam' | 'wd';
+
+export interface Game {
+  id: string;
+  source: GameSource;
+  sourceId: string;
+  title: string;
+  cover?: string;
+  backdrop?: string;
+  year?: number;
+  releaseDate?: number;
+  developer?: string;
+  platforms: string[];
+  genres: string[];
+  overview?: string;
+  steamId?: string;
+  wikidataId?: string;
+  series?: SeriesInfo;
+  /** Hours played. */
+  hours?: number;
+  /** How far you are, 0–100. */
+  percent?: number;
+  /** Last time the progress changed. */
+  touchedAt?: number;
+  startedAt?: number;
+  finishedAt?: number;
+  droppedAt?: number;
+  rating?: number;
+  addedAt: number;
+  syncedAt: number;
+}
+
+/** Books and games: on your list, started, finished or dropped; `upcoming` while not out. */
+export type ShelfState = 'started' | 'want' | 'upcoming' | 'finished' | 'dropped';
+
 export interface Settings {
   notifications: boolean;
   haptics: boolean;

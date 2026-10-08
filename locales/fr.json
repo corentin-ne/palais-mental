@@ -16,7 +16,9 @@
     "save": "Enregistrer",
     "remove": "Retirer",
     "retry": "Réessayer",
-    "back": "Retour"
+    "back": "Retour",
+    "books": "Livres",
+    "games": "Jeux"
   },
   "greeting": {
     "night": "Une séance de nuit ?",
@@ -26,19 +28,22 @@
   },
   "welcome": {
     "title": "Tout ce que vous regardez, au même endroit",
-    "body": "Suivez séries et films, cochez les épisodes au fil de l'eau et sachez le jour où quelque chose de nouveau sort.",
-    "cta": "Trouver une série ou un film",
+    "body": "Suivez séries, films, livres et jeux, gardez votre place au fil de l'eau et sachez le jour où quelque chose de nouveau sort.",
+    "cta": "Trouver quelque chose",
     "import": "Restaurer une sauvegarde",
     "connect": "Importer Letterboxd ou vos listes d’anime"
   },
   "search": {
     "title": "Rechercher",
-    "placeholder": "Séries et films",
+    "placeholder": "Séries, films, livres, jeux",
     "onTonight": "Ce soir",
     "popularFilms": "Films populaires",
     "none": "Aucun résultat pour « {{q}} ».",
     "add": "Ajouter",
-    "added": "Dans votre bibliothèque"
+    "added": "Dans votre bibliothèque",
+    "trendingBooks": "Lus cette semaine",
+    "topGames": "Meilleures ventes",
+    "soonGames": "Bientôt disponibles"
   },
   "upNext": {
     "title": "À suivre",
@@ -49,7 +54,9 @@
     "caughtUp": "Vous êtes à jour.",
     "comingUp": "Bientôt",
     "notStarted": "Pas encore commencées",
-    "watchlist": "Films à voir"
+    "watchlist": "Films à voir",
+    "reading": "En lecture",
+    "playing": "En cours de jeu"
   },
   "calendar": {
     "title": "Calendrier",
@@ -63,13 +70,17 @@
     "askBody": "Une notification quand un nouvel épisode est diffusé ou qu'un film sort. Rien d'autre.",
     "askCta": "Activer",
     "emptyTitle": "Rien de prévu pour l'instant",
-    "emptyBody": "Suivez des séries en cours ou des films pas encore sortis : leurs dates apparaîtront ici."
+    "emptyBody": "Suivez des séries en cours, ou ajoutez des films, livres et jeux pas encore sortis : leurs dates apparaîtront ici.",
+    "bookOut": "En librairie",
+    "gameOut": "Jour de sortie"
   },
   "notify": {
     "movieTitle": "Sort aujourd'hui",
     "episode": "{{code}} est disponible · {{name}}",
     "sequelTitle": "Une suite est sortie",
-    "relatedTitle": "Nouveau dans un univers que vous suivez"
+    "relatedTitle": "Nouveau dans un univers que vous suivez",
+    "bookTitle": "Un livre sort aujourd'hui",
+    "gameTitle": "Sorti aujourd'hui, prêt à jouer"
   },
   "date": {
     "today": "Aujourd'hui",
@@ -101,7 +112,7 @@
   "library": {
     "title": "Bibliothèque",
     "emptyTitle": "Votre bibliothèque est vide",
-    "emptyBody": "Les séries et films que vous ajoutez se rassembleront ici.",
+    "emptyBody": "Les séries, films, livres et jeux que vous ajoutez se rassembleront ici.",
     "watchlist": "À voir",
     "upcoming": "Bientôt",
     "watched": "Vus",
@@ -162,7 +173,11 @@
     "dropped": "{{title}} abandonnée",
     "resumed": "{{title}} revient dans À suivre",
     "upTo": "Vu jusqu'à {{code}}",
-    "watchedEp": "{{code}} vu"
+    "watchedEp": "{{code}} vu",
+    "addedBook": "{{title}} ajouté à vos lectures",
+    "addedGame": "{{title}} ajouté à vos jeux",
+    "finishedBook": "{{title}} terminé",
+    "finishedGame": "{{title}} terminé"
   },
   "profile": {
     "title": "Vous",
@@ -178,7 +193,7 @@
     "language": "Langue",
     "system": "Système",
     "sources": "Sources",
-    "sourcesNote": "Les séries viennent de TVmaze. Les films d'IMDb, iTunes, Wikidata et Wikipédia, ou de TMDB avec une clé.",
+    "sourcesNote": "Les séries viennent de TVmaze. Les films d'IMDb, iTunes, Wikidata et Wikipédia, ou de TMDB avec une clé. Les livres d'Open Library et Google Books, les jeux de Steam et Wikidata.",
     "tmdb": "Clé TMDB",
     "active": "Active",
     "tmdbHint": "Facultatif. Une clé TMDB gratuite ajoute les visuels des films, la distribution, les tendances et les dates de sortie exactes.",
@@ -194,15 +209,21 @@
     "import": "Importer une sauvegarde",
     "importHint": "Fusionnée avec ce qui est déjà là",
     "exportFailed": "L'export a échoué",
-    "imported": "{{shows}} séries et {{movies}} films importés",
+    "imported": "{{shows}} séries, {{movies}} films, {{books}} livres et {{games}} jeux importés",
     "importFailed": "Ce fichier n'est pas une sauvegarde Palais Mental",
     "appearance": "Apparence",
     "light": "Clair",
     "dark": "Sombre",
     "snapshotsHint": "Copies automatiques gardées sur ce téléphone. Restaurer les fusionne : rien de ce que vous avez noté depuis n’est perdu.",
     "snapshot": "Copie du {{date}}",
-    "snapshotCounts": "{{shows}} séries · {{movies}} films",
-    "snapshotRestored": "Copie fusionnée"
+    "snapshotCounts": "{{shows}} séries · {{movies}} films · {{books}} livres · {{games}} jeux",
+    "snapshotRestored": "Copie fusionnée",
+    "books": "Livres lus",
+    "pages": "Pages lues",
+    "games": "Jeux terminés",
+    "playTime": "Heures de jeu",
+    "exportBooks": "Exporter les livres (CSV)",
+    "exportGames": "Exporter les jeux (CSV)"
   },
   "extras": {
     "trailer": "Bande-annonce",
@@ -215,10 +236,14 @@
   },
   "history": {
     "title": "Historique",
-    "hint": "Tout ce que vous avez regardé, jour par jour",
+    "hint": "Tout ce que vous avez regardé, lu et joué, jour par jour",
     "film": "Film",
     "emptyTitle": "Rien de regardé pour l'instant",
-    "emptyBody": "Les épisodes et films marqués comme vus apparaissent ici."
+    "emptyBody": "Les épisodes et films vus, les livres et jeux commencés et terminés apparaissent ici.",
+    "bookStarted": "Lecture commencée",
+    "bookFinished": "Lecture terminée",
+    "gameStarted": "Partie commencée",
+    "gameFinished": "Terminé"
   },
   "rating": {
     "label": "Votre note",
@@ -234,7 +259,9 @@
     "sameUniverse": "Même univers que {{title}}",
     "outNow": "Sorti dans vos univers",
     "setting": "Suites et univers",
-    "settingHint": "Les suites et titres du même univers (MCU, Star Wars…) que ce que vous regardez, dans le calendrier"
+    "settingHint": "Suites, préquelles et titres de la même série ou du même univers que ce que vous regardez, lisez et jouez, dans le calendrier",
+    "prequel": "Préquelle",
+    "prequelTo": "Préquelle de {{title}}"
   },
   "connect": {
     "title": "Connexions",
@@ -267,5 +294,64 @@
     "unmatchedHint": "Pas de correspondance sur TVmaze ou les sources de films. Nouvel essai dans quelques jours.",
     "serializdHint": "Votre journal : séries, saisons et épisodes (profil public)",
     "exportSerializd": "Serializd n’a pas encore de page d’import : il ne peut qu’être lu. Les séries sont retrouvées sur TVmaze par titre, ou exactement avec une clé TMDB."
+  },
+  "series": {
+    "title": "Dans la même série",
+    "prequel": "Avant",
+    "sequel": "Après",
+    "expected": "Prévu en {{year}}",
+    "announced": "Annoncé",
+    "bookN": "C'est le tome {{n}}",
+    "gameN": "C'est l'épisode {{n}}"
+  },
+  "shelf": {
+    "add": "Ajouter à ma liste",
+    "remindHint": "Il apparaîtra dans votre calendrier, avec une notification le jour de sa sortie.",
+    "droppedOn": "Abandonné le {{date}}",
+    "book": {
+      "started": "En lecture",
+      "want": "À lire",
+      "upcoming": "Bientôt",
+      "finished": "Lus",
+      "dropped": "Abandonnés"
+    },
+    "game": {
+      "started": "En cours",
+      "want": "À jouer",
+      "upcoming": "Bientôt",
+      "finished": "Terminés",
+      "dropped": "Abandonnés"
+    }
+  },
+  "book": {
+    "pages_one": "{{count}} page",
+    "pages_other": "{{count}} pages",
+    "published": "Paru le",
+    "start": "Commencer",
+    "yourPage": "Votre page",
+    "ofPages_one": "sur {{count}}",
+    "ofPages_other": "sur {{count}}",
+    "finished": "Terminé",
+    "finishedOn": "Lu le {{date}}",
+    "again": "Relire",
+    "pageOf_one": "Page {{page}} sur {{count}}",
+    "pageOf_other": "Page {{page}} sur {{count}}",
+    "pageN": "Page {{page}}",
+    "notStartedPage": "Page 1",
+    "nextPage": "Page suivante (maintenir pour dix)"
+  },
+  "game": {
+    "released": "Sorti le",
+    "start": "Commencer",
+    "hours": "Heures de jeu",
+    "hoursUnit": "h",
+    "completion": "Progression",
+    "finished": "Terminé",
+    "finishedOn": "Terminé le {{date}}",
+    "again": "Rejouer",
+    "hoursN_one": "{{count}} h",
+    "hoursN_other": "{{count}} h",
+    "justStarted": "Tout juste commencé",
+    "addHour": "Une heure de plus"
   }
 }

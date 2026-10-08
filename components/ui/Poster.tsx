@@ -5,14 +5,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import Icon from './Icon';
 import { makeStyles, useTheme } from '@/constants/theme';
+import type { MediaKind } from '@/lib/types';
 
+const KIND_ICON = { show: 'series', movie: 'movies', book: 'journal', game: 'play' } as const;
 const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0;
 
 interface Props {
   uri?: string;
   title: string;
   width: number;
-  kind?: 'show' | 'movie';
+  kind?: MediaKind;
   radius?: number;
   /** 0–1: a slim bar along the bottom edge (show progress). */
   progress?: number;
@@ -43,7 +45,7 @@ export default function Poster({ uri, title, width, kind = 'show', radius, progr
           />
         ) : (
           <LinearGradient colors={tint} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, styles.generated]}>
-            <Icon name={kind === 'show' ? 'series' : 'movies'} size={width < 80 ? 14 : 18} color={palette.inkFaint} />
+            <Icon name={KIND_ICON[kind]} size={width < 80 ? 14 : 18} color={palette.inkFaint} />
             {width >= 80 && (
               <Text style={[styles.genTitle, { fontSize: Math.max(13, Math.min(22, width / 7)) }]} numberOfLines={4}>
                 {title}
