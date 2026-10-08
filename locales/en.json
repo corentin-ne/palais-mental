@@ -130,9 +130,11 @@
     }
   },
   "show": {
+    "upNext": "Up next",
     "episodeN": "Episode {{n}}",
     "markWatched": "Mark as watched",
-    "progress": "{{watched}} of {{aired}} episodes",
+    "progress_one": "{{watched}} of {{aired}} episodes",
+    "progress_other": "{{watched}} of {{aired}} episodes",
     "notAired": "No episodes aired yet",
     "watchedNext": "Watched {{code}}",
     "nextAirs": "{{code}} airs {{when}}",
@@ -145,10 +147,12 @@
     "season": "Season {{n}}",
     "watchSeason": "Mark season watched",
     "unwatchSeason": "Unmark season",
-    "longPressHint": "Long-press a tick to mark everything up to that episode.",
+    "longPressHint": "Tick any episode to pick up from there; long-press a tick to mark everything up to it.",
     "tba": "Date to be announced",
-    "watchAll_one": "Mark the {{count}} aired episodes as watched",
-    "watchAll_other": "Mark all {{count}} aired episodes as watched"
+    "watchAll_one": "Mark the {{count}} episode left as watched",
+    "watchAll_other": "Mark the {{count}} episodes left as watched",
+    "skipped_one": "{{count}} earlier episode not ticked · mark it watched",
+    "skipped_other": "{{count}} earlier episodes not ticked · mark them watched"
   },
   "movie": {
     "releases": "Out on",
@@ -177,6 +181,11 @@
     "dropped": "{{title}} dropped",
     "resumed": "{{title}} is back in Up next",
     "upTo": "Watched up to {{code}}",
+    "caughtUp": "Up to date on {{title}}",
+    "seasonWatched": "Season {{n}} watched",
+    "seasonUnwatched": "Season {{n}} unticked",
+    "earlierWatched_one": "{{count}} earlier episode marked watched",
+    "earlierWatched_other": "{{count}} earlier episodes marked watched",
     "watchedEp": "{{code}} watched",
     "addedBook": "{{title}} added to your reading list",
     "addedGame": "{{title}} added to your games",

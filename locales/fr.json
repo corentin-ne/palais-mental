@@ -130,9 +130,11 @@
     }
   },
   "show": {
+    "upNext": "À suivre",
     "episodeN": "Épisode {{n}}",
     "markWatched": "Marquer comme vu",
-    "progress": "{{watched}} épisodes vus sur {{aired}}",
+    "progress_one": "{{watched}} épisode vu sur {{aired}}",
+    "progress_other": "{{watched}} épisodes vus sur {{aired}}",
     "notAired": "Aucun épisode diffusé",
     "watchedNext": "Vu {{code}}",
     "nextAirs": "{{code}} diffusé {{when}}",
@@ -145,10 +147,12 @@
     "season": "Saison {{n}}",
     "watchSeason": "Marquer la saison vue",
     "unwatchSeason": "Démarquer la saison",
-    "longPressHint": "Appui long sur une coche pour tout marquer jusqu'à cet épisode.",
+    "longPressHint": "Cochez n'importe quel épisode pour reprendre à partir de là ; appui long pour tout marquer jusqu'à lui.",
     "tba": "Date à venir",
-    "watchAll_one": "Marquer l'épisode diffusé comme vu",
-    "watchAll_other": "Marquer les {{count}} épisodes diffusés comme vus"
+    "watchAll_one": "Marquer l'épisode restant comme vu",
+    "watchAll_other": "Marquer les {{count}} épisodes restants comme vus",
+    "skipped_one": "{{count}} épisode précédent non coché · le marquer vu",
+    "skipped_other": "{{count}} épisodes précédents non cochés · les marquer vus"
   },
   "movie": {
     "releases": "Sortie le",
@@ -177,6 +181,11 @@
     "dropped": "{{title}} abandonnée",
     "resumed": "{{title}} revient dans À suivre",
     "upTo": "Vu jusqu'à {{code}}",
+    "caughtUp": "À jour sur {{title}}",
+    "seasonWatched": "Saison {{n}} vue",
+    "seasonUnwatched": "Saison {{n}} décochée",
+    "earlierWatched_one": "{{count}} épisode précédent marqué vu",
+    "earlierWatched_other": "{{count}} épisodes précédents marqués vus",
     "watchedEp": "{{code}} vu",
     "addedBook": "{{title}} ajouté à vos lectures",
     "addedGame": "{{title}} ajouté à vos jeux",

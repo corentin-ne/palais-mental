@@ -13,29 +13,41 @@ export function sortEpisodes(list: Episode[]) {
 export interface Progress {
   aired: number;
   watched: number;
-  /** Aired episodes not yet watched. */
+  /** Aired episodes not yet watched after the furthest one you watched. */
   left: number;
+  /** The first of those: you pick up where you left off, not at the first gap. */
   next?: Episode;
+  /** Those episodes, in order. */
+  ahead: Episode[];
+  /** Aired episodes left unwatched before the furthest one you watched (started mid-way, skipped). */
+  skipped: Episode[];
   /** Next episode still to air. */
   upcoming?: Episode;
+  /** How far along you are: skipped episodes count as behind you. */
   fraction: number;
 }
 
 export function progressOf(show: Show, now = Date.now()): Progress {
+  const list = sortEpisodes(show.episodes);
+  let furthest = -1;
+  list.forEach((e, i) => {
+    if (isWatched(show, e)) furthest = i;
+  });
   let aired = 0;
   let watched = 0;
-  let next: Episode | undefined;
   let upcoming: Episode | undefined;
-  for (const e of sortEpisodes(show.episodes)) {
+  const ahead: Episode[] = [];
+  const skipped: Episode[] = [];
+  list.forEach((e, i) => {
     const seen = isWatched(show, e);
     if (seen) watched++;
     if (hasAired(e, now)) {
       aired++;
-      if (!seen && !next) next = e;
-    } else if (!upcoming && e.airstamp) upcoming = e;
-  }
-  const left = Math.max(0, aired - Math.min(watched, aired));
-  return { aired, watched, left, next, upcoming, fraction: aired ? Math.min(1, watched / aired) : 0 };
+      if (!seen) (i > furthest ? ahead : skipped).push(e);
+    } else if (!upcoming && e.airstamp && i > furthest) upcoming = e;
+  });
+  const left = ahead.length;
+  return { aired, watched, left, next: ahead[0], ahead, skipped, upcoming, fraction: aired ? Math.min(1, (aired - left) / aired) : 0 };
 }
 
 export function showState(show: Show, now = Date.now()): ShowState {

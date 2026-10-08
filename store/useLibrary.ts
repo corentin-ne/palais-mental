@@ -4,8 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { LanguagePreference } from '@/locales/i18n';
 import { lazyStorage } from '@/lib/storage';
-import { hasAired, sortEpisodes } from '@/lib/progress';
-import { Book, Episode, EpisodeNote, Game, Movie, Settings, Show } from '@/lib/types';
+import { Book, EpisodeNote, Game, Movie, Settings, Show } from '@/lib/types';
 
 export type ShowData = Omit<Show, 'watched' | 'addedAt' | 'droppedAt' | 'rating' | 'review' | 'reviewedAt' | 'notes'>;
 export type MovieData = Omit<Movie, 'watchedAt' | 'addedAt' | 'rating'>;
@@ -35,8 +34,6 @@ interface LibraryState extends LibraryData {
   /** `at` backdates newly watched episodes (imports); already watched ones keep their date. */
   setEpisodes: (showId: string, episodeIds: number[], watched: boolean, at?: number) => void;
   toggleEpisode: (showId: string, episodeId: number) => boolean;
-  /** Marks every aired episode up to and including `episode`. */
-  watchUpTo: (showId: string, episode: Episode) => void;
   setDropped: (showId: string, dropped: boolean) => void;
   /** Patch an episode's note; a note left with neither rating nor text is removed. */
   setEpisodeNote: (showId: string, episodeId: number, patch: Partial<Omit<EpisodeNote, 'at'>>) => void;
@@ -165,14 +162,6 @@ export const useLibrary = create<LibraryState>()(
         const watched = !get().shows[showId]?.watched[episodeId];
         get().setEpisodes(showId, [episodeId], watched);
         return watched;
-      },
-      watchUpTo: (showId, episode) => {
-        const show = get().shows[showId];
-        if (!show) return;
-        const ids = sortEpisodes(show.episodes)
-          .filter((e) => (e.season < episode.season || (e.season === episode.season && e.number <= episode.number)) && (hasAired(e) || e.id === episode.id))
-          .map((e) => e.id);
-        get().setEpisodes(showId, ids, true);
       },
       setDropped: (showId, dropped) => set((s) => patchShow(s, showId, (show) => ({ ...show, droppedAt: dropped ? Date.now() : undefined }))),
       setEpisodeNote: (showId, episodeId, patch) =>

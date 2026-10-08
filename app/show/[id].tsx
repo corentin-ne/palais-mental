@@ -91,19 +91,29 @@ export default function ShowScreen() {
     const watched = useLibrary.getState().toggleEpisode(id, e.id);
     watched ? haptics.success() : haptics.tap();
   };
-  const watchUpTo = (e: Episode) => {
+  /** Marks several episodes at once; the undo unmarks only the ones this added. */
+  const markMany = (list: Episode[], message: string) => {
     ensureTracked();
-    useLibrary.getState().watchUpTo(id, e);
+    const before = useLibrary.getState().shows[id]?.watched ?? {};
+    const added = list.filter((e) => !before[e.id]).map((e) => e.id);
+    useLibrary.getState().setEpisodes(id, added, true);
     haptics.success();
-    useUi.getState().showToast(t('toast.upTo', { code: episodeCode(e) }));
+    useUi.getState().showToast(message, added.length ? () => useLibrary.getState().setEpisodes(id, added, false) : undefined);
   };
-  const lastAired = show ? [...show.episodes].filter((e) => hasAired(e)).sort((a, b) => b.season - a.season || b.number - a.number)[0] : undefined;
+  const watchUpTo = (e: Episode) => {
+    if (!show) return;
+    const upTo = show.episodes.filter((x) => (x.season < e.season || (x.season === e.season && x.number <= e.number)) && (hasAired(x) || x.id === e.id));
+    markMany(upTo, t('toast.upTo', { code: episodeCode(e) }));
+  };
   const seasonAired = episodes.filter((e) => hasAired(e));
   const seasonDone = seasonAired.length > 0 && seasonAired.every((e) => show?.watched[e.id]);
   const toggleSeason = () => {
+    if (!seasonDone) return markMany(seasonAired, t('toast.seasonWatched', { n: current }));
     ensureTracked();
-    useLibrary.getState().setEpisodes(id, seasonAired.map((e) => e.id), !seasonDone);
-    haptics.success();
+    const before = seasonAired.filter((e) => show?.watched[e.id]).map((e) => e.id);
+    useLibrary.getState().setEpisodes(id, before, false);
+    haptics.tap();
+    useUi.getState().showToast(t('toast.seasonUnwatched', { n: current }), () => useLibrary.getState().setEpisodes(id, before, true));
   };
 
   const meta = show
@@ -135,7 +145,7 @@ export default function ShowScreen() {
                     {state === 'dropped'
                       ? t('state.dropped')
                       : progress.aired
-                        ? t('show.progress', { watched: Math.min(progress.watched, progress.aired), aired: progress.aired })
+                        ? t('show.progress', { count: Math.min(progress.watched, progress.aired), watched: Math.min(progress.watched, progress.aired), aired: progress.aired })
                         : t('show.notAired')}
                   </Text>
                   <Text style={styles.progressState}>{state ? t(`state.${state}`) : ''}</Text>
@@ -147,8 +157,14 @@ export default function ShowScreen() {
                   <Button label={t('show.watchedNext', { code: episodeCode(progress.next) })} icon="check" onPress={() => toggle(progress.next!)} style={{ marginTop: 6 }} />
                 )}
                 {progress.left > 1 && state !== 'dropped' && (
-                  <PressableScale onPress={() => watchUpTo(lastAired!)} style={{ alignSelf: 'center', paddingVertical: 4 }}>
+                  <PressableScale onPress={() => markMany(progress.ahead, t('toast.caughtUp', { title: show.title }))} style={{ alignSelf: 'center', paddingVertical: 4 }}>
                     <Text style={styles.allLink}>{t('show.watchAll', { count: progress.left })}</Text>
+                  </PressableScale>
+                )}
+                {/* Started mid-way: the earlier episodes stay out of the way, one tap marks them if you saw them elsewhere. */}
+                {progress.skipped.length > 0 && progress.watched > 0 && (
+                  <PressableScale onPress={() => markMany(progress.skipped, t('toast.earlierWatched', { count: progress.skipped.length }))} style={{ alignSelf: 'center', paddingVertical: 2 }}>
+                    <Text style={styles.skippedLink}>{t('show.skipped', { count: progress.skipped.length })}</Text>
                   </PressableScale>
                 )}
                 {!progress.next && progress.upcoming?.airstamp && (
@@ -230,6 +246,7 @@ export default function ShowScreen() {
                     e={e}
                     index={i}
                     watched={!!show.watched[e.id]}
+                    isNext={!!tracked && state !== 'dropped' && progress.next?.id === e.id}
                     note={show.notes?.[e.id]}
                     onNote={(patch) => {
                       ensureTracked();
@@ -261,6 +278,7 @@ function EpisodeRow({
   e,
   index,
   watched,
+  isNext,
   note,
   synopsis,
   open,
@@ -272,6 +290,8 @@ function EpisodeRow({
   e: Episode;
   index: number;
   watched: boolean;
+  /** Where you pick up: ringed in the accent. */
+  isNext?: boolean;
   note?: EpisodeNote;
   synopsis?: string;
   open: boolean;
@@ -286,7 +306,7 @@ function EpisodeRow({
   const aired = hasAired(e);
   return (
     <FadeIn index={index} distance={8}>
-      <View style={[styles.episode, !aired && { opacity: 0.6 }]}>
+      <View style={[styles.episode, isNext && styles.episodeNext, !aired && { opacity: 0.6 }]}>
         <PressableScale depth={0.99} onPress={onOpen} style={{ gap: 10 }}>
           <View style={styles.epTop}>
             <View style={styles.still}>
@@ -295,6 +315,7 @@ function EpisodeRow({
             <View style={{ flex: 1, gap: 2 }}>
               <View style={styles.epCodeRow}>
                 <Text style={styles.epCode}>{episodeCode(e)}</Text>
+                {isNext && <Text style={styles.nextTag}>{t('show.upNext')}</Text>}
                 {note?.rating != null && <StarBadge value={note.rating} />}
                 {!!note?.text && <Icon name="journal" size={13} color={palette.primaryText} />}
               </View>
@@ -359,6 +380,7 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   fill: { height: 6, borderRadius: 3 },
   nextAir: { ...type.small, color: palette.primaryText },
   allLink: { ...fonts.semibold, fontSize: 13.5, color: palette.primaryText },
+  skippedLink: { ...fonts.medium, fontSize: 12.5, color: palette.inkSoft, textAlign: 'center' },
   actions: { flexDirection: 'row', gap: 8, marginTop: 4 },
   sectionTitle: { ...type.title },
   seasonHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -372,6 +394,8 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   hint: { ...type.small, fontSize: 12, marginTop: -4 },
   episodes: { gap: 8 },
   episode: { padding: 10, borderRadius: radii.md, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, gap: 10 },
+  episodeNext: { borderColor: palette.primaryRing, backgroundColor: palette.primaryTint },
+  nextTag: { ...fonts.semibold, fontSize: 11, letterSpacing: 0.3, color: palette.primaryText },
   epCodeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   notePanel: { gap: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: palette.hairline },
   note: { minHeight: 64, borderRadius: 12, padding: 12, backgroundColor: palette.field, ...fonts.displayItalic, fontSize: 17, lineHeight: 22, color: palette.ink },
