@@ -1,2 +1,2 @@
 spark-ui-kit native layer, vendored from v1.3.0 (https://github.com/corentin-ne/spark-ui-kit/tree/v1.3.0/native)
-Local change (to carry back into the kit): Press lights the control's edge with an accent ring while pressed (surfaces.tsx).
+Local change (to carry back into the kit): the pointer rim light made for touch: Press lights the edge where the finger lands, a bare tap area inside a <Lit> card lights the whole card (surfaces.tsx).

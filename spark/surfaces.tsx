@@ -7,7 +7,7 @@
  * Cards inside a scrolling screen are translucent glass without blur: the aurora behind them is soft
  * already, and one blur per card would cost a GPU pass per card on every scroll frame.
  */
-import { ReactNode, memo, useRef } from 'react';
+import { ReactNode, createContext, memo, useContext, useRef, useState } from 'react';
 import { Animated, Pressable, PressableProps, StyleProp, StyleSheet, View, ViewStyle, useWindowDimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
@@ -99,38 +99,102 @@ const useGlassStyles = sparkStyles((t) => ({
   highlight: { position: 'absolute', top: 0, height: StyleSheet.hairlineWidth * 2, backgroundColor: t.color.glassHighlight },
 }));
 
+// ------------------------------------------------------------------ Rim light
+/**
+ * The web kit's pointer rim light (rim-light.css) made for touch: where the finger lands, the edge of
+ * the panel catches the accent, fading along the border, with a faint halo inside. It lights while
+ * pressed and fades out after. A control with its own corners lights itself; a bare tap area inside a
+ * card (`<Lit>`) lights the whole card.
+ */
+interface Light {
+  on: (pageX: number, pageY: number) => void;
+  off: () => void;
+}
+const LightContext = createContext<Light | null>(null);
+let rimIds = 0;
+
+function useRimLight(radius: number) {
+  const t = useSpark();
+  const ref = useRef<View>(null);
+  const lit = useRef(new Animated.Value(0)).current;
+  const [spot, setSpot] = useState<{ w: number; h: number; x: number; y: number }>();
+  const id = useRef(`rim${++rimIds}`).current;
+  const light: Light = {
+    on: (pageX, pageY) =>
+      ref.current?.measureInWindow((ox, oy, w, h) => {
+        if (!w || !h) return;
+        setSpot({ w, h, x: pageX - ox, y: pageY - oy });
+        Animated.timing(lit, { toValue: 1, duration: 120, useNativeDriver: true }).start();
+      }),
+    off: () => Animated.timing(lit, { toValue: 0, duration: t.reduceMotion ? 1 : 700, useNativeDriver: true }).start(),
+  };
+  // Panels get a wide light, small controls a tight one (--rim-r: 240px / 110px on the web).
+  const r = spot ? Math.max(70, Math.min(170, Math.max(spot.w, spot.h) * 0.45)) : 0;
+  const layer = spot ? (
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: lit }]}>
+      <Svg width={spot.w} height={spot.h}>
+        <Defs>
+          <RadialGradient id={`${id}r`} cx={spot.x} cy={spot.y} r={r} gradientUnits="userSpaceOnUse">
+            <Stop offset="0" stopColor={t.color.accent} stopOpacity={0.85} />
+            <Stop offset="0.7" stopColor={t.color.accent} stopOpacity={0.12} />
+            <Stop offset="1" stopColor={t.color.accent} stopOpacity={0} />
+          </RadialGradient>
+          <RadialGradient id={`${id}h`} cx={spot.x} cy={spot.y} r={r * 2.3} gradientUnits="userSpaceOnUse">
+            <Stop offset="0" stopColor={t.color.accent} stopOpacity={0.1} />
+            <Stop offset="0.65" stopColor={t.color.accent} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Rect x={0.75} y={0.75} width={spot.w - 1.5} height={spot.h - 1.5} rx={Math.max(0, radius - 0.75)} fill={`url(#${id}h)`} stroke={`url(#${id}r)`} strokeWidth={1.5} />
+      </Svg>
+    </Animated.View>
+  ) : null;
+  return { ref, light, layer };
+}
+
+/** A card holding several controls: any bare tap area inside lights the whole card's rim. */
+export function Lit({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const radius = Number(StyleSheet.flatten(style)?.borderRadius ?? 0);
+  const { ref, light, layer } = useRimLight(radius);
+  return (
+    <LightContext.Provider value={light}>
+      <View ref={ref} style={style}>
+        {children}
+        {layer}
+      </View>
+    </LightContext.Provider>
+  );
+}
+
 // ------------------------------------------------------------------ Press
 export interface PressProps extends Omit<PressableProps, 'style' | 'children'> {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   /** Scale under the finger: 0.97 for controls (default), 0.98–0.99 for large surfaces, 1 for none. */
   depth?: number;
-  /** The accent ring that lights the edge under the finger (on by default). */
+  /** The rim light under the finger (on by default). */
   ring?: boolean;
 }
 
 /**
  * Press feedback (motion §2.8): a spring down to `depth` and back, composited (transform only), and
- * the web's rim light made for touch: the edge takes the accent while pressed and fades out after
- * (buttons.css hover border, rim-light.css). Opacity only, so it costs nothing on lite phones.
+ * the rim light where the finger lands: on the control itself when it has corners, else on the card
+ * around it (`<Lit>`); a bare text link or poster tile only sinks.
  */
 /** One element carries the layout (flex, width, margins) and the scale, so a pressable lays out like a View. */
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function Press({ children, style, depth, disabled, ring = true, ...rest }: PressProps) {
   const t = useSpark();
-  const s = usePressStyles();
   const scale = useRef(new Animated.Value(1)).current;
-  const lit = useRef(new Animated.Value(0)).current;
   const to = (v: number) => Animated.spring(scale, { toValue: v, useNativeDriver: true, ...t.motion.spring }).start();
-  const light = (v: number) => Animated.timing(lit, { toValue: v, duration: v ? 60 : 520, useNativeDriver: true }).start();
   const d = t.reduceMotion ? 1 : (depth ?? t.motion.pressScale);
-  // The ring follows the control's corners; a bare layout box (a poster tile) gets a soft halo around it.
-  const flat = StyleSheet.flatten(style) ?? {};
-  const bare = flat.borderRadius == null;
-  const radius = bare ? 14 : Number(flat.borderRadius);
+  const card = useContext(LightContext);
+  const radius = StyleSheet.flatten(style)?.borderRadius;
+  const own = useRimLight(Number(radius ?? 0));
+  const light = !ring ? null : radius != null ? own.light : card;
   return (
     <AnimatedPressable
+      ref={own.ref as never}
       accessibilityRole="button"
       disabled={disabled}
       accessibilityState={{ disabled: !!disabled }}
@@ -138,28 +202,18 @@ export function Press({ children, style, depth, disabled, ring = true, ...rest }
       {...rest}
       onPressIn={(e) => {
         to(d);
-        if (ring) light(1);
+        light?.on(e.nativeEvent.pageX, e.nativeEvent.pageY);
         rest.onPressIn?.(e);
       }}
       onPressOut={(e) => {
         to(1);
-        if (ring) light(0);
+        light?.off();
         rest.onPressOut?.(e);
       }}
       style={[style, { transform: [{ scale }] }, disabled && { opacity: 0.45 }]}
     >
       {children}
-      {ring && (
-        <Animated.View
-          pointerEvents="none"
-          style={[s.ring, bare ? s.halo : null, { borderRadius: bare ? radius + 4 : radius, opacity: lit }]}
-        />
-      )}
+      {ring && radius != null && own.layer}
     </AnimatedPressable>
   );
 }
-
-const usePressStyles = sparkStyles((t) => ({
-  ring: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderWidth: 1.5, borderColor: t.color.accent, backgroundColor: t.color.accentSoft },
-  halo: { top: -4, left: -4, right: -4, bottom: -4 },
-}));

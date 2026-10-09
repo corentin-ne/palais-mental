@@ -14,6 +14,7 @@ import { episodeCode, Progress } from '@/lib/progress';
 import { Show } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
 import { useUi } from '@/store/useUi';
+import { Lit } from '@/spark';
 
 /**
  * The next episode to watch for one show. Ticking it slides the next one in; the
@@ -45,7 +46,7 @@ export default function UpNextCard({ show, progress, width }: { show: Show; prog
 
   return (
     // The card opens the show and the check marks the episode: siblings, not one control inside another.
-    <View style={[styles.card, { width }]}>
+    <Lit style={[styles.card, { width }]}>
       <PressableScale depth={0.98} onPress={() => router.push(`/show/${show.tvmazeId}`)} style={styles.open} accessibilityLabel={show.title}>
         <View style={[styles.still, { width: imgW, height: Math.round(imgW * 0.625) }]}>
           {still ? (
@@ -75,7 +76,7 @@ export default function UpNextCard({ show, progress, width }: { show: Show; prog
         </Animated.View>
       </PressableScale>
       <CheckButton checked={false} onPress={onCheck} label={t('show.markWatched')} size={40} />
-    </View>
+    </Lit>
   );
 }
 

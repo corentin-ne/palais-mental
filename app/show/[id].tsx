@@ -21,6 +21,7 @@ import { countdown, fullDate, relativeDay, runtime } from '@/lib/format';
 import { episodeCode, hasAired, progressOf, seasonsOf, showState } from '@/lib/progress';
 import { Episode, EpisodeNote, Show } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
+import { Lit } from '@/spark';
 import { useUi } from '@/store/useUi';
 
 export default function ShowScreen() {
@@ -306,7 +307,7 @@ function EpisodeRow({
   const aired = hasAired(e);
   return (
     <FadeIn index={index} distance={8}>
-      <View style={[styles.episode, isNext && styles.episodeNext, !aired && { opacity: 0.6 }]}>
+      <Lit style={[styles.episode, isNext && styles.episodeNext, !aired && { opacity: 0.6 }]}>
         <PressableScale depth={0.99} onPress={onOpen} style={{ gap: 10 }}>
           <View style={styles.epTop}>
             <View style={styles.still}>
@@ -340,7 +341,7 @@ function EpisodeRow({
             <NoteInput value={note?.text} placeholder={t('journal.notePlaceholder')} onSave={(text) => onNote({ text })} />
           </View>
         )}
-      </View>
+      </Lit>
     </FadeIn>
   );
 }

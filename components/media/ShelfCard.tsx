@@ -10,6 +10,7 @@ import { useHaptics } from '@/hooks/useHaptics';
 import { bookFraction, gameFraction } from '@/lib/shelf';
 import { Book, Game } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
+import { Lit } from '@/spark';
 
 type Props = { width: number } & ({ kind: 'book'; item: Book } | { kind: 'game'; item: Game });
 
@@ -45,7 +46,7 @@ export default function ShelfCard({ kind, item, width }: Props) {
 
   return (
     // The card opens the title and the + moves you on: siblings, not one button inside another.
-    <View style={[styles.card, { width }]}>
+    <Lit style={[styles.card, { width }]}>
       <PressableScale depth={0.98} onPress={() => router.push(`/${kind}/${item.id}` as never)} style={styles.open} accessibilityLabel={item.title}>
         <Poster uri={item.cover} title={item.title} width={52} kind={kind} elevated={false} radius={7} />
         <View style={styles.info}>
@@ -78,7 +79,7 @@ export default function ShelfCard({ kind, item, width }: Props) {
       >
         <Icon name="plus" size={18} color={palette.onInk} strokeWidth={2.4} />
       </PressableScale>
-    </View>
+    </Lit>
   );
 }
 
