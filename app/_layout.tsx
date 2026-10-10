@@ -13,6 +13,7 @@ import Toast from '@/components/ui/Toast';
 import UpdatePrompt from '@/components/ui/UpdatePrompt';
 import { useSparkOptions, useTheme } from '@/constants/theme';
 import { useLanguageSync } from '@/hooks/useLanguageSync';
+import { startFriends } from '@/lib/friends';
 import { startSync } from '@/lib/sync';
 import { SparkProvider } from '@/spark';
 import { useLibrary } from '@/store/useLibrary';
@@ -53,6 +54,7 @@ export default function RootLayout() {
   useLanguageSync();
   useNotificationRouting();
   useEffect(() => startSync(), []);
+  useEffect(() => startFriends(), []);
 
   // System fonts (Spark UI kit): nothing to load, the splash waits only for your saved theme and accent.
   useEffect(() => {
@@ -80,6 +82,7 @@ export default function RootLayout() {
           <Stack.Screen name="collection/[kind]/[key]" />
           <Stack.Screen name="history" />
           <Stack.Screen name="connections" />
+          <Stack.Screen name="social" />
           <Stack.Screen name="settings" />
         </Stack>
         <Toast />

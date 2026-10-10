@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import CollectionLink from './CollectionLink';
 import DetailLayout, { Synopsis } from './DetailLayout';
 import SeriesRail from './SeriesRail';
+import FriendsBlock from '@/components/friends/FriendsBlock';
 import { ExtraDetails, ExtraLinks, ExtraRails, ExtraScores } from './ShelfExtras';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
@@ -20,6 +21,7 @@ import { ShelfExtras, mergeExtras } from '@/lib/extras';
 import { countdown, fullDate } from '@/lib/format';
 import { GameMeta, fetchGame, gamePage, loadGameExtras } from '@/lib/games';
 import { Playtime, playtimeOf } from '@/lib/playtime';
+import { useRibbons } from '@/lib/ribbons';
 import { bookFraction, gameFraction, shelfState } from '@/lib/shelf';
 import { shareTitle } from '@/lib/share';
 import { Book, Game } from '@/lib/types';
@@ -35,6 +37,7 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
   const styles = useStyles();
   const router = useRouter();
   const haptics = useHaptics();
+  const ribbon = useRibbons();
   const tracked = useLibrary((s) => (kind === 'book' ? s.books[id] : s.games[id])) as Book | Game | undefined;
   const [meta, setMeta] = useState<BookMeta | GameMeta>();
   const [error, setError] = useState(false);
@@ -137,7 +140,7 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
   const links = useMemo(() => (link ? [{ label: linkLabel, url: link, icon: 'globe' as const }, ...(extras.links ?? []).filter((l) => l.label !== linkLabel)] : (extras.links ?? [])), [link, linkLabel, extras.links]);
 
   return (
-    <DetailLayout kind={kind} title={item?.title} poster={item?.cover} backdrop={game?.backdrop} meta={metaLine} tags={isBook ? book?.subjects : game?.genres} loading={!item} error={error} onRetry={load}>
+    <DetailLayout kind={kind} title={item?.title} poster={item?.cover} backdrop={game?.backdrop} meta={metaLine} tags={isBook ? book?.subjects : game?.genres} loading={!item} error={error} onRetry={load} ribbon={item && ribbon(kind, item)}>
       {item && (
         <>
           <FadeIn index={3} style={styles.panel}>
@@ -271,6 +274,7 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
             )}
           </FadeIn>
 
+          <FriendsBlock kind={kind} item={item} tracked={!!tracked} />
           <ExtraLinks links={links} onShare={() => shareTitle(item.title, item.year, link)} />
           <ExtraScores scores={extras.scores ?? []} />
           <Synopsis text={item.overview} />

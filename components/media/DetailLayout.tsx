@@ -26,6 +26,8 @@ interface Props {
   loading?: boolean;
   error?: boolean;
   onRetry?: () => void;
+  /** What your friends made of it, across the poster. */
+  ribbon?: string;
   children?: ReactNode;
 }
 
@@ -34,7 +36,7 @@ interface Props {
  * then fades into the paper; the poster overlaps it. A frosted bar takes the title once
  * the hero has scrolled away.
  */
-export default function DetailLayout({ kind, title, poster, backdrop, meta, tags, loading, error, onRetry, children }: Props) {
+export default function DetailLayout({ kind, title, poster, backdrop, meta, tags, loading, error, onRetry, ribbon, children }: Props) {
   const { t } = useTranslation();
   const { palette, type, glass } = useTheme();
   const styles = useStyles();
@@ -74,7 +76,7 @@ export default function DetailLayout({ kind, title, poster, backdrop, meta, tags
         <View style={[styles.body, { width: content, paddingHorizontal: gutter, marginTop: -posterW * 0.9 }]}>
           <View style={styles.head}>
             <FadeIn distance={24}>
-              {loading && !poster ? <Skeleton width={posterW} height={posterW * 1.5} radius={14} /> : <Poster uri={poster} title={title ?? ''} width={posterW} kind={kind} />}
+              {loading && !poster ? <Skeleton width={posterW} height={posterW * 1.5} radius={14} /> : <Poster uri={poster} title={title ?? ''} width={posterW} kind={kind} ribbon={ribbon} />}
             </FadeIn>
             <FadeIn index={1} style={{ flex: 1, gap: 6, paddingBottom: 4 }}>
               {title ? (

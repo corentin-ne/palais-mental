@@ -18,6 +18,7 @@ import { useProgressive } from '@/hooks/useProgressive';
 import { Collection, CollectionItem, artOf, collectionHref, groupCollections, isDone, refreshMovieSeries } from '@/lib/collections';
 import { countdown } from '@/lib/format';
 import { progressOf, showState } from '@/lib/progress';
+import { useRibbons } from '@/lib/ribbons';
 import { SHELF_STATES, bookFraction, gameFraction, shelfActivity, shelfState } from '@/lib/shelf';
 import { Book, Game, MediaKind, Movie, ShelfState, ShowState } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
@@ -77,6 +78,8 @@ interface Tile {
   search?: string;
   /** A series: posters stacked. */
   stack?: boolean;
+  /** What your friends made of it. */
+  ribbon?: string;
 }
 
 /** Everything you follow, read and play, as a wall of posters. */
@@ -91,6 +94,7 @@ export default function LibraryScreen() {
   const movies = useLibrary((s) => s.movies);
   const books = useLibrary((s) => s.books);
   const games = useLibrary((s) => s.games);
+  const ribbon = useRibbons();
   // The tab, filters and sort you left the library on come back next time (prefs, kept across launches).
   const prefs = usePrefs();
   const setPrefs = usePrefs((p) => p.set);
@@ -188,6 +192,8 @@ export default function LibraryScreen() {
       progress: done ? done / list.length : undefined,
       dim,
       stack: true,
+      // The band of the first entry that earned one.
+      ribbon: list.map((i) => ribbon(kind, i)).find(Boolean),
       search: list.map((i) => i.title).join(' '),
     };
   };
@@ -217,6 +223,7 @@ export default function LibraryScreen() {
             poster: show.poster,
             progress: state === 'notStarted' ? undefined : progress.fraction,
             dim: state === 'dropped',
+            ribbon: ribbon('show', show),
             search: [show.network, ...show.genres].filter(Boolean).join(' '),
             caption:
               state === 'watching'
@@ -234,6 +241,7 @@ export default function LibraryScreen() {
                   href: `/movie/${m.id}`,
                   title: m.title,
                   poster: m.poster,
+                  ribbon: ribbon('movie', m),
                   search: [m.director, ...m.genres].filter(Boolean).join(' '),
                   caption: movieFilter === 'upcoming' && m.releaseDate ? countdown(m.releaseDate) : m.year ? String(m.year) : undefined,
                 },
@@ -243,6 +251,7 @@ export default function LibraryScreen() {
             href: `/${TAB_KIND[tab]}/${item.id}`,
             title: item.title,
             poster: item.cover,
+            ribbon: ribbon(TAB_KIND[tab], item),
             caption: shelfCaption(item, activeShelf),
             progress: activeShelf === 'started' ? (tab === 'books' ? bookFraction(item as Book) : gameFraction(item as Game)) : undefined,
             dim: activeShelf === 'dropped',
@@ -338,7 +347,7 @@ export default function LibraryScreen() {
 }
 
 /** One poster of the wall. Unchanged tiles skip re-rendering while you type or tick things elsewhere. */
-const PosterTile = memo(function PosterTile({ href, title, poster, caption, progress, dim, stack, width, kind }: Omit<Tile, 'key' | 'search'> & { width: number; kind: MediaKind }) {
+const PosterTile = memo(function PosterTile({ href, title, poster, caption, progress, dim, stack, ribbon, width, kind }: Omit<Tile, 'key' | 'search'> & { width: number; kind: MediaKind }) {
   const router = useRouter();
   const styles = useStyles();
   return (
@@ -351,7 +360,7 @@ const PosterTile = memo(function PosterTile({ href, title, poster, caption, prog
             <View style={[styles.pile, { left: 6, right: 6, top: -4 }]} />
           </>
         )}
-        <Poster uri={poster} title={title} width={width} kind={kind} progress={progress} dim={dim} />
+        <Poster uri={poster} title={title} width={width} kind={kind} progress={progress} dim={dim} ribbon={ribbon} />
       </View>
       <View>
         <Text style={styles.title} numberOfLines={1}>

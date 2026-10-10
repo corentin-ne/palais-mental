@@ -27,10 +27,12 @@ interface Props {
   progress?: number;
   dim?: boolean;
   elevated?: boolean;
+  /** A red band across the cover, like a bookshop's: what your friends made of it. */
+  ribbon?: string;
 }
 
 /** 2:3 artwork with a soft fade-in; titles without art get a generated cover in the app's blues. */
-function Poster({ uri, title, width, kind = 'show', radius, progress, dim, elevated = true }: Props) {
+function Poster({ uri, title, width, kind = 'show', radius, progress, dim, elevated = true, ribbon }: Props) {
   const { shadow, radii, palette } = useTheme();
   const styles = useStyles();
   const [failed, setFailed] = useState(false);
@@ -64,6 +66,15 @@ function Poster({ uri, title, width, kind = 'show', radius, progress, dim, eleva
           </LinearGradient>
         )}
         {dim && <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.dimVeil }]} />}
+        {!!ribbon && width >= 72 && (
+          <View style={[styles.ribbon, { bottom: Math.round(height * 0.13) }]} accessibilityLabel={ribbon}>
+            <View style={styles.ribbonEdge} />
+            <Text style={[styles.ribbonText, { fontSize: Math.max(8, Math.min(13, width / 11.5)) }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
+              {ribbon}
+            </Text>
+            <View style={styles.ribbonEdge} />
+          </View>
+        )}
         {progress != null && progress > 0 && (
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${Math.round(progress * 100)}%`, backgroundColor: progress >= 1 ? palette.success : palette.primary }]} />
@@ -80,6 +91,10 @@ const useStyles = makeStyles(({ fonts, palette }) => ({
   genTitle: { ...fonts.displayItalic, color: palette.posterInk },
   track: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, backgroundColor: 'rgba(10,37,64,0.25)' },
   fill: { height: 4 },
+  // A fixed red whatever your accent: it is a verdict, not decoration.
+  ribbon: { position: 'absolute', left: 0, right: 0, backgroundColor: '#C8102E', paddingVertical: 2, gap: 2 },
+  ribbonEdge: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.55)' },
+  ribbonText: { ...fonts.bold, color: '#FFFFFF', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.4, paddingHorizontal: 5 },
 }));
 
 /** Posters re-render only when what they show changes. */

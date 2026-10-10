@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 
 import DetailLayout, { CastRail, Synopsis } from '@/components/media/DetailLayout';
 import Extras, { Similar } from '@/components/media/Extras';
+import EpisodeTalk from '@/components/friends/EpisodeTalk';
+import FriendsBlock from '@/components/friends/FriendsBlock';
 import Button from '@/components/ui/Button';
 import CheckButton from '@/components/ui/CheckButton';
 import PressableScale from '@/components/ui/PressableScale';
@@ -18,8 +20,11 @@ import { useLayout } from '@/hooks/useLayout';
 import { Extras as ExtrasData, ShowDetails, fetchShow, fetchShowExtras, tvmazeIdByImdb, tvmazeIdByName } from '@/lib/api';
 import { removeShow, setDropped } from '@/lib/actions';
 import { countdown, fullDate, relativeDay, runtime } from '@/lib/format';
+import { findTitle, loadPosts } from '@/lib/friends';
 import { episodeCode, hasAired, progressOf, seasonsOf, showState } from '@/lib/progress';
+import { useRibbons } from '@/lib/ribbons';
 import { Episode, EpisodeNote, Show } from '@/lib/types';
+import { Post, useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 import { Lit } from '@/spark';
 import { useUi } from '@/store/useUi';
@@ -73,6 +78,21 @@ export default function ShowScreen() {
     [tracked, details],
   );
   const progress = show ? progressOf(show) : undefined;
+
+  // What friends said about its episodes: read when the page opens, shown episode by episode once ticked.
+  const me = useFriends((s) => s.me);
+  const sharedTitles = useFriends((s) => s.titles);
+  const ribbon = useRibbons();
+  const titleId = useMemo(() => (me && show ? findTitle(sharedTitles, 'show', show) : undefined), [me, sharedTitles, show]);
+  const posts = useFriends((s) => (titleId != null ? s.posts[titleId] : undefined));
+  useEffect(() => {
+    if (titleId != null) loadPosts(titleId);
+  }, [titleId]);
+  const talk = useMemo(() => {
+    const by = new Map<number, Post[]>();
+    for (const p of posts ?? []) by.set(p.episode, [...(by.get(p.episode) ?? []), p]);
+    return by;
+  }, [posts]);
   const state = show && tracked ? showState(show) : undefined;
   const seasons = useMemo(() => (show ? seasonsOf(show.episodes) : []), [show]);
   const current = season ?? progress?.next?.season ?? [...seasons].reverse().find((s) => s.episodes.some((e) => hasAired(e)))?.season ?? seasons[0]?.season;
@@ -134,6 +154,7 @@ export default function ShowScreen() {
       loading={!show}
       error={error}
       onRetry={load}
+      ribbon={show && ribbon('show', show)}
     >
       {show && progress && (
         <>
@@ -204,6 +225,7 @@ export default function ShowScreen() {
             )}
           </FadeIn>
 
+          <FriendsBlock kind="show" item={show} tracked={!!tracked} />
           <Extras kind="show" title={show.title} year={show.year} imdbId={show.imdbId} extras={extras} />
           <Synopsis text={show.summary} />
 
@@ -261,6 +283,8 @@ export default function ShowScreen() {
                     }}
                     onToggle={() => toggle(e)}
                     onUpTo={() => watchUpTo(e)}
+                    talkCount={me ? talk.get(e.id)?.length : undefined}
+                    talk={me ? <EpisodeTalk show={show} titleId={titleId} episodeId={e.id} watched={!!show.watched[e.id]} posts={talk.get(e.id) ?? []} note={show.notes?.[e.id]} /> : undefined}
                   />
                 ))}
               </View>
@@ -287,6 +311,8 @@ function EpisodeRow({
   onToggle,
   onUpTo,
   onNote,
+  talk,
+  talkCount,
 }: {
   e: Episode;
   index: number;
@@ -300,6 +326,9 @@ function EpisodeRow({
   onToggle: () => void;
   onUpTo: () => void;
   onNote: (patch: Partial<Omit<EpisodeNote, 'at'>>) => void;
+  /** What friends said about it (closed until you have seen it), and how many messages that is. */
+  talk?: ReactNode;
+  talkCount?: number;
 }) {
   const { t } = useTranslation();
   const { palette } = useTheme();
@@ -319,6 +348,12 @@ function EpisodeRow({
                 {isNext && <Text style={styles.nextTag}>{t('show.upNext')}</Text>}
                 {note?.rating != null && <StarBadge value={note.rating} />}
                 {!!note?.text && <Icon name="journal" size={13} color={palette.primaryText} />}
+                {!!talkCount && (
+                  <View style={styles.talkCount}>
+                    <Icon name="send" size={10} color={palette.primaryText} strokeWidth={2.2} />
+                    <Text style={styles.talkCountText}>{talkCount}</Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.epName} numberOfLines={open ? undefined : 2}>
                 {e.name || t('show.episodeN', { n: e.number })}
@@ -341,6 +376,7 @@ function EpisodeRow({
             <NoteInput value={note?.text} placeholder={t('journal.notePlaceholder')} onSave={(text) => onNote({ text })} />
           </View>
         )}
+        {open && aired && talk}
       </Lit>
     </FadeIn>
   );
@@ -398,6 +434,8 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   episodeNext: { borderColor: palette.primaryRing, backgroundColor: palette.primaryTint },
   nextTag: { ...fonts.semibold, fontSize: 11, letterSpacing: 0.3, color: palette.primaryText },
   epCodeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  talkCount: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, backgroundColor: palette.primaryTint },
+  talkCountText: { ...fonts.semibold, fontSize: 11, color: palette.primaryText },
   notePanel: { gap: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: palette.hairline },
   note: { minHeight: 64, borderRadius: 12, padding: 12, backgroundColor: palette.field, ...fonts.displayItalic, fontSize: 17, lineHeight: 22, color: palette.ink },
   epTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },

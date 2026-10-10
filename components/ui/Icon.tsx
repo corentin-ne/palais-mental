@@ -59,6 +59,7 @@ const ALIASES = {
   filter: 'filter',
   bookmark: 'bookmark',
   external: 'external',
+  send: 'send',
 } as const;
 
 export type IconName = keyof typeof ALIASES;

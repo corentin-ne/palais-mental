@@ -3,6 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import FriendsRail from '@/components/friends/FriendsRail';
 import PosterRail, { RailItem } from '@/components/media/PosterRail';
 import ShelfCard from '@/components/media/ShelfCard';
 import UpNextCard from '@/components/media/UpNextCard';
@@ -17,6 +18,8 @@ import { makeStyles, useTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 import { SearchResult, popularShows } from '@/lib/api';
 import { countdown, relativeDay } from '@/lib/format';
+import { syncFriends } from '@/lib/friends';
+import { useRibbons, useSuggestions } from '@/lib/ribbons';
 import { episodeCode, progressOf, showState } from '@/lib/progress';
 import { shelfActivity, shelfState } from '@/lib/shelf';
 import { OUT_NOW, refreshRelated, relatedHref, relationLabel, visibleRelated } from '@/lib/related';
@@ -38,6 +41,8 @@ export default function UpNextScreen() {
   const games = useLibrary((s) => s.games);
   const relatedOn = useLibrary((s) => s.settings.related);
   const related = useConnections((s) => s.related.entries);
+  const ribbon = useRibbons();
+  const suggestions = useSuggestions();
   const [refreshing, setRefreshing] = useState(false);
 
   const { upNext, notStarted, watchlist, soon } = useMemo(() => {
@@ -56,18 +61,19 @@ export default function UpNextScreen() {
             title: show.title,
             poster: show.poster,
             kind: 'show',
+            ribbon: ribbon('show', show),
             caption: progress.aired ? t('upNext.episodes', { count: progress.aired }) : progress.upcoming?.airstamp ? countdown(progress.upcoming.airstamp) : undefined,
           }),
         ),
       watchlist: Object.values(movies)
         .filter((m) => !m.watchedAt && (!m.releaseDate || m.releaseDate <= now))
         .sort((a, b) => b.addedAt - a.addedAt)
-        .map((m): RailItem => ({ key: m.id, href: `/movie/${m.id}`, title: m.title, poster: m.poster, kind: 'movie', caption: m.year ? String(m.year) : undefined })),
+        .map((m): RailItem => ({ key: m.id, href: `/movie/${m.id}`, title: m.title, poster: m.poster, kind: 'movie', ribbon: ribbon('movie', m), caption: m.year ? String(m.year) : undefined })),
       soon: getUpcoming(shows, movies, now, [], books, games)
         .filter((u) => u.date > now)
         .slice(0, 5),
     };
-  }, [shows, movies, books, games, t]);
+  }, [shows, movies, books, games, t, ribbon]);
 
   // Books and games you're in the middle of, last touched first.
   const { reading, playing } = useMemo(() => {
@@ -90,7 +96,7 @@ export default function UpNextScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refreshLibrary(true);
+    await Promise.all([refreshLibrary(true), syncFriends(true)]);
     await refreshRelated(true);
     setRefreshing(false);
   }, []);
@@ -98,11 +104,20 @@ export default function UpNextScreen() {
   const empty = !Object.keys(shows).length && !Object.keys(movies).length && !Object.keys(books).length && !Object.keys(games).length;
   const cols = wide ? 2 : 1;
   const cardW = Math.floor((inner - gap * (cols - 1)) / cols);
+  // What friends recommend that you don't have yet (nothing until you have joined them).
+  const friendsSection = suggestions.length > 0 && (
+    <Section title={t('friends.suggested')} count={suggestions.length}>
+      <FriendsRail items={suggestions} />
+    </Section>
+  );
 
   return (
     <Screen title={t('upNext.title')} subtitle={greeting(t)} refreshing={refreshing} onRefresh={onRefresh}>
       {empty ? (
-        <Welcome />
+        <>
+          <Welcome />
+          {friendsSection}
+        </>
       ) : (
         <>
           {upNext.length > 0 || !Object.keys(shows).length ? (
@@ -193,6 +208,8 @@ export default function UpNextScreen() {
               </View>
             </Section>
           )}
+
+          {friendsSection}
 
           {outNow.length > 0 && (
             <Section title={t('related.outNow')}>

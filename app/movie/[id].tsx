@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import CollectionLink from '@/components/media/CollectionLink';
 import DetailLayout, { CastRail, Synopsis } from '@/components/media/DetailLayout';
 import Extras, { Similar } from '@/components/media/Extras';
+import FriendsBlock from '@/components/friends/FriendsBlock';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import StarRating from '@/components/ui/StarRating';
@@ -15,6 +16,7 @@ import { useHaptics } from '@/hooks/useHaptics';
 import { Extras as ExtrasData, MovieDetails, fetchMovie, fetchMovieExtras } from '@/lib/api';
 import { removeMovie } from '@/lib/actions';
 import { countdown, fullDate, runtime } from '@/lib/format';
+import { useRibbons } from '@/lib/ribbons';
 import { useLibrary } from '@/store/useLibrary';
 import { useUi } from '@/store/useUi';
 
@@ -24,6 +26,7 @@ export default function MovieScreen() {
   const { palette } = useTheme();
   const styles = useStyles();
   const haptics = useHaptics();
+  const ribbon = useRibbons();
   const tracked = useLibrary((s) => s.movies[id]);
   const tmdbKey = useLibrary((s) => s.settings.tmdbKey) || undefined;
   const [details, setDetails] = useState<MovieDetails>();
@@ -69,7 +72,7 @@ export default function MovieScreen() {
   const meta = movie ? [movie.year, runtime(movie.runtime), movie.director].filter(Boolean).join(' · ') : undefined;
 
   return (
-    <DetailLayout kind="movie" title={movie?.title} poster={movie?.poster} backdrop={movie?.backdrop} meta={meta} tags={movie?.genres} loading={!movie} error={error} onRetry={load}>
+    <DetailLayout kind="movie" title={movie?.title} poster={movie?.poster} backdrop={movie?.backdrop} meta={meta} tags={movie?.genres} loading={!movie} error={error} onRetry={load} ribbon={movie && ribbon('movie', movie)}>
       {movie && (
         <>
           <FadeIn index={3} style={styles.panel}>
@@ -119,6 +122,7 @@ export default function MovieScreen() {
               </View>
             )}
           </FadeIn>
+          <FriendsBlock kind="movie" item={movie} tracked={!!tracked} />
           <CollectionLink kind="movie" item={movie} />
           <Extras kind="movie" title={movie.title} year={movie.year} imdbId={movie.imdbId} extras={extras} />
           <Synopsis text={movie.overview} />

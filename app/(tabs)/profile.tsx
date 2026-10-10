@@ -14,6 +14,7 @@ import { useLayout } from '@/hooks/useLayout';
 import { duration, relativeDay } from '@/lib/format';
 import { episodeCode, minutesWatched } from '@/lib/progress';
 import { pagesRead } from '@/lib/shelf';
+import { useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 
 const JOURNAL = 8;
@@ -29,6 +30,7 @@ export default function ProfileScreen() {
   const books = useLibrary((s) => s.books);
   const games = useLibrary((s) => s.games);
   const router = useRouter();
+  const friends = useFriends((s) => (s.me ? Object.keys(s.members).length : 0));
 
   const stats = useMemo(() => {
     const showList = Object.values(shows);
@@ -69,6 +71,7 @@ export default function ProfileScreen() {
       )}
 
       <View style={[styles.group, { marginTop: 12 }]}>
+        <ActionRow icon="heart" label={t('friends.title')} hint={friends ? t('friends.rowJoined', { count: friends }) : t('friends.rowHint')} onPress={() => router.push('/social' as never)} />
         <ActionRow icon="clock" label={t('history.title')} hint={t('history.hint')} onPress={() => router.push('/history')} />
         <ActionRow icon="settings" label={t('settings.title')} hint={t('settings.hint')} onPress={() => router.push('/settings')} last />
       </View>

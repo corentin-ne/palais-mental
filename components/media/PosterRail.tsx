@@ -16,6 +16,7 @@ export interface RailItem {
   kind: MediaKind;
   caption?: string;
   progress?: number;
+  ribbon?: string;
 }
 
 /** A sideways row of posters that runs past the screen edge. */
@@ -28,7 +29,7 @@ export default function PosterRail({ items }: { items: RailItem[] }) {
       {items.map((it, i) => (
         <FadeIn key={it.key} index={i} distance={10}>
           <PressableScale onPress={() => router.push(it.href as never)} style={{ width: railPoster, gap: 8 }} accessibilityLabel={it.title}>
-            <Poster uri={it.poster} title={it.title} width={railPoster} kind={it.kind} progress={it.progress} />
+            <Poster uri={it.poster} title={it.title} width={railPoster} kind={it.kind} progress={it.progress} ribbon={it.ribbon} />
             <View style={{ gap: 1 }}>
               <Text style={styles.title} numberOfLines={1}>
                 {it.title}

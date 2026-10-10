@@ -37,6 +37,7 @@ npm run typecheck
 
   Syncing is additive: titles missing here are added, episodes, films, books and games finished there are marked here, ratings, pages and playtime fill in, nothing is removed. The other way goes through each service's import page: a Letterboxd CSV, a MyAnimeList XML (also read by AniList), a Goodreads CSV (Goodreads, StoryGraph, Hardcover, BookWyrm), an IMDb-format CSV (Trakt, Simkl), and an .ics calendar of everything upcoming (Google, Apple, Outlook).
 - **Sequels and universes.** From Wikidata: sequels, prequels, the same film, book or game series, franchise or fictional universe (MCU, Star Wars…) as anything in your library show up in the calendar (dashed) with a release-day notification, and recent ones in **Up next → Out now in your universes**.
+- **Social.** Join the people you know with one access code (a first name and an emoji, no email, no password) from **You → Social**. Recommend a title with a few words, to everyone or to one person; five per kind can be a *favourite*. Ratings are shared only once you turn that on. What it gives back: a red band across posters, like the one a bookshop wraps around a prize-winner ("Léa says try this", "Favourite of Tom", "Group prize 2026", "Unanimous", "Recommended by 3 people", "Divisive"), with thresholds that follow the size of the group so it works at three or four; a **Recommended by the group** rail on Up next for what you don't have yet; everyone's rating and words on each page, with a thank-you; and a discussion under every episode, closed until you have ticked it (before that, only how many messages are waiting). Nobody sees what you watch, read or play: the library, progress and history never leave the phone.
 - **Ratings.** Half-star ratings on films and shows, imported from other services, exported to Letterboxd and in the CSVs; sort the library by rating.
 
 ## Data sources
@@ -61,6 +62,16 @@ npm run typecheck
 
 Shows still airing refresh every 6 hours, ended shows weekly, awaited films, books and games daily, plus pull-to-refresh.
 
+## Social server
+
+Social runs on a free Supabase project (Postgres, EU). The app holds its URL and publishable key (`lib/supabase.ts`); what a member can read or write is decided by the row-level security rules in `supabase/migrations/`, not by the key.
+
+- **What is stored:** a first name and an emoji per member, shared ratings, recommendations, thank-yous, episode messages and reactions, and for each title they refer to its ids, name, year and poster link. Nothing else: no library, progress or history.
+- **Who can read it:** members of the same group, and only them. Each member can change or delete only their own rows; leaving deletes everything they shared.
+- **Joining:** one group (`base`) and one access code, chosen by the first person to join and stored hashed. Groups are real in the schema, so more can be opened later.
+- **Changing the schema:** add a migration in `supabase/migrations/`, then `npx supabase db push` (after `npx supabase login` and `npx supabase link`).
+- **Staying awake:** free projects pause after a week without a query; `.github/workflows/supabase-keepalive.yml` pings it twice a week.
+
 ## Structure
 
 ```
@@ -68,6 +79,7 @@ app/
   _layout.tsx            Spark provider, i18n, sync, notification routing, toast
   (tabs)/                Up next · Calendar · Library · You (+ search button in the tab bar)
   search.tsx             modal search
+  social.tsx             Social: join, members, what you share
   show/[id].tsx          show detail (TVmaze id)
   movie/[id].tsx         film detail (tmdb-… / imdb-… / itunes-…)
   book/[id].tsx          book detail (ol-… / gb-… / wd-…)
@@ -76,6 +88,7 @@ spark/                   Spark UI kit native layer (vendored copy, see spark/VER
 constants/theme.ts       the app's theme built on the kit's tokens (appearance × accent × display quality)
 components/
   media/                 detail layout, Up next and reading/playing cards, poster and series rails, book/game detail
+  friends/               Social: the block on each page, the episode discussion, the recommendations rail
   ui/                    the app's controls on the kit: glass, buttons, chips, segmented, check, poster, motion, toast
 lib/
   api.ts                 TVmaze, TMDB, IMDb, iTunes, Wikidata
@@ -92,5 +105,10 @@ lib/
   progress.ts            pure show-progress logic
   sync.ts                refresh, calendar entries, notifications
   backup.ts              JSON / CSV export, import
+  supabase.ts            the Social server over plain fetch: an anonymous account, REST behind row-level security
+  friends.ts             Social: joining, sync, shared ratings, recommendations, episode discussions
+  ribbons.ts             the red bands, suggestions and taste agreement, worked out on the device
 store/useLibrary.ts      persisted library (AsyncStorage)
+store/useFriends.ts      what the group shared, kept on the device
+supabase/                the Social database: schema, access rules (migrations/) and project config
 ```
