@@ -13,6 +13,7 @@ import PressableScale from '@/components/ui/PressableScale';
 import { FadeIn, Skeleton } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
+import type { Band } from '@/lib/ribbons';
 import type { MediaKind } from '@/lib/types';
 import { Aurora } from '@/spark';
 
@@ -27,7 +28,7 @@ interface Props {
   error?: boolean;
   onRetry?: () => void;
   /** What your friends made of it, across the poster. */
-  ribbon?: string;
+  ribbon?: Band;
   children?: ReactNode;
 }
 

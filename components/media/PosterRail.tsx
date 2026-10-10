@@ -6,6 +6,7 @@ import PressableScale from '@/components/ui/PressableScale';
 import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
+import type { Band } from '@/lib/ribbons';
 import type { MediaKind } from '@/lib/types';
 
 export interface RailItem {
@@ -16,7 +17,7 @@ export interface RailItem {
   kind: MediaKind;
   caption?: string;
   progress?: number;
-  ribbon?: string;
+  ribbon?: Band;
 }
 
 /** A sideways row of posters that runs past the screen edge. */

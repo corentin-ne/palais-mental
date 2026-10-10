@@ -18,7 +18,7 @@ import { useProgressive } from '@/hooks/useProgressive';
 import { Collection, CollectionItem, artOf, collectionHref, groupCollections, isDone, refreshMovieSeries } from '@/lib/collections';
 import { countdown } from '@/lib/format';
 import { progressOf, showState } from '@/lib/progress';
-import { useRibbons } from '@/lib/ribbons';
+import { Band, useRibbons } from '@/lib/ribbons';
 import { SHELF_STATES, bookFraction, gameFraction, shelfActivity, shelfState } from '@/lib/shelf';
 import { Book, Game, MediaKind, Movie, ShelfState, ShowState } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
@@ -79,7 +79,7 @@ interface Tile {
   /** A series: posters stacked. */
   stack?: boolean;
   /** What your friends made of it. */
-  ribbon?: string;
+  ribbon?: Band;
 }
 
 /** Everything you follow, read and play, as a wall of posters. */

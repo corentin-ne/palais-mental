@@ -76,7 +76,6 @@ export default function EpisodeTalk({ show, titleId, episodeId, watched, posts, 
         for (const e of Object.values(p.reactions)) counts.set(e, (counts.get(e) ?? 0) + 1);
         return (
           <View key={p.id} style={styles.post}>
-            <Text style={styles.emoji}>{members[p.user]?.emoji ?? '🙂'}</Text>
             <View style={{ flex: 1, gap: 4 }}>
               <View style={styles.postHead}>
                 <Text style={styles.name}>{p.user === me ? t('friends.you') : (members[p.user]?.name ?? '…')}</Text>
@@ -145,7 +144,6 @@ const useStyles = makeStyles(({ palette, fonts, type }) => ({
   label: { ...type.label },
   post: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   postHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  emoji: { fontSize: 18, marginTop: 1 },
   name: { ...fonts.semibold, fontSize: 13, color: palette.ink },
   when: { ...fonts.body, fontSize: 11.5, color: palette.inkFaint },
   body: { ...type.body, fontSize: 14.5, lineHeight: 20, color: palette.ink },

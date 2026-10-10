@@ -8,7 +8,7 @@ import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 import { hrefOf } from '@/lib/friends';
-import { Suggestion, ribbonText } from '@/lib/ribbons';
+import { Suggestion, bandOf } from '@/lib/ribbons';
 import { useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 
@@ -25,13 +25,16 @@ export default function FriendsRail({ items }: { items: Suggestion[] }) {
       {items.map(({ title, recos, ribbon }, i) => (
         <FadeIn key={title.id} index={i} distance={10}>
           <PressableScale onPress={() => router.push(hrefOf(title, tmdbKey) as never)} style={{ width: railPoster, gap: 8 }} accessibilityLabel={title.title}>
-            <Poster uri={title.poster} title={title.title} width={railPoster} kind={title.kind} ribbon={ribbon && ribbonText(t, ribbon, members)} />
+            <Poster uri={title.poster} title={title.title} width={railPoster} kind={title.kind} ribbon={ribbon && bandOf(t, ribbon, members)} />
             <View style={{ gap: 1 }}>
               <Text style={styles.title} numberOfLines={1}>
                 {title.title}
               </Text>
               <Text style={styles.caption} numberOfLines={1}>
-                {recos.map((r) => `${members[r.user]?.emoji ?? ''} ${members[r.user]?.name ?? ''}`.trim()).join(' · ')}
+                {recos
+                  .map((r) => members[r.user]?.name)
+                  .filter(Boolean)
+                  .join(' · ')}
               </Text>
             </View>
           </PressableScale>

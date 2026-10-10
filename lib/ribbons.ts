@@ -9,11 +9,12 @@ import type { TFunction } from 'i18next';
 
 import { Shareable, findTitle, keysOf } from './friends';
 import type { MediaKind } from './types';
-import { Member, Reco, SharedRating, SharedTitle, useFriends } from '@/store/useFriends';
+import { BAND_COLORS, Member, Reco, SharedRating, SharedTitle, useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 
 /** One band per poster, the first that applies in this order. */
 export type Ribbon =
+  | { type: 'quote'; reco: Reco }
   | { type: 'direct' | 'favorite' | 'reco'; users: string[] }
   | { type: 'prize'; year: number }
   | { type: 'unanimous' | 'split' | 'mine' };
@@ -77,9 +78,14 @@ export function digest({ me, members, titles, ratings, recos }: Input): Digest {
     const direct = theirs.filter((r) => r.to === me);
     const favorites = theirs.filter((r) => r.favorite);
     const users = (list: Reco[]) => list.map((r) => r.user);
-    const ribbon: Ribbon | undefined = direct.length
-      ? { type: 'direct', users: users(direct) }
-      : favorites.length
+    // A band someone wrote comes first (the latest one), yours included when nobody else wrote one.
+    const own = (r: Reco) => !!r.band || r.stars != null;
+    const quoted = [...theirs].reverse().find(own) ?? recosBy.get(title)?.find((r) => r.user === me && own(r));
+    const ribbon: Ribbon | undefined = quoted
+      ? { type: 'quote', reco: quoted }
+      : direct.length
+        ? { type: 'direct', users: users(direct) }
+        : favorites.length
         ? { type: 'favorite', users: users(favorites) }
         : prizes.has(title)
           ? { type: 'prize', year: prizes.get(title)! }
@@ -113,10 +119,28 @@ const names = (t: TFunction, users: string[], members: Record<string, Member>) =
   return list.length === 2 ? t('friends.and', { a: list[0], b: list[1] }) : list[0];
 };
 
-export function ribbonText(t: TFunction, ribbon: Ribbon, members: Record<string, Member>) {
-  if (ribbon.type === 'prize') return t('friends.ribbon.prize', { year: ribbon.year });
-  if (!('users' in ribbon)) return t(`friends.ribbon.${ribbon.type}`);
-  return ribbon.users.length > 2 ? t(`friends.ribbon.${ribbon.type}Many`, { count: ribbon.users.length }) : t(`friends.ribbon.${ribbon.type}`, { names: names(t, ribbon.users, members) });
+/** What a poster draws: the words, and for a band someone wrote, its colour, a quote's lettering and their stars. */
+export interface Band {
+  text: string;
+  color?: string;
+  quote?: boolean;
+  /** 1–10 (half stars), drawn small above the words. */
+  stars?: number;
+}
+
+/** "★★★★½" for a 1–10 rating. */
+export const starsText = (rating: number) => '★'.repeat(Math.floor(rating / 2)) + (rating % 2 ? '½' : '');
+
+/** A band someone wrote: their words quoted and signed, or just their name under their stars. */
+export function quoteBand(t: TFunction, reco: Pick<Reco, 'band' | 'color' | 'stars'>, name: string): Band {
+  return { text: reco.band ? t('friends.ribbon.quote', { quote: reco.band, name }) : name, color: BAND_COLORS[reco.color ?? 'red'], quote: true, stars: reco.stars };
+}
+
+export function bandOf(t: TFunction, ribbon: Ribbon, members: Record<string, Member>): Band {
+  if (ribbon.type === 'quote') return quoteBand(t, ribbon.reco, members[ribbon.reco.user]?.name ?? '');
+  if (ribbon.type === 'prize') return { text: t('friends.ribbon.prize', { year: ribbon.year }) };
+  if (!('users' in ribbon)) return { text: t(`friends.ribbon.${ribbon.type}`) };
+  return { text: ribbon.users.length > 2 ? t(`friends.ribbon.${ribbon.type}Many`, { count: ribbon.users.length }) : t(`friends.ribbon.${ribbon.type}`, { names: names(t, ribbon.users, members) }) };
 }
 
 /** The digest of what is synced, recomputed only when it changes. */
@@ -131,18 +155,21 @@ export function useDigest(): Digest | undefined {
 
 const NONE = () => undefined;
 
-/** The band's text for a title, if it earned one. Before you join, nothing does. */
-export function useRibbons(): (kind: MediaKind, item: Shareable) => string | undefined {
+/** The band for a title, if it earned one (the same object each time, so posters don't redraw). Before you join, nothing does. */
+export function useRibbons(): (kind: MediaKind, item: Shareable) => Band | undefined {
   const { t } = useTranslation();
   const members = useFriends((s) => s.members);
   const titles = useFriends((s) => s.titles);
   const d = useDigest();
   return useMemo(() => {
     if (!d?.ribbons.size) return NONE;
+    const bands = new Map<number, Band>();
     return (kind, item) => {
       const id = findTitle(titles, kind, item);
       const ribbon = id != null ? d.ribbons.get(id) : undefined;
-      return ribbon ? ribbonText(t, ribbon, members) : undefined;
+      if (id == null || !ribbon) return undefined;
+      if (!bands.has(id)) bands.set(id, bandOf(t, ribbon, members));
+      return bands.get(id);
     };
   }, [d, titles, members, t]);
 }

@@ -9,6 +9,8 @@ const URL = 'https://gsfirtbwijqrgxxihfdd.supabase.co';
 const KEY = 'sb_publishable_R-_WG__Ym3h_GT96ZH1nng_pKotjSjy';
 const SESSION_KEY = 'palais-mental/friends-session';
 const PAGE = 1000;
+/** A stalled connection gives up after this long rather than holding a refresh on its spinner. */
+const TIMEOUT = 20_000;
 
 interface Session {
   access: string;
@@ -35,6 +37,12 @@ export class ApiError extends Error {
   }
 }
 
+function timed(url: string, init: RequestInit) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT);
+  return fetch(url, { ...init, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+}
+
 let session: Session | null | undefined;
 let refreshing: Promise<Session> | undefined;
 
@@ -55,7 +63,7 @@ async function save(next: Session | null) {
 }
 
 async function auth(path: string, body: unknown): Promise<Session> {
-  const r = await fetch(`${URL}/auth/v1/${path}`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const r = await timed(`${URL}/auth/v1/${path}`, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const json: TokenResponse & { error_code?: string; msg?: string } = await r.json().catch(() => ({}));
   if (!r.ok || !json.access_token || !json.refresh_token || !json.user?.id) throw new ApiError(r.status, json.error_code ?? json.msg ?? 'auth');
   const next = { access: json.access_token, refresh: json.refresh_token, expiresAt: Date.now() + (json.expires_in ?? 3600) * 1000, userId: json.user.id };
@@ -103,7 +111,7 @@ interface Options {
 }
 
 async function send(path: string, opts: Options, access: string) {
-  return fetch(`${URL}/rest/v1/${path}`, {
+  return timed(`${URL}/rest/v1/${path}`, {
     method: opts.method ?? 'GET',
     headers: {
       apikey: KEY,

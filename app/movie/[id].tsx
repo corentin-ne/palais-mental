@@ -122,7 +122,7 @@ export default function MovieScreen() {
               </View>
             )}
           </FadeIn>
-          <FriendsBlock kind="movie" item={movie} tracked={!!tracked} />
+          <FriendsBlock kind="movie" item={movie} tracked={!!tracked} rating={tracked?.rating} />
           <CollectionLink kind="movie" item={movie} />
           <Extras kind="movie" title={movie.title} year={movie.year} imdbId={movie.imdbId} extras={extras} />
           <Synopsis text={movie.overview} />

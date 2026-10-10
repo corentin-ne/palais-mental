@@ -4,10 +4,13 @@ import { persist } from 'zustand/middleware';
 import { lazyStorage } from '@/lib/storage';
 import type { MediaKind } from '@/lib/types';
 
+/** The colours a band of your own can take (the automatic ones stay red). */
+export const BAND_COLORS = { red: '#C8102E', blue: '#1D4ED8', green: '#15803D', purple: '#7C3AED', orange: '#C2410C', black: '#111827' } as const;
+export type BandColor = keyof typeof BAND_COLORS;
+
 export interface Member {
   id: string;
   name: string;
-  emoji: string;
   joinedAt: number;
 }
 
@@ -35,6 +38,11 @@ export interface Reco {
   user: string;
   title: number;
   note?: string;
+  /** A band of your own across the poster: a few words, quoted and signed, in the colour you picked. */
+  band?: string;
+  color?: BandColor;
+  /** Your stars on that band (1–10), when you chose to show them. */
+  stars?: number;
   favorite: boolean;
   /** The one friend it is meant for. */
   to?: string;
@@ -69,8 +77,10 @@ export interface FriendsData {
 interface FriendsState extends FriendsData {
   /** Your member id once you have joined; absent, the app is exactly what it was. */
   me?: string;
-  /** Send your ratings along (off until you say so). */
+  /** Send your ratings along (off until you say so): the rule for every rating you haven't decided on. */
   shareRatings: boolean;
+  /** Ratings you decided on one by one (`kind/id` → shown or hidden), whatever the rule above says. */
+  shared: Record<string, boolean>;
   /** Recommendations you waved off ("not for me"): kept on this device. */
   dismissed: number[];
   syncedAt: number;
@@ -88,11 +98,12 @@ export const useFriends = create<FriendsState>()(
     (set) => ({
       ...EMPTY,
       shareRatings: false,
+      shared: {},
       dismissed: [],
       syncedAt: 0,
       posts: {},
       set: (patch) => set(patch),
-      reset: () => set({ ...EMPTY, me: undefined, shareRatings: false, dismissed: [], syncedAt: 0, posts: {} }),
+      reset: () => set({ ...EMPTY, me: undefined, shareRatings: false, shared: {}, dismissed: [], syncedAt: 0, posts: {} }),
     }),
     {
       name: 'palais-mental/friends',

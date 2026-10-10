@@ -8,7 +8,7 @@ import { AppState } from 'react-native';
 import { norm } from './api';
 import { ApiError, all, api, currentUser, forgetSession, rpc, signIn } from './supabase';
 import { Book, Game, MediaKind, Movie, Show } from './types';
-import { FriendsData, Member, Post, Reco, SharedRating, SharedTitle, Thanks, useFriends } from '@/store/useFriends';
+import { BandColor, FriendsData, Member, Post, Reco, SharedRating, SharedTitle, Thanks, useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 
 /** What a title needs to be shared: the fields the library and the detail pages both have. */
@@ -39,6 +39,8 @@ export function keysOf(kind: MediaKind, item: Shareable): string[] {
   return [...new Set(keys.filter((k): k is string => !!k))];
 }
 
+/** A title's key in the library (`kind/id`): what a per-rating choice is kept under. */
+export const localKey = (kind: MediaKind, item: Shareable) => `${kind}/${routeOf(kind, item)}`;
 const routeOf = (kind: MediaKind, item: Shareable) => (kind === 'show' ? String((item as Show).tvmazeId) : (item as Movie).id);
 const artOf = (item: Shareable) => ('cover' in item ? item.cover : (item as Show).poster);
 
@@ -88,19 +90,19 @@ const ms = (iso: string) => Date.parse(iso) || 0;
 
 async function fetchAll(): Promise<FriendsData> {
   const [members, titles, ratings, recos, thanks] = await Promise.all([
-    all<{ user_id: string; name: string; emoji: string; joined_at: string }>('members?select=user_id,name,emoji,joined_at&order=joined_at.asc,user_id.asc'),
+    all<{ user_id: string; name: string; joined_at: string }>('members?select=user_id,name,joined_at&order=joined_at.asc,user_id.asc'),
     all<TitleRow>('titles?select=id,kind,keys,route,title,year,poster&order=id.asc'),
     all<{ user_id: string; title_id: number; rating: number; updated_at: string }>('ratings?select=user_id,title_id,rating,updated_at&order=title_id.asc,user_id.asc'),
-    all<{ user_id: string; title_id: number; note: string | null; favorite: boolean; to_user: string | null; created_at: string }>(
-      'recos?select=user_id,title_id,note,favorite,to_user,created_at&order=title_id.asc,user_id.asc',
+    all<{ user_id: string; title_id: number; note: string | null; band: string | null; band_color: BandColor | null; band_rating: number | null; favorite: boolean; to_user: string | null; created_at: string }>(
+      'recos?select=user_id,title_id,note,band,band_color,band_rating,favorite,to_user,created_at&order=title_id.asc,user_id.asc',
     ),
     all<{ reco_user: string; title_id: number; from_user: string }>('reco_thanks?select=reco_user,title_id,from_user&order=title_id.asc,reco_user.asc,from_user.asc'),
   ]);
   return {
-    members: Object.fromEntries(members.map((m): [string, Member] => [m.user_id, { id: m.user_id, name: m.name, emoji: m.emoji, joinedAt: ms(m.joined_at) }])),
+    members: Object.fromEntries(members.map((m): [string, Member] => [m.user_id, { id: m.user_id, name: m.name, joinedAt: ms(m.joined_at) }])),
     titles: Object.fromEntries(titles.map((t) => [t.id, titleOf(t)])),
     ratings: ratings.map((r): SharedRating => ({ user: r.user_id, title: r.title_id, rating: r.rating, at: ms(r.updated_at) })),
-    recos: recos.map((r): Reco => ({ user: r.user_id, title: r.title_id, note: r.note ?? undefined, favorite: r.favorite, to: r.to_user ?? undefined, at: ms(r.created_at) })),
+    recos: recos.map((r): Reco => ({ user: r.user_id, title: r.title_id, note: r.note ?? undefined, band: r.band ?? undefined, color: r.band_color ?? undefined, stars: r.band_rating ?? undefined, favorite: r.favorite, to: r.to_user ?? undefined, at: ms(r.created_at) })),
     thanks: thanks.map((t): Thanks => ({ recoUser: t.reco_user, title: t.title_id, from: t.from_user })),
   };
 }
@@ -159,14 +161,17 @@ function localRatings(): (Entry & { rating: number })[] {
 
 let pushing: Promise<void> | undefined;
 
-/** Make the server's copy of your ratings match the library: all of them when you share, none when you don't. */
+/**
+ * Make the server's copy of your ratings match what you chose to show: every rating when you share them,
+ * none when you don't, and either way the ones you decided on one by one.
+ */
 export function pushRatings() {
   return (pushing ??= (async () => {
-    const { me, shareRatings, ratings } = useFriends.getState();
+    const { me, shareRatings, shared, ratings } = useFriends.getState();
     // An unread library has no ratings: sending that would wipe yours from the server.
     if (!me || !useLibrary.persist.hasHydrated()) return;
     const mine = new Map(ratings.filter((r) => r.user === me).map((r) => [r.title, r.rating]));
-    const local = shareRatings ? localRatings() : [];
+    const local = localRatings().filter((l) => shared[localKey(l.kind, l.item)] ?? shareRatings);
     if (!local.length && !mine.size) return;
     const ids = await ensureTitles(local);
     const wanted = new Map<number, number>();
@@ -196,15 +201,21 @@ export function setShareRatings(shareRatings: boolean) {
   return pushRatings();
 }
 
-// ------------------------------------------------------------------ Joining
-export type JoinError = 'bad_code' | 'code_short' | 'throttled' | 'full' | 'offline';
+/** Show or hide one rating, whatever the general rule. */
+export function setRatingShared(kind: MediaKind, item: Shareable, on: boolean) {
+  useFriends.getState().set({ shared: { ...useFriends.getState().shared, [localKey(kind, item)]: on } });
+  return pushRatings();
+}
 
-/** Join with the group's access code (the first to join chooses it). Resolves to an error name, or nothing. */
-export async function joinFriends(code: string, name: string, emoji: string, retry = true): Promise<JoinError | undefined> {
+// ------------------------------------------------------------------ Joining
+export type JoinError = 'full' | 'offline';
+
+/** Choosing a name is joining: everyone is in the same group. Resolves to an error name, or nothing. */
+export async function joinFriends(name: string, retry = true): Promise<JoinError | undefined> {
   try {
     const me = await signIn();
-    const result = await rpc<{ ok: boolean; error?: JoinError }>('join_circle', { code, name, emoji });
-    if (!result.ok) return result.error ?? 'offline';
+    const result = await rpc<{ ok: boolean; error?: string }>('join_base', { name });
+    if (!result.ok) return result.error === 'full' ? 'full' : 'offline';
     useFriends.getState().set({ me, syncedAt: 0 });
     await syncFriends(true);
     return undefined;
@@ -212,17 +223,17 @@ export async function joinFriends(code: string, name: string, emoji: string, ret
     // The server answered but refuses this device's account (it was deleted there): start over with a new one.
     if (retry && err instanceof ApiError && [401, 403, 409].includes(err.status)) {
       await forgetSession();
-      return joinFriends(code, name, emoji, false);
+      return joinFriends(name, false);
     }
     return 'offline';
   }
 }
 
-export async function updateProfile(name: string, emoji: string) {
+export async function rename(name: string) {
   const { me, members } = useFriends.getState();
   if (!me) return;
-  await api(`members?user_id=eq.${me}`, { method: 'PATCH', body: { name, emoji } });
-  useFriends.getState().set({ members: { ...members, [me]: { ...members[me], name, emoji } } });
+  await api(`members?user_id=eq.${me}`, { method: 'PATCH', body: { name } });
+  useFriends.getState().set({ members: { ...members, [me]: { ...members[me], name } } });
 }
 
 /** Leave: everything you shared is deleted from the server, and the app is back to what it was. */
@@ -234,15 +245,19 @@ export async function leaveFriends() {
 
 // ------------------------------------------------------------------ Recommendations
 /** Recommend a title (or change what you said). Throws ApiError('favorites_full') past five favourites of a kind. */
-export async function recommend(kind: MediaKind, item: Shareable, opts: { note?: string; favorite: boolean; to?: string }) {
+export async function recommend(kind: MediaKind, item: Shareable, opts: { note?: string; band?: string; color?: BandColor; stars?: number; favorite: boolean; to?: string }) {
   const { me } = useFriends.getState();
   if (!me) return;
   const [title] = await ensureTitles([{ kind, item }]);
   const note = opts.note?.trim() || undefined;
-  await api('recos?on_conflict=user_id,title_id', { method: 'POST', prefer: 'resolution=merge-duplicates', body: { title_id: title, note: note ?? null, favorite: opts.favorite, to_user: opts.to ?? null } });
+  const band = opts.band?.trim() || undefined;
+  const stars = opts.stars;
+  // No words and no stars: no band of your own, so no colour either.
+  const color = band || stars ? opts.color : undefined;
+  await api('recos?on_conflict=user_id,title_id', { method: 'POST', prefer: 'resolution=merge-duplicates', body: { title_id: title, note: note ?? null, band: band ?? null, band_color: color ?? null, band_rating: stars ?? null, favorite: opts.favorite, to_user: opts.to ?? null } });
   const { recos } = useFriends.getState();
   const before = recos.find((r) => r.user === me && r.title === title);
-  useFriends.getState().set({ recos: [...recos.filter((r) => r !== before), { user: me, title, note, favorite: opts.favorite, to: opts.to, at: before?.at ?? Date.now() }] });
+  useFriends.getState().set({ recos: [...recos.filter((r) => r !== before), { user: me, title, note, band, color, stars, favorite: opts.favorite, to: opts.to, at: before?.at ?? Date.now() }] });
 }
 
 export async function unrecommend(title: number) {
@@ -345,8 +360,8 @@ export function startFriends() {
   const sub = AppState.addEventListener('change', (s) => s === 'active' && void syncFriends());
   let timer: ReturnType<typeof setTimeout> | undefined;
   const unsub = useLibrary.subscribe((s, prev) => {
-    const { me, shareRatings } = useFriends.getState();
-    if (!me || !shareRatings || (s.shows === prev.shows && s.movies === prev.movies && s.books === prev.books && s.games === prev.games)) return;
+    const { me } = useFriends.getState();
+    if (!me || (s.shows === prev.shows && s.movies === prev.movies && s.books === prev.books && s.games === prev.games)) return;
     clearTimeout(timer);
     timer = setTimeout(pushRatings, 4000);
   });

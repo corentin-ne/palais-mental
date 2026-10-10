@@ -274,7 +274,7 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
             )}
           </FadeIn>
 
-          <FriendsBlock kind={kind} item={item} tracked={!!tracked} />
+          <FriendsBlock kind={kind} item={item} tracked={!!tracked} rating={tracked?.rating} />
           <ExtraLinks links={links} onShare={() => shareTitle(item.title, item.year, link)} />
           <ExtraScores scores={extras.scores ?? []} />
           <Synopsis text={item.overview} />

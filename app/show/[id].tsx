@@ -225,7 +225,7 @@ export default function ShowScreen() {
             )}
           </FadeIn>
 
-          <FriendsBlock kind="show" item={show} tracked={!!tracked} />
+          <FriendsBlock kind="show" item={show} tracked={!!tracked} rating={tracked?.rating} />
           <Extras kind="show" title={show.title} year={show.year} imdbId={show.imdbId} extras={extras} />
           <Synopsis text={show.summary} />
 

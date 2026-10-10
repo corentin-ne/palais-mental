@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 
+import NameField from '@/components/friends/NameField';
 import Icon, { IconName } from '@/components/ui/Icon';
 import Poster from '@/components/ui/Poster';
 import PressableScale from '@/components/ui/PressableScale';
@@ -55,6 +56,10 @@ export default function ProfileScreen() {
 
   return (
     <Screen title={t('profile.title')} right={settingsButton}>
+      <View style={[styles.group, styles.name]}>
+        <Text style={styles.nameLabel}>{t('friends.name')}</Text>
+        <NameField />
+      </View>
       <View style={[styles.stats, wide && { flexWrap: 'nowrap' }]}>
         <Stat index={0} icon="series" value={stats.episodes} label={t('profile.episodes')} />
         <Stat index={1} icon="clock" text={duration(stats.showMinutes)} label={t('profile.showTime')} />
@@ -200,6 +205,8 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   statValue: { ...fonts.bold, fontSize: 26, letterSpacing: -0.8, color: palette.ink },
   statLabel: { ...type.small },
   group: { borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, overflow: 'hidden' },
+  name: { marginTop: 16, padding: 14, gap: 10 },
+  nameLabel: { ...type.label },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14 },
   line: { borderBottomWidth: 1, borderBottomColor: palette.hairline },
   rowLabel: { ...fonts.medium, fontSize: 15, color: palette.ink },
