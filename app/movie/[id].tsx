@@ -9,6 +9,7 @@ import Extras, { Similar } from '@/components/media/Extras';
 import FriendsBlock from '@/components/friends/FriendsBlock';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
+import NoteInput from '@/components/ui/NoteInput';
 import StarRating from '@/components/ui/StarRating';
 import { FadeIn, Pop } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
@@ -116,10 +117,13 @@ export default function MovieScreen() {
             )}
             {upcoming && !watched && <Text style={styles.hint}>{t('movie.remindHint')}</Text>}
             {tracked && !(upcoming && !watched) && (
-              <View style={styles.rate}>
-                <Text style={styles.releaseLabel}>{t('rating.yours')}</Text>
-                <StarRating value={tracked.rating} onChange={(v) => useLibrary.getState().setMovieRating(id, v)} size={24} />
-              </View>
+              <>
+                <View style={styles.rate}>
+                  <Text style={styles.releaseLabel}>{t('rating.yours')}</Text>
+                  <StarRating value={tracked.rating} onChange={(v) => useLibrary.getState().setMovieRating(id, v)} size={24} />
+                </View>
+                <NoteInput value={tracked.review} placeholder={t('journal.placeholder.movie')} onSave={(text) => useLibrary.getState().setMovieReview(id, text)} />
+              </>
             )}
           </FadeIn>
           <FriendsBlock kind="movie" item={movie} tracked={!!tracked} rating={tracked?.rating} />

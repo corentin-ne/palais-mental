@@ -530,12 +530,22 @@
   },
   "journal": {
     "title": "Journal",
-    "empty": "Open an episode you’ve watched to rate it and jot down what you thought. Your notes stay private and show up here.",
+    "empty": "Rate an episode, a series, a film, a book or a game and jot down what you thought. Your notes stay private and show up here.",
     "episode": "Episode",
-    "review": "Series review",
+    "review": {
+      "show": "Series review",
+      "movie": "Film review",
+      "book": "Book review",
+      "game": "Game review"
+    },
     "episodeRating": "Your rating",
     "notePlaceholder": "What you thought…",
-    "reviewPlaceholder": "Your take on the series…"
+    "placeholder": {
+      "show": "Your take on the series…",
+      "movie": "Your take on the film…",
+      "book": "Your take on the book…",
+      "game": "Your take on the game…"
+    }
   },
   "update": {
     "title": "Version {{version}} is out",

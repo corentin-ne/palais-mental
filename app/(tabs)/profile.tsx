@@ -14,6 +14,7 @@ import { useLayout } from '@/hooks/useLayout';
 import { duration, relativeDay } from '@/lib/format';
 import { episodeCode, minutesWatched } from '@/lib/progress';
 import { pagesRead } from '@/lib/shelf';
+import type { Book, Game, MediaKind, Movie } from '@/lib/types';
 import { useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 
@@ -76,16 +77,19 @@ export default function ProfileScreen() {
   );
 }
 
-/** Your latest episode notes and series reviews: just for you, for now. */
+/** Your latest notes: episodes, and what you thought of a series, film, book or game. Just for you, for now. */
 function Journal() {
   const { t } = useTranslation();
   const { palette } = useTheme();
   const styles = useStyles();
   const router = useRouter();
   const shows = useLibrary((s) => s.shows);
+  const movies = useLibrary((s) => s.movies);
+  const books = useLibrary((s) => s.books);
+  const games = useLibrary((s) => s.games);
 
   const entries = useMemo(() => {
-    const out: { key: string; at: number; title: string; detail: string; poster?: string; rating?: number; text?: string; href: string }[] = [];
+    const out: { key: string; at: number; title: string; detail: string; poster?: string; kind: MediaKind; rating?: number; text?: string; href: string }[] = [];
     for (const show of Object.values(shows)) {
       const byId = new Map(show.episodes.map((e) => [String(e.id), e]));
       const href = `/show/${show.tvmazeId}`;
@@ -97,15 +101,35 @@ function Journal() {
           title: show.title,
           detail: e ? `${episodeCode(e)}${e.name ? ` · ${e.name}` : ''}` : t('journal.episode'),
           poster: show.poster,
+          kind: 'show',
           rating: note.rating,
           text: note.text,
           href,
         });
       }
-      if (show.review) out.push({ key: `${show.id}-review`, at: show.reviewedAt ?? show.addedAt, title: show.title, detail: t('journal.review'), poster: show.poster, rating: show.rating, text: show.review, href });
+      if (show.review) out.push({ key: `${show.id}-review`, at: show.reviewedAt ?? show.addedAt, title: show.title, detail: t('journal.review.show'), poster: show.poster, kind: 'show', rating: show.rating, text: show.review, href });
     }
+    const reviews: [MediaKind, (Movie | Book | Game)[]][] = [
+      ['movie', Object.values(movies)],
+      ['book', Object.values(books)],
+      ['game', Object.values(games)],
+    ];
+    for (const [kind, items] of reviews)
+      for (const item of items)
+        if (item.review)
+          out.push({
+            key: `${item.id}-review`,
+            at: item.reviewedAt ?? item.addedAt,
+            title: item.title,
+            detail: t(`journal.review.${kind}`),
+            poster: kind === 'movie' ? (item as Movie).poster : (item as Book | Game).cover,
+            kind,
+            rating: item.rating,
+            text: item.review,
+            href: `/${kind}/${item.id}`,
+          });
     return out.sort((a, b) => b.at - a.at).slice(0, JOURNAL);
-  }, [shows, t]);
+  }, [shows, movies, books, games, t]);
 
   return (
     <Section title={t('journal.title')}>
@@ -119,7 +143,7 @@ function Journal() {
           {entries.map((e, i) => (
             <FadeIn key={e.key} index={i} distance={8}>
               <PressableScale depth={0.98} style={styles.entry} onPress={() => router.push(e.href as never)}>
-                <Poster uri={e.poster} title={e.title} width={44} kind="show" elevated={false} radius={6} />
+                <Poster uri={e.poster} title={e.title} width={44} kind={e.kind} elevated={false} radius={6} />
                 <View style={{ flex: 1, gap: 3 }}>
                   <View style={styles.entryHead}>
                     <Text style={styles.entryTitle} numberOfLines={1}>

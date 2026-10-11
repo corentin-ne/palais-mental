@@ -10,6 +10,7 @@ import FriendsBlock from '@/components/friends/FriendsBlock';
 import { ExtraDetails, ExtraLinks, ExtraRails, ExtraScores } from './ShelfExtras';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
+import NoteInput from '@/components/ui/NoteInput';
 import StarRating from '@/components/ui/StarRating';
 import Stepper from '@/components/ui/Stepper';
 import { FadeIn } from '@/components/ui/Motion';
@@ -267,10 +268,17 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
             )}
 
             {tracked && state !== 'upcoming' && state !== 'want' && (
-              <View style={styles.rate}>
-                <Text style={styles.label}>{t('rating.yours')}</Text>
-                <StarRating value={tracked.rating} onChange={(v) => useLibrary.getState()[isBook ? 'setBookRating' : 'setGameRating'](id, v)} size={24} />
-              </View>
+              <>
+                <View style={styles.rate}>
+                  <Text style={styles.label}>{t('rating.yours')}</Text>
+                  <StarRating value={tracked.rating} onChange={(v) => useLibrary.getState()[isBook ? 'setBookRating' : 'setGameRating'](id, v)} size={24} />
+                </View>
+                <NoteInput
+                  value={tracked.review}
+                  placeholder={t(`journal.placeholder.${kind}`)}
+                  onSave={(text) => useLibrary.getState()[isBook ? 'setBookReview' : 'setGameReview'](id, text)}
+                />
+              </>
             )}
           </FadeIn>
 

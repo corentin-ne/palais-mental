@@ -530,12 +530,22 @@
   },
   "journal": {
     "title": "Carnet",
-    "empty": "Ouvre un épisode déjà vu pour le noter et écrire ce que tu en as pensé. Tes notes restent privées et apparaissent ici.",
+    "empty": "Note un épisode, une série, un film, un livre ou un jeu et écris ce que tu en as pensé. Tes notes restent privées et apparaissent ici.",
     "episode": "Épisode",
-    "review": "Avis sur la série",
+    "review": {
+      "show": "Avis sur la série",
+      "movie": "Avis sur le film",
+      "book": "Avis sur le livre",
+      "game": "Avis sur le jeu"
+    },
     "episodeRating": "Ta note",
     "notePlaceholder": "Ce que tu en as pensé…",
-    "reviewPlaceholder": "Ton avis sur la série…"
+    "placeholder": {
+      "show": "Ton avis sur la série…",
+      "movie": "Ton avis sur le film…",
+      "book": "Ton avis sur le livre…",
+      "game": "Ton avis sur le jeu…"
+    }
   },
   "update": {
     "title": "La version {{version}} est sortie",

@@ -76,6 +76,9 @@ export interface Movie {
   watchedAt?: number;
   /** Your rating, 1–10 (half stars). */
   rating?: number;
+  /** What you thought of it. */
+  review?: string;
+  reviewedAt?: number;
   addedAt: number;
   syncedAt: number;
 }
@@ -123,6 +126,9 @@ export interface Book {
   droppedAt?: number;
   /** Your rating, 1–10 (half stars). */
   rating?: number;
+  /** What you thought of it. */
+  review?: string;
+  reviewedAt?: number;
   addedAt: number;
   syncedAt: number;
 }
@@ -156,6 +162,9 @@ export interface Game {
   finishedAt?: number;
   droppedAt?: number;
   rating?: number;
+  /** What you thought of it. */
+  review?: string;
+  reviewedAt?: number;
   addedAt: number;
   syncedAt: number;
 }

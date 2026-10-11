@@ -7,8 +7,8 @@ import { lazyStorage } from '@/lib/storage';
 import { Book, EpisodeNote, Game, Movie, Settings, Show } from '@/lib/types';
 
 export type ShowData = Omit<Show, 'watched' | 'addedAt' | 'droppedAt' | 'rating' | 'review' | 'reviewedAt' | 'notes'>;
-export type MovieData = Omit<Movie, 'watchedAt' | 'addedAt' | 'rating'>;
-type Progressless = 'touchedAt' | 'startedAt' | 'finishedAt' | 'droppedAt' | 'rating' | 'addedAt';
+export type MovieData = Omit<Movie, 'watchedAt' | 'addedAt' | 'rating' | 'review' | 'reviewedAt'>;
+type Progressless = 'touchedAt' | 'startedAt' | 'finishedAt' | 'droppedAt' | 'rating' | 'review' | 'reviewedAt' | 'addedAt';
 export type BookData = Omit<Book, Progressless | 'page'>;
 export type GameData = Omit<Game, Progressless | 'hours' | 'percent'>;
 export type ShelfStatus = 'want' | 'started' | 'finished' | 'dropped';
@@ -46,6 +46,7 @@ interface LibraryState extends LibraryData {
   setMovieWatched: (id: string, watched: boolean, at?: number) => void;
   setShowRating: (id: string, rating: number | undefined) => void;
   setMovieRating: (id: string, rating: number | undefined) => void;
+  setMovieReview: (id: string, review: string) => void;
   /** Several films at once (series found in the background), without touching anything else. */
   patchMovies: (patches: Record<string, Partial<Movie>>) => void;
 
@@ -57,6 +58,7 @@ interface LibraryState extends LibraryData {
   setBookPage: (id: string, page: number) => void;
   setBookStatus: (id: string, status: ShelfStatus, at?: number) => void;
   setBookRating: (id: string, rating: number | undefined) => void;
+  setBookReview: (id: string, review: string) => void;
 
   addGame: (data: GameData) => void;
   updateGame: (data: GameData) => void;
@@ -65,6 +67,7 @@ interface LibraryState extends LibraryData {
   setGameProgress: (id: string, patch: { hours?: number; percent?: number }) => void;
   setGameStatus: (id: string, status: ShelfStatus, at?: number) => void;
   setGameRating: (id: string, rating: number | undefined) => void;
+  setGameReview: (id: string, review: string) => void;
 
   importData: (data: LibraryData, mode: 'merge' | 'replace') => void;
   setSettings: (patch: Partial<Settings>) => void;
@@ -90,6 +93,8 @@ function withStatus<T extends Book | Game>(item: T, status: ShelfStatus, at = Da
   return { ...item, droppedAt: at };
 }
 
+/** A review and when it was written; an empty one clears both. */
+const reviewed = (review: string) => ({ review: review.trim() || undefined, reviewedAt: review.trim() ? Date.now() : undefined });
 const patchBook = (s: LibraryState, id: string, fn: (book: Book) => Book) => (s.books[id] ? { books: { ...s.books, [id]: fn(s.books[id]) } } : s);
 const patchGame = (s: LibraryState, id: string, fn: (game: Game) => Game) => (s.games[id] ? { games: { ...s.games, [id]: fn(s.games[id]) } } : s);
 
@@ -109,6 +114,8 @@ function mergeShelf<T extends Book | Game>(mine: Record<string, T>, theirs: Reco
           ...item,
           ...own,
           rating: own.rating ?? item.rating,
+          review: own.review ?? item.review,
+          reviewedAt: own.review ? own.reviewedAt : item.reviewedAt,
           startedAt: own.startedAt ?? item.startedAt,
           finishedAt: own.finishedAt ?? item.finishedAt,
         } as T)
@@ -178,7 +185,7 @@ export const useLibrary = create<LibraryState>()(
             return { ...show, notes };
           }),
         ),
-      setShowReview: (showId, review) => set((s) => patchShow(s, showId, (show) => ({ ...show, review: review.trim() || undefined, reviewedAt: review.trim() ? Date.now() : undefined }))),
+      setShowReview: (showId, review) => set((s) => patchShow(s, showId, (show) => ({ ...show, ...reviewed(review) }))),
 
       addMovie: (data) =>
         set((s) => ({ movies: { ...s.movies, [data.id]: { ...s.movies[data.id], ...data, addedAt: s.movies[data.id]?.addedAt ?? Date.now() } } })),
@@ -198,6 +205,7 @@ export const useLibrary = create<LibraryState>()(
         set((s) => (s.movies[id] ? { movies: { ...s.movies, [id]: { ...s.movies[id], watchedAt: watched ? (at ?? Date.now()) : undefined } } } : s)),
       setShowRating: (id, rating) => set((s) => patchShow(s, id, (show) => ({ ...show, rating }))),
       setMovieRating: (id, rating) => set((s) => (s.movies[id] ? { movies: { ...s.movies, [id]: { ...s.movies[id], rating } } } : s)),
+      setMovieReview: (id, review) => set((s) => (s.movies[id] ? { movies: { ...s.movies, [id]: { ...s.movies[id], ...reviewed(review) } } } : s)),
       patchMovies: (patches) =>
         set((s) => {
           const movies = { ...s.movies };
@@ -232,6 +240,7 @@ export const useLibrary = create<LibraryState>()(
           }),
         ),
       setBookRating: (id, rating) => set((s) => patchBook(s, id, (b) => ({ ...b, rating }))),
+      setBookReview: (id, review) => set((s) => patchBook(s, id, (b) => ({ ...b, ...reviewed(review) }))),
 
       addGame: (data) =>
         set((s) => ({ games: { ...s.games, [data.id]: { ...s.games[data.id], ...data, addedAt: s.games[data.id]?.addedAt ?? Date.now() } } })),
@@ -262,6 +271,7 @@ export const useLibrary = create<LibraryState>()(
           }),
         ),
       setGameRating: (id, rating) => set((s) => patchGame(s, id, (g) => ({ ...g, rating }))),
+      setGameReview: (id, review) => set((s) => patchGame(s, id, (g) => ({ ...g, ...reviewed(review) }))),
 
       importData: (data, mode) =>
         set((s) => {
@@ -284,7 +294,16 @@ export const useLibrary = create<LibraryState>()(
           const movies = { ...s.movies };
           for (const [id, movie] of Object.entries(data.movies)) {
             const mine = movies[id];
-            movies[id] = mine ? { ...movie, ...mine, rating: mine.rating ?? movie.rating, watchedAt: mine.watchedAt ?? movie.watchedAt } : movie;
+            movies[id] = mine
+              ? {
+                  ...movie,
+                  ...mine,
+                  rating: mine.rating ?? movie.rating,
+                  review: mine.review ?? movie.review,
+                  reviewedAt: mine.review ? mine.reviewedAt : movie.reviewedAt,
+                  watchedAt: mine.watchedAt ?? movie.watchedAt,
+                }
+              : movie;
           }
           return { shows, movies, books: mergeShelf(s.books, data.books), games: mergeShelf(s.games, data.games) };
         }),

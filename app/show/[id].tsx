@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -10,11 +10,12 @@ import EpisodeTalk from '@/components/friends/EpisodeTalk';
 import FriendsBlock from '@/components/friends/FriendsBlock';
 import Button from '@/components/ui/Button';
 import CheckButton from '@/components/ui/CheckButton';
+import NoteInput from '@/components/ui/NoteInput';
 import PressableScale from '@/components/ui/PressableScale';
 import Icon from '@/components/ui/Icon';
 import StarRating, { StarBadge } from '@/components/ui/StarRating';
 import { FadeIn, animateLayout } from '@/components/ui/Motion';
-import { makeStyles, noOutline, useTheme } from '@/constants/theme';
+import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
 import { Extras as ExtrasData, ShowDetails, fetchShow, fetchShowExtras, tvmazeIdByImdb, tvmazeIdByName } from '@/lib/api';
@@ -198,7 +199,7 @@ export default function ShowScreen() {
                 </View>
                 <NoteInput
                   value={tracked.review}
-                  placeholder={t('journal.reviewPlaceholder')}
+                  placeholder={t('journal.placeholder.show')}
                   onSave={(text) => useLibrary.getState().setShowReview(id, text)}
                 />
                 <View style={styles.actions}>
@@ -382,30 +383,6 @@ function EpisodeRow({
   );
 }
 
-/** A quiet multi-line field, saved when you leave it. */
-function NoteInput({ value, placeholder, onSave }: { value?: string; placeholder: string; onSave: (text: string) => void }) {
-  const { palette } = useTheme();
-  const styles = useStyles();
-  const [draft, setDraft] = useState(value ?? '');
-  useEffect(() => setDraft(value ?? ''), [value]);
-  const save = () => {
-    if (draft.trim() !== (value ?? '')) onSave(draft);
-  };
-  return (
-    <TextInput
-      value={draft}
-      onChangeText={setDraft}
-      onBlur={save}
-      onEndEditing={save}
-      placeholder={placeholder}
-      placeholderTextColor={palette.inkFaint}
-      multiline
-      textAlignVertical="top"
-      style={[styles.note, noOutline]}
-    />
-  );
-}
-
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   rate: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   rateLabel: { ...type.label },
@@ -437,7 +414,6 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   talkCount: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, backgroundColor: palette.primaryTint },
   talkCountText: { ...fonts.semibold, fontSize: 11, color: palette.primaryText },
   notePanel: { gap: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: palette.hairline },
-  note: { minHeight: 64, borderRadius: 12, padding: 12, backgroundColor: palette.field, ...fonts.displayItalic, fontSize: 17, lineHeight: 22, color: palette.ink },
   epTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   still: { width: 96, height: 56, borderRadius: 8, overflow: 'hidden', backgroundColor: palette.field, alignItems: 'center', justifyContent: 'center' },
   stillNum: { ...fonts.displayItalic, fontSize: 22, color: palette.inkFaint },
