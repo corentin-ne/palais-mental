@@ -1,7 +1,6 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import NameField from '@/components/friends/NameField';
@@ -10,6 +9,7 @@ import Chips from '@/components/ui/Chips';
 import Icon from '@/components/ui/Icon';
 import Poster from '@/components/ui/Poster';
 import PressableScale from '@/components/ui/PressableScale';
+import Screen from '@/components/ui/Screen';
 import Segmented from '@/components/ui/Segmented';
 import { StarBadge } from '@/components/ui/StarRating';
 import { FadeIn } from '@/components/ui/Motion';
@@ -19,7 +19,7 @@ import { useLayout } from '@/hooks/useLayout';
 import { leaveFriends, setShareRatings, syncFriends } from '@/lib/friends';
 import { bandOf, quorumFor, starsText, useDigest, useLocalHrefs } from '@/lib/ribbons';
 import type { MediaKind } from '@/lib/types';
-import { Aurora, Switch } from '@/spark';
+import { Switch } from '@/spark';
 import { BAND_COLORS, useFriends } from '@/store/useFriends';
 import { useUi } from '@/store/useUi';
 
@@ -35,11 +35,7 @@ const LIST = 60;
  */
 export default function SocialScreen() {
   const { t } = useTranslation();
-  const { palette, type } = useTheme();
   const styles = useStyles();
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { gutter, content } = useLayout();
   const me = useFriends((s) => s.me);
   const [tab, setTab] = useState<Tab>('recos');
   const [refreshing, setRefreshing] = useState(false);
@@ -52,20 +48,9 @@ export default function SocialScreen() {
     setRefreshing(false);
   }, []);
 
+  // No name yet: choosing one comes first, everything else appears once you are in.
   return (
-    <View style={styles.root}>
-      <Aurora />
-      <View style={[styles.header, { paddingTop: insets.top + 8, paddingHorizontal: gutter, width: content }]}>
-        <PressableScale onPress={() => router.back()} style={styles.back} accessibilityLabel={t('common.back')}>
-          <Icon name="back" size={20} color={palette.ink} strokeWidth={2.2} />
-        </PressableScale>
-        <Text style={type.hero}>{t('friends.title')}</Text>
-      </View>
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        refreshControl={me ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.inkSoft} /> : undefined}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 48, paddingHorizontal: gutter, width: content, alignSelf: 'center' }}
-      >
+    <Screen title={t('friends.title')} refreshing={refreshing} onRefresh={me ? onRefresh : undefined}>
         {me ? (
           <>
             <View style={{ marginTop: 12 }}>
@@ -100,8 +85,7 @@ export default function SocialScreen() {
           </>
         )}
         <Text style={styles.footnote}>{t('friends.privacy')}</Text>
-      </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
@@ -364,9 +348,6 @@ function People({ me }: { me: string }) {
 }
 
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
-  root: { flex: 1, backgroundColor: palette.screen, alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 4 },
-  back: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
   intro: { marginTop: 18, gap: 6 },
   introTitle: { ...type.title },
   introBody: { ...type.body, color: palette.inkSoft, lineHeight: 22 },

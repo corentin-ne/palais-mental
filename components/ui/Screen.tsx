@@ -35,6 +35,7 @@ export default function Screen({ title, subtitle, right, children, refreshing, o
       <Aurora />
       <Animated.ScrollView
         scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y } } }], { useNativeDriver: true })}
         contentContainerStyle={{ paddingTop: insets.top + 18, paddingBottom: insets.bottom + 128, alignItems: 'center' }}
         refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={palette.inkSoft} progressViewOffset={insets.top} /> : undefined}

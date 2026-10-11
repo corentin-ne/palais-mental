@@ -85,7 +85,6 @@ export default function RootLayout() {
           <Stack.Screen name="data" />
           <Stack.Screen name="journal" />
           <Stack.Screen name="connections" />
-          <Stack.Screen name="social" />
           <Stack.Screen name="settings" />
         </Stack>
         <Toast />

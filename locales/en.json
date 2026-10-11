@@ -3,6 +3,7 @@
     "upNext": "Up next",
     "calendar": "Calendar",
     "library": "Library",
+    "social": "Social",
     "you": "You"
   },
   "common": {
@@ -126,7 +127,8 @@
       "next": "Next out",
       "rating": "Rating"
     },
-    "elsewhere": "Also in"
+    "elsewhere": "Also in",
+    "searchToAdd": "Search “{{query}}” to add it"
   },
   "show": {
     "upNext": "Up next",
@@ -653,9 +655,6 @@
     "talkLocked_one": "{{count}} message is waiting: tick the episode to read it.",
     "talkLocked_other": "{{count}} messages are waiting: tick the episode to read them.",
     "suggested": "The group liked",
-    "rowHint": "Every recommendation, the group’s ratings and who is there",
-    "rowJoined_one": "{{count}} person",
-    "rowJoined_other": "{{count}} people",
     "introTitle": "Together",
     "introBody": "Choose a name and you're in: see what the others recommend, their ratings, and talk about episodes once you've seen them. Your library, progress and history never leave this phone.",
     "namePlaceholder": "Your first name",

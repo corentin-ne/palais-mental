@@ -9,6 +9,7 @@ import Empty from '@/components/ui/Empty';
 import Icon from '@/components/ui/Icon';
 import Poster from '@/components/ui/Poster';
 import PressableScale from '@/components/ui/PressableScale';
+import SearchButton from '@/components/ui/SearchButton';
 import Screen from '@/components/ui/Screen';
 import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
@@ -80,7 +81,7 @@ export default function CalendarScreen() {
   let row = 0;
 
   return (
-    <Screen title={t('calendar.title')} subtitle={t('calendar.subtitle')} refreshing={refreshing} onRefresh={onRefresh}>
+    <Screen title={t('calendar.title')} subtitle={t('calendar.subtitle')} right={<SearchButton />} refreshing={refreshing} onRefresh={onRefresh}>
       {/* Soft ask, in context, before the system prompt. */}
       {Platform.OS !== 'web' && notificationsOn && permission === 'undetermined' && all.length > 0 && (
         <FadeIn style={styles.ask}>

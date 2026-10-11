@@ -3,6 +3,7 @@
     "upNext": "À suivre",
     "calendar": "Calendrier",
     "library": "Bibliothèque",
+    "social": "Social",
     "you": "Vous"
   },
   "common": {
@@ -126,7 +127,8 @@
       "next": "Prochaines sorties",
       "rating": "Note"
     },
-    "elsewhere": "Aussi dans"
+    "elsewhere": "Aussi dans",
+    "searchToAdd": "Chercher « {{query}} » pour l’ajouter"
   },
   "show": {
     "upNext": "À suivre",
@@ -653,9 +655,6 @@
     "talkLocked_one": "{{count}} message t'attend : coche l'épisode pour le lire.",
     "talkLocked_other": "{{count}} messages t'attendent : coche l'épisode pour les lire.",
     "suggested": "Le groupe a aimé",
-    "rowHint": "Toutes les recos, les notes du groupe et qui est là",
-    "rowJoined_one": "{{count}} personne",
-    "rowJoined_other": "{{count}} personnes",
     "introTitle": "À plusieurs",
     "introBody": "Choisis un nom et tu es dedans : vois ce que les autres recommandent, leurs notes, et discute des épisodes une fois que tu les as vus. Ta bibliothèque, ta progression et ton historique ne quittent jamais ce téléphone.",
     "namePlaceholder": "Ton prénom",

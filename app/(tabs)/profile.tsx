@@ -13,12 +13,11 @@ import { useLayout } from '@/hooks/useLayout';
 import { duration } from '@/lib/format';
 import { minutesWatched } from '@/lib/progress';
 import { pagesRead } from '@/lib/shelf';
-import { useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 
 const JOURNAL = 8;
 
-/** Social first, a few honest numbers, your data and settings, and the notes you kept along the way. */
+/** A few honest numbers, your data and settings, and the notes you kept along the way. */
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const styles = useStyles();
@@ -28,7 +27,6 @@ export default function ProfileScreen() {
   const books = useLibrary((s) => s.books);
   const games = useLibrary((s) => s.games);
   const router = useRouter();
-  const friends = useFriends((s) => (s.me ? Object.keys(s.members).length : 0));
 
   const stats = useMemo(() => {
     const showList = Object.values(shows);
@@ -47,9 +45,6 @@ export default function ProfileScreen() {
 
   return (
     <Screen title={t('profile.title')}>
-      <View style={[styles.group, { marginTop: 16 }]}>
-        <ActionRow icon="heart" label={t('friends.title')} hint={friends ? t('friends.rowJoined', { count: friends }) : t('friends.rowHint')} onPress={() => router.push('/social' as never)} last />
-      </View>
       <View style={[styles.stats, wide && { flexWrap: 'nowrap' }]}>
         <Stat index={0} icon="series" value={stats.episodes} label={t('profile.episodes')} />
         <Stat index={1} icon="clock" text={duration(stats.showMinutes)} label={t('profile.showTime')} />

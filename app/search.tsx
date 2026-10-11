@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import PosterRail from '@/components/media/PosterRail';
@@ -48,7 +48,9 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { gutter, content, wide, inner, gap } = useLayout();
   const tmdbKey = useLibrary((s) => s.settings.tmdbKey) || undefined;
-  const [q, setQ] = useState('');
+  // Opened from a screen with something already typed (the library filter): search for it straight away.
+  const params = useLocalSearchParams<{ q?: string }>();
+  const [q, setQ] = useState(typeof params.q === 'string' ? params.q : '');
   const recent = usePrefs((p) => p.recentSearches);
   const [scope, setScope] = useState<Scope>('all');
   const [shows, setShows] = useState<SearchResult[]>([]);

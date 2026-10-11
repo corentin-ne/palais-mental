@@ -13,6 +13,7 @@ import Icon from '@/components/ui/Icon';
 import Poster from '@/components/ui/Poster';
 import PressableScale from '@/components/ui/PressableScale';
 import Screen, { Section } from '@/components/ui/Screen';
+import SearchButton from '@/components/ui/SearchButton';
 import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
@@ -26,7 +27,6 @@ import { OUT_NOW, refreshRelated, relatedHref, relationLabel, visibleRelated } f
 import { refreshLibrary } from '@/lib/sync';
 import { Book, Game } from '@/lib/types';
 import { RelatedRelease, useConnections } from '@/store/useConnections';
-import { useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 
 /** What to watch now: the next episode of every show in progress, the books and games you're in, then what is waiting. Dates live in the calendar. */
@@ -44,7 +44,6 @@ export default function UpNextScreen() {
   const related = useConnections((s) => s.related.entries);
   const ribbon = useRibbons();
   const suggestions = useSuggestions();
-  const social = useFriends((s) => !!s.me);
   const [refreshing, setRefreshing] = useState(false);
 
   const { upNext, waiting } = useMemo(() => {
@@ -134,14 +133,7 @@ export default function UpNextScreen() {
       subtitle={greeting(t)}
       refreshing={refreshing}
       onRefresh={onRefresh}
-      right={
-        // Social, one tap away once you have a name (before that, nothing here changes).
-        social ? (
-          <PressableScale onPress={() => router.push('/social' as never)} style={styles.social} accessibilityLabel={t('friends.title')}>
-            <Icon name="heart" size={20} color={palette.ink} />
-          </PressableScale>
-        ) : undefined
-      }
+      right={<SearchButton />}
     >
       {empty ? (
         <>
@@ -273,7 +265,6 @@ const useStyles = makeStyles(({ palette, fonts, radii }) => ({
   cards: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 18 },
   allCaught: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18, padding: 16, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   allCaughtText: { ...fonts.medium, fontSize: 15, color: palette.ink },
-  social: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, marginBottom: 2 },
   link: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4 },
   linkText: { ...fonts.semibold, fontSize: 14, color: palette.primaryText },
   soonTitle: { ...fonts.semibold, fontSize: 14.5, color: palette.ink },

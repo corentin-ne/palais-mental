@@ -8,6 +8,7 @@ import Empty from '@/components/ui/Empty';
 import Poster from '@/components/ui/Poster';
 import PressableScale from '@/components/ui/PressableScale';
 import Screen from '@/components/ui/Screen';
+import SearchButton from '@/components/ui/SearchButton';
 import Segmented from '@/components/ui/Segmented';
 import { FadeIn } from '@/components/ui/Motion';
 import Icon from '@/components/ui/Icon';
@@ -281,7 +282,7 @@ export default function LibraryScreen() {
   const empty = !Object.keys(shows).length && !Object.keys(movies).length && !Object.keys(books).length && !Object.keys(games).length;
 
   return (
-    <Screen title={t('library.title')}>
+    <Screen title={t('library.title')} right={<SearchButton query={query.trim() || undefined} />}>
       {empty ? (
         <Empty icon="grid" title={t('library.emptyTitle')} body={t('library.emptyBody')} cta={t('welcome.cta')} onPress={() => router.push('/search')} />
       ) : (
@@ -371,7 +372,17 @@ export default function LibraryScreen() {
           </View>
           {tiles.length === 0 ? (
             <Text style={styles.none}>{t('library.none')}</Text>
-          ) : (
+          ) : null}
+          {/* Not in the library (or not only): look it up to add it. */}
+          {!!q && (
+            <PressableScale onPress={() => router.push({ pathname: '/search', params: { q: query.trim() } })} style={styles.addFromSearch}>
+              <Icon name="search" size={16} color={palette.primaryText} strokeWidth={2.2} />
+              <Text style={styles.addFromSearchText} numberOfLines={1}>
+                {t('library.searchToAdd', { query: query.trim() })}
+              </Text>
+            </PressableScale>
+          )}
+          {tiles.length === 0 ? null : (
             <View style={[styles.grid, { gap, rowGap: gap + 8 }]} key={gridKey}>
               {tiles.slice(0, shown).map(({ key, search: _search, ...tile }, i) => (
                 <FadeIn key={key} index={i} distance={10}>
@@ -427,6 +438,8 @@ const useStyles = makeStyles(({ palette, fonts, type }) => ({
   searchInput: { flex: 1, height: 40, ...fonts.body, fontSize: 14, color: palette.ink },
   sort: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   sortText: { ...fonts.medium, fontSize: 13, color: palette.ink },
+  addFromSearch: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, alignSelf: 'center', marginTop: 18, height: 40, paddingHorizontal: 16, borderRadius: 20, backgroundColor: palette.primaryTint },
+  addFromSearchText: { ...fonts.semibold, fontSize: 13.5, color: palette.primaryText, flexShrink: 1 },
   elsewhere: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   elsewhereChip: { height: 30, paddingHorizontal: 12, borderRadius: 15, justifyContent: 'center', backgroundColor: palette.primaryTint },
   elsewhereText: { ...fonts.semibold, fontSize: 12.5, color: palette.primaryText },

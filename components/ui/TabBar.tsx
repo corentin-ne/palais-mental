@@ -10,21 +10,22 @@ import Icon, { IconName } from './Icon';
 import PressableScale from './PressableScale';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
-import { useRouter } from 'expo-router';
 import { useLibrary } from '@/store/useLibrary';
 
+/** The four places either side; Up next (`index`) is the round button at the centre. */
 const TABS: Record<string, { icon: IconName; label: string }> = {
-  index: { icon: 'play', label: 'tabs.upNext' },
   calendar: { icon: 'calendar', label: 'tabs.calendar' },
   library: { icon: 'grid', label: 'tabs.library' },
+  social: { icon: 'heart', label: 'tabs.social' },
   profile: { icon: 'user', label: 'tabs.you' },
 };
+const CENTER = 'index';
 const TAB_W = 68;
 const DAY = 86_400_000;
 const ADD_W = 64;
 
 /**
- * Floating glass tab bar with search at its heart (thumb zone, largest target).
+ * Floating glass tab bar with Up next at its heart (thumb zone, largest target).
  * The active tab is all accent: its icon (bolder, a touch larger) and its label in bold.
  */
 export default function TabBar({ state, navigation }: BottomTabBarProps) {
@@ -33,7 +34,6 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   const styles = useStyles();
   const insets = useSafeAreaInsets();
   const haptics = useHaptics();
-  const router = useRouter();
   // A dot on the calendar when something you follow comes out within a day.
   const soon = useLibrary((s) => {
     const now = Date.now();
@@ -48,8 +48,10 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
 
   const routes = state.routes.filter((r) => TABS[r.name]);
   const half = Math.ceil(routes.length / 2);
+  const center = state.routes.find((r) => r.name === CENTER);
+  const centerActive = !!center && state.routes[state.index]?.key === center.key;
 
-  // The + bounces once at launch: a hint of where the action is (signifier, not a tutorial).
+  // The centre button bounces once at launch: a hint of where the action is (signifier, not a tutorial).
   const hint = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.sequence([
@@ -102,15 +104,20 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
         <Animated.View style={{ transform: [{ translateY: hint.interpolate({ inputRange: [0, 1], outputRange: [0, -8] }) }] }}>
           <PressableScale
             onPress={() => {
-              haptics.tap();
-              router.push('/search');
+              if (!center) return;
+              const event = navigation.emit({ type: 'tabPress', target: center.key, canPreventDefault: true });
+              if (!centerActive && !event.defaultPrevented) {
+                haptics.tap();
+                navigation.navigate(CENTER);
+              }
             }}
-            accessibilityLabel={t('search.title')}
-            style={[styles.add, spark.shadow.glow]}
+            accessibilityLabel={t('tabs.upNext')}
+            accessibilityState={{ selected: centerActive }}
+            style={[styles.add, spark.shadow.glow, !centerActive && styles.addIdle]}
             depth={0.9}
           >
             <LinearGradient colors={spark.color.primaryGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: 29 }]} />
-            <Icon name="search" size={24} color={palette.onInk} strokeWidth={2.3} />
+            <Icon name="play" size={24} color={palette.onInk} strokeWidth={centerActive ? 2.6 : 2.1} />
           </PressableScale>
         </Animated.View>
       </View>
@@ -139,4 +146,6 @@ const useStyles = makeStyles(({ palette, fonts }) => ({
   addSlot: { width: ADD_W },
   addWrap: { position: 'absolute', top: -12, left: 0, right: 0, alignItems: 'center' },
   add: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center' },
+  // Elsewhere in the app the centre button stays, a touch quieter.
+  addIdle: { opacity: 0.88 },
 }));
