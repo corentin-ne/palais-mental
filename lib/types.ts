@@ -122,6 +122,8 @@ export interface Book {
   /** Last time the page changed. */
   touchedAt?: number;
   startedAt?: number;
+  /** On hold: started, set aside for now, out of Up next until you pick it up again. */
+  pausedAt?: number;
   finishedAt?: number;
   droppedAt?: number;
   /** Your rating, 1–10 (half stars). */
@@ -159,6 +161,8 @@ export interface Game {
   /** Last time the progress changed. */
   touchedAt?: number;
   startedAt?: number;
+  /** On hold: started, set aside for now, out of Up next until you pick it up again. */
+  pausedAt?: number;
   finishedAt?: number;
   droppedAt?: number;
   rating?: number;
@@ -169,8 +173,8 @@ export interface Game {
   syncedAt: number;
 }
 
-/** Books and games: on your list, started, finished or dropped; `upcoming` while not out. */
-export type ShelfState = 'started' | 'want' | 'upcoming' | 'finished' | 'dropped';
+/** Books and games: on your list, started, paused, finished or dropped; `upcoming` while not out. */
+export type ShelfState = 'started' | 'paused' | 'want' | 'upcoming' | 'finished' | 'dropped';
 
 export interface Settings {
   notifications: boolean;

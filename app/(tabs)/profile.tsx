@@ -3,18 +3,16 @@ import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 
+import JournalCard, { useJournal } from '@/components/media/JournalCard';
 import Icon, { IconName } from '@/components/ui/Icon';
-import Poster from '@/components/ui/Poster';
 import PressableScale from '@/components/ui/PressableScale';
 import Screen, { Section } from '@/components/ui/Screen';
-import { StarBadge } from '@/components/ui/StarRating';
 import { FadeIn, useCountUp } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
-import { duration, relativeDay } from '@/lib/format';
-import { episodeCode, minutesWatched } from '@/lib/progress';
+import { duration } from '@/lib/format';
+import { minutesWatched } from '@/lib/progress';
 import { pagesRead } from '@/lib/shelf';
-import type { Book, Game, MediaKind, Movie } from '@/lib/types';
 import { useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 
@@ -83,56 +81,22 @@ function Journal() {
   const { palette } = useTheme();
   const styles = useStyles();
   const router = useRouter();
-  const shows = useLibrary((s) => s.shows);
-  const movies = useLibrary((s) => s.movies);
-  const books = useLibrary((s) => s.books);
-  const games = useLibrary((s) => s.games);
-
-  const entries = useMemo(() => {
-    const out: { key: string; at: number; title: string; detail: string; poster?: string; kind: MediaKind; rating?: number; text?: string; href: string }[] = [];
-    for (const show of Object.values(shows)) {
-      const byId = new Map(show.episodes.map((e) => [String(e.id), e]));
-      const href = `/show/${show.tvmazeId}`;
-      for (const [id, note] of Object.entries(show.notes ?? {})) {
-        const e = byId.get(id);
-        out.push({
-          key: `${show.id}-${id}`,
-          at: note.at,
-          title: show.title,
-          detail: e ? `${episodeCode(e)}${e.name ? ` · ${e.name}` : ''}` : t('journal.episode'),
-          poster: show.poster,
-          kind: 'show',
-          rating: note.rating,
-          text: note.text,
-          href,
-        });
-      }
-      if (show.review) out.push({ key: `${show.id}-review`, at: show.reviewedAt ?? show.addedAt, title: show.title, detail: t('journal.review.show'), poster: show.poster, kind: 'show', rating: show.rating, text: show.review, href });
-    }
-    const reviews: [MediaKind, (Movie | Book | Game)[]][] = [
-      ['movie', Object.values(movies)],
-      ['book', Object.values(books)],
-      ['game', Object.values(games)],
-    ];
-    for (const [kind, items] of reviews)
-      for (const item of items)
-        if (item.review)
-          out.push({
-            key: `${item.id}-review`,
-            at: item.reviewedAt ?? item.addedAt,
-            title: item.title,
-            detail: t(`journal.review.${kind}`),
-            poster: kind === 'movie' ? (item as Movie).poster : (item as Book | Game).cover,
-            kind,
-            rating: item.rating,
-            text: item.review,
-            href: `/${kind}/${item.id}`,
-          });
-    return out.sort((a, b) => b.at - a.at).slice(0, JOURNAL);
-  }, [shows, movies, books, games, t]);
+  const all = useJournal();
+  const entries = all.slice(0, JOURNAL);
 
   return (
-    <Section title={t('journal.title')}>
+    <Section
+      title={t('journal.title')}
+      count={all.length || undefined}
+      action={
+        all.length > JOURNAL ? (
+          <PressableScale onPress={() => router.push('/journal' as never)} style={styles.link}>
+            <Text style={styles.linkText}>{t('common.seeAll')}</Text>
+            <Icon name="chevronRight" size={14} color={palette.primaryText} strokeWidth={2.2} />
+          </PressableScale>
+        ) : undefined
+      }
+    >
       {entries.length === 0 ? (
         <View style={styles.emptyCard}>
           <Icon name="journal" size={22} color={palette.primaryText} />
@@ -142,25 +106,7 @@ function Journal() {
         <View style={{ gap: 8 }}>
           {entries.map((e, i) => (
             <FadeIn key={e.key} index={i} distance={8}>
-              <PressableScale depth={0.98} style={styles.entry} onPress={() => router.push(e.href as never)}>
-                <Poster uri={e.poster} title={e.title} width={44} kind={e.kind} elevated={false} radius={6} />
-                <View style={{ flex: 1, gap: 3 }}>
-                  <View style={styles.entryHead}>
-                    <Text style={styles.entryTitle} numberOfLines={1}>
-                      {e.title}
-                    </Text>
-                    {e.rating != null && <StarBadge value={e.rating} />}
-                  </View>
-                  <Text style={styles.entryDetail} numberOfLines={1}>
-                    {e.detail} · {relativeDay(e.at)}
-                  </Text>
-                  {!!e.text && (
-                    <Text style={styles.entryText} numberOfLines={3}>
-                      {e.text}
-                    </Text>
-                  )}
-                </View>
-              </PressableScale>
+              <JournalCard entry={e} />
             </FadeIn>
           ))}
         </View>
@@ -224,9 +170,6 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   rowHint: { ...type.small, fontSize: 12.5, lineHeight: 17 },
   emptyCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   emptyText: { ...type.small, flex: 1 },
-  entry: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 10, borderRadius: radii.md, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
-  entryHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  entryTitle: { flex: 1, ...fonts.semibold, fontSize: 14.5, color: palette.ink },
-  entryDetail: { ...fonts.body, fontSize: 12.5, color: palette.inkSoft },
-  entryText: { ...fonts.displayItalic, fontSize: 16, lineHeight: 21, color: palette.ink, marginTop: 2 },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4 },
+  linkText: { ...fonts.semibold, fontSize: 14, color: palette.primaryText },
 }));

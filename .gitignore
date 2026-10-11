@@ -37,3 +37,6 @@ yarn-error.*
 
 # tests
 .test-build/
+
+# Tests
+.test-build/

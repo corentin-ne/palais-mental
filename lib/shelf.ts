@@ -1,11 +1,12 @@
 /** Pure helpers for books and games: where you are in them. */
 import { Book, Game, ShelfState } from './types';
 
-type Shelved = Pick<Book | Game, 'startedAt' | 'finishedAt' | 'droppedAt' | 'releaseDate'>;
+type Shelved = Pick<Book | Game, 'startedAt' | 'pausedAt' | 'finishedAt' | 'droppedAt' | 'releaseDate'>;
 
 export function shelfState(item: Shelved & { page?: number; hours?: number; percent?: number }, now = Date.now()): ShelfState {
   if (item.droppedAt) return 'dropped';
   if (item.finishedAt) return 'finished';
+  if (item.pausedAt) return 'paused';
   if (item.startedAt || item.page || item.hours || item.percent) return 'started';
   if (item.releaseDate && item.releaseDate > now) return 'upcoming';
   return 'want';
@@ -27,4 +28,4 @@ export const clampPage = (page: number, pages?: number) => Math.max(0, Math.min(
 /** Pages read: the whole book once finished, else the page you are at. */
 export const pagesRead = (b: Book) => (b.finishedAt ? (b.pages ?? b.page ?? 0) : (b.page ?? 0));
 
-export const SHELF_STATES: ShelfState[] = ['started', 'want', 'upcoming', 'finished', 'dropped'];
+export const SHELF_STATES: ShelfState[] = ['started', 'paused', 'want', 'upcoming', 'finished', 'dropped'];

@@ -1,8 +1,8 @@
 {
   "name": "palais-mental",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "private": true,
-  "main": "expo-router/entry",
+  "main": "index.js",
   "scripts": {
     "start": "expo start",
     "ios": "expo run:ios",
@@ -38,6 +38,7 @@
     "react-dom": "19.2.3",
     "react-i18next": "^17.0.15",
     "react-native": "0.86.3",
+    "react-native-android-widget": "^0.22.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-svg": "^15.15.4",
@@ -45,6 +46,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@types/node": "~26.6.0",
     "@types/react": "~19.2",
     "typescript": "~5.9"
   }

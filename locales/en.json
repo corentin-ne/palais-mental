@@ -125,7 +125,8 @@
       "title": "A–Z",
       "next": "Next out",
       "rating": "Rating"
-    }
+    },
+    "elsewhere": "Also in"
   },
   "show": {
     "upNext": "Up next",
@@ -458,6 +459,7 @@
     "droppedOn": "Dropped on {{date}}",
     "book": {
       "started": "Reading",
+      "paused": "Paused",
       "want": "To read",
       "upcoming": "Coming soon",
       "finished": "Read",
@@ -465,11 +467,15 @@
     },
     "game": {
       "started": "Playing",
+      "paused": "Paused",
       "want": "To play",
       "upcoming": "Coming soon",
       "finished": "Finished",
       "dropped": "Dropped"
-    }
+    },
+    "pause": "Pause",
+    "pausedBook": "On hold. Pick it up whenever you like.",
+    "pausedGame": "On hold. Pick it up whenever you like."
   },
   "book": {
     "pages_one": "{{count}} page",
@@ -545,6 +551,14 @@
       "movie": "Your take on the film…",
       "book": "Your take on the book…",
       "game": "Your take on the game…"
+    },
+    "filter": {
+      "all": "All",
+      "episodes": "Episodes",
+      "show": "Series",
+      "movie": "Films",
+      "book": "Books",
+      "game": "Games"
     }
   },
   "update": {
@@ -704,8 +718,7 @@
     "emptyMine": "You haven't recommended anything yet. Open a page and tap Recommend.",
     "emptyRatings": "No shared rating yet. Turn on “Share my ratings” in People, or show a rating from its page.",
     "inLibrary": "In your library",
-    "notInLibrary": "Not in your library yet",
-    "syncedAt": "Updated: {{when}}. All of it reads offline."
+    "notInLibrary": "Not in your library yet"
   },
   "data": {
     "backup": "Backup",

@@ -9,7 +9,6 @@ import { StarBadge } from '@/components/ui/StarRating';
 import { makeStyles, noOutline, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { Shareable, addPost, react, removePost } from '@/lib/friends';
-import { relativeDay } from '@/lib/format';
 import type { EpisodeNote } from '@/lib/types';
 import { Post, useFriends } from '@/store/useFriends';
 import { useUi } from '@/store/useUi';
@@ -80,7 +79,6 @@ export default function EpisodeTalk({ show, titleId, episodeId, watched, posts, 
               <View style={styles.postHead}>
                 <Text style={styles.name}>{p.user === me ? t('friends.you') : (members[p.user]?.name ?? '…')}</Text>
                 {p.rating != null && <StarBadge value={p.rating} />}
-                <Text style={styles.when}>{relativeDay(p.at)}</Text>
                 {p.user === me && titleId != null && (
                   <PressableScale hitSlop={8} onPress={() => removePost(titleId, p.id).catch(offline)} accessibilityLabel={t('common.remove')} style={{ marginLeft: 'auto' }}>
                     <Icon name="trash" size={14} color={palette.inkFaint} />
@@ -145,7 +143,6 @@ const useStyles = makeStyles(({ palette, fonts, type }) => ({
   post: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   postHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   name: { ...fonts.semibold, fontSize: 13, color: palette.ink },
-  when: { ...fonts.body, fontSize: 11.5, color: palette.inkFaint },
   body: { ...type.body, fontSize: 14.5, lineHeight: 20, color: palette.ink },
   reactions: { flexDirection: 'row', gap: 4 },
   reaction: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 26, paddingHorizontal: 7, borderRadius: 13, backgroundColor: palette.field, borderWidth: 1, borderColor: 'transparent' },

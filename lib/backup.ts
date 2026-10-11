@@ -27,31 +27,31 @@ export function buildBackup(): string {
 
 
 export function buildShowsCsv(shows: Show[]) {
-  const rows: unknown[][] = [['show', 'tvmaze_id', 'imdb_id', 'season', 'episode', 'code', 'title', 'aired', 'watched_at', 'dropped', 'rating_10', 'episode_rating_10', 'episode_note']];
+  const rows: unknown[][] = [['show', 'tvmaze_id', 'imdb_id', 'season', 'episode', 'code', 'title', 'aired', 'watched_at', 'dropped', 'rating_10', 'review', 'episode_rating_10', 'episode_note']];
   for (const s of shows)
     for (const e of sortEpisodes(s.episodes))
-      rows.push([s.title, s.tvmazeId, s.imdbId ?? '', e.season, e.number, episodeCode(e), e.name, iso(e.airstamp), iso(s.watched[e.id]), s.droppedAt ? 'yes' : '', s.rating ?? '', s.notes?.[e.id]?.rating ?? '', s.notes?.[e.id]?.text ?? '']);
+      rows.push([s.title, s.tvmazeId, s.imdbId ?? '', e.season, e.number, episodeCode(e), e.name, iso(e.airstamp), iso(s.watched[e.id]), s.droppedAt ? 'yes' : '', s.rating ?? '', s.review ?? '', s.notes?.[e.id]?.rating ?? '', s.notes?.[e.id]?.text ?? '']);
   return csv(rows);
 }
 
 export function buildMoviesCsv(movies: Movie[]) {
-  const rows: unknown[][] = [['title', 'year', 'release_date', 'director', 'runtime_min', 'imdb_id', 'source', 'watched_at', 'added_at', 'rating_10']];
+  const rows: unknown[][] = [['title', 'year', 'release_date', 'director', 'runtime_min', 'imdb_id', 'source', 'watched_at', 'added_at', 'rating_10', 'review']];
   for (const m of movies)
-    rows.push([m.title, m.year ?? '', iso(m.releaseDate).slice(0, 10), m.director ?? '', m.runtime ?? '', m.imdbId ?? '', `${m.source}:${m.sourceId}`, iso(m.watchedAt), iso(m.addedAt), m.rating ?? '']);
+    rows.push([m.title, m.year ?? '', iso(m.releaseDate).slice(0, 10), m.director ?? '', m.runtime ?? '', m.imdbId ?? '', `${m.source}:${m.sourceId}`, iso(m.watchedAt), iso(m.addedAt), m.rating ?? '', m.review ?? '']);
   return csv(rows);
 }
 
 export function buildBooksCsv(books: Book[]) {
-  const rows: unknown[][] = [['title', 'authors', 'year', 'release_date', 'pages', 'page', 'isbn', 'source', 'started_at', 'finished_at', 'dropped', 'rating_10']];
+  const rows: unknown[][] = [['title', 'authors', 'year', 'release_date', 'pages', 'page', 'isbn', 'source', 'started_at', 'finished_at', 'paused', 'dropped', 'rating_10', 'review']];
   for (const b of books)
-    rows.push([b.title, b.authors.join(', '), b.year ?? '', iso(b.releaseDate).slice(0, 10), b.pages ?? '', b.page ?? '', b.isbn ?? '', `${b.source}:${b.sourceId}`, iso(b.startedAt), iso(b.finishedAt), b.droppedAt ? 'yes' : '', b.rating ?? '']);
+    rows.push([b.title, b.authors.join(', '), b.year ?? '', iso(b.releaseDate).slice(0, 10), b.pages ?? '', b.page ?? '', b.isbn ?? '', `${b.source}:${b.sourceId}`, iso(b.startedAt), iso(b.finishedAt), b.pausedAt ? 'yes' : '', b.droppedAt ? 'yes' : '', b.rating ?? '', b.review ?? '']);
   return csv(rows);
 }
 
 export function buildGamesCsv(games: Game[]) {
-  const rows: unknown[][] = [['title', 'developer', 'year', 'release_date', 'platforms', 'hours', 'percent', 'steam_id', 'source', 'started_at', 'finished_at', 'dropped', 'rating_10']];
+  const rows: unknown[][] = [['title', 'developer', 'year', 'release_date', 'platforms', 'hours', 'percent', 'steam_id', 'source', 'started_at', 'finished_at', 'paused', 'dropped', 'rating_10', 'review']];
   for (const g of games)
-    rows.push([g.title, g.developer ?? '', g.year ?? '', iso(g.releaseDate).slice(0, 10), g.platforms.join(', '), g.hours ?? '', g.percent ?? '', g.steamId ?? '', `${g.source}:${g.sourceId}`, iso(g.startedAt), iso(g.finishedAt), g.droppedAt ? 'yes' : '', g.rating ?? '']);
+    rows.push([g.title, g.developer ?? '', g.year ?? '', iso(g.releaseDate).slice(0, 10), g.platforms.join(', '), g.hours ?? '', g.percent ?? '', g.steamId ?? '', `${g.source}:${g.sourceId}`, iso(g.startedAt), iso(g.finishedAt), g.pausedAt ? 'yes' : '', g.droppedAt ? 'yes' : '', g.rating ?? '', g.review ?? '']);
   return csv(rows);
 }
 

@@ -239,8 +239,17 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
                     <Text style={styles.percent}>{`${Math.round(fraction * 100)} %`}</Text>
                   </View>
                 )}
+                <Button label={t(isBook ? 'book.finished' : 'game.finished')} icon="check" onPress={() => status('finished')} style={styles.block} />
                 <View style={styles.actions}>
-                  <Button label={t(isBook ? 'book.finished' : 'game.finished')} icon="check" onPress={() => status('finished')} style={{ flex: 1 }} />
+                  <Button label={t('shelf.pause')} icon="pause" variant="secondary" onPress={() => status('paused')} style={{ flex: 1 }} />
+                  <Button label={t('show.drop')} variant="secondary" onPress={() => status('dropped')} style={{ flex: 1 }} />
+                </View>
+              </>
+            ) : state === 'paused' ? (
+              <>
+                <Text style={styles.done}>{t(isBook ? 'shelf.pausedBook' : 'shelf.pausedGame')}</Text>
+                <View style={styles.actions}>
+                  <Button label={t('show.resume')} icon="play" onPress={() => status('started')} style={{ flex: 1 }} />
                   <Button label={t('show.drop')} variant="secondary" onPress={() => status('dropped')} />
                 </View>
               </>

@@ -75,3 +75,13 @@ export function seasonsOf(episodes: Episode[]) {
   }
   return [...map.entries()].map(([season, list]) => ({ season, episodes: list }));
 }
+
+/** Shows you are watching, last touched first, each with the episode you pick up at. */
+export function upNextShows(shows: Record<string, Show>, now = Date.now()) {
+  return Object.values(shows)
+    .map((show) => ({ show, progress: progressOf(show, now), state: showState(show, now) }))
+    .filter((s) => s.state === 'watching' && s.progress.next)
+    .map((s) => ({ ...s, activity: Math.max(s.show.addedAt, ...Object.values(s.show.watched)) }))
+    .sort((a, b) => b.activity - a.activity)
+    .map(({ show, progress }) => ({ show, next: progress.next!, left: progress.left }));
+}

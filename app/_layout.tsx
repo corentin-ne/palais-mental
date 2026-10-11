@@ -15,6 +15,7 @@ import { useSparkOptions, useTheme } from '@/constants/theme';
 import { useLanguageSync } from '@/hooks/useLanguageSync';
 import { startFriends } from '@/lib/friends';
 import { startSync } from '@/lib/sync';
+import { startWidget } from '@/lib/widget';
 import { SparkProvider } from '@/spark';
 import { useLibrary } from '@/store/useLibrary';
 
@@ -55,6 +56,7 @@ export default function RootLayout() {
   useNotificationRouting();
   useEffect(() => startSync(), []);
   useEffect(() => startFriends(), []);
+  useEffect(() => (hydrated ? startWidget() : undefined), [hydrated]);
 
   // System fonts (Spark UI kit): nothing to load, the splash waits only for your saved theme and accent.
   useEffect(() => {
@@ -81,6 +83,7 @@ export default function RootLayout() {
           <Stack.Screen name="game/[id]" />
           <Stack.Screen name="collection/[kind]/[key]" />
           <Stack.Screen name="data" />
+          <Stack.Screen name="journal" />
           <Stack.Screen name="connections" />
           <Stack.Screen name="social" />
           <Stack.Screen name="settings" />

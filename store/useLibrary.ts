@@ -8,10 +8,10 @@ import { Book, EpisodeNote, Game, Movie, Settings, Show } from '@/lib/types';
 
 export type ShowData = Omit<Show, 'watched' | 'addedAt' | 'droppedAt' | 'rating' | 'review' | 'reviewedAt' | 'notes'>;
 export type MovieData = Omit<Movie, 'watchedAt' | 'addedAt' | 'rating' | 'review' | 'reviewedAt'>;
-type Progressless = 'touchedAt' | 'startedAt' | 'finishedAt' | 'droppedAt' | 'rating' | 'review' | 'reviewedAt' | 'addedAt';
+type Progressless = 'touchedAt' | 'startedAt' | 'pausedAt' | 'finishedAt' | 'droppedAt' | 'rating' | 'review' | 'reviewedAt' | 'addedAt';
 export type BookData = Omit<Book, Progressless | 'page'>;
 export type GameData = Omit<Game, Progressless | 'hours' | 'percent'>;
-export type ShelfStatus = 'want' | 'started' | 'finished' | 'dropped';
+export type ShelfStatus = 'want' | 'started' | 'paused' | 'finished' | 'dropped';
 
 export interface LibraryData {
   shows: Record<string, Show>;
@@ -87,10 +87,11 @@ export function compactLibrary(data: LibraryData): LibraryData {
 
 /** Status changes shared by books and games. Finishing keeps when you started. */
 function withStatus<T extends Book | Game>(item: T, status: ShelfStatus, at = Date.now()): T {
-  if (status === 'want') return { ...item, startedAt: undefined, finishedAt: undefined, droppedAt: undefined };
-  if (status === 'started') return { ...item, startedAt: item.startedAt ?? at, finishedAt: undefined, droppedAt: undefined };
-  if (status === 'finished') return { ...item, startedAt: item.startedAt ?? at, finishedAt: at, droppedAt: undefined };
-  return { ...item, droppedAt: at };
+  if (status === 'want') return { ...item, startedAt: undefined, pausedAt: undefined, finishedAt: undefined, droppedAt: undefined };
+  if (status === 'started') return { ...item, startedAt: item.startedAt ?? at, pausedAt: undefined, finishedAt: undefined, droppedAt: undefined };
+  if (status === 'paused') return { ...item, startedAt: item.startedAt ?? at, pausedAt: at, finishedAt: undefined, droppedAt: undefined };
+  if (status === 'finished') return { ...item, startedAt: item.startedAt ?? at, pausedAt: undefined, finishedAt: at, droppedAt: undefined };
+  return { ...item, pausedAt: undefined, droppedAt: at };
 }
 
 /** A review and when it was written; an empty one clears both. */
@@ -227,7 +228,7 @@ export const useLibrary = create<LibraryState>()(
           patchBook(s, id, (b) => {
             const now = Date.now();
             const p = Math.max(0, Math.round(page));
-            return { ...b, page: p || undefined, touchedAt: now, startedAt: b.startedAt ?? (p ? now : undefined), droppedAt: undefined };
+            return { ...b, page: p || undefined, touchedAt: now, startedAt: b.startedAt ?? (p ? now : undefined), pausedAt: undefined, droppedAt: undefined };
           }),
         ),
       setBookStatus: (id, status, at) =>
@@ -255,7 +256,7 @@ export const useLibrary = create<LibraryState>()(
         set((s) =>
           patchGame(s, id, (g) => {
             const now = Date.now();
-            const next = { ...g, ...patch, touchedAt: now, droppedAt: undefined };
+            const next = { ...g, ...patch, touchedAt: now, pausedAt: undefined, droppedAt: undefined };
             if (next.percent != null) next.percent = Math.max(0, Math.min(100, Math.round(next.percent))) || undefined;
             if (next.hours != null) next.hours = Math.max(0, Math.round(next.hours * 2) / 2) || undefined;
             return { ...next, startedAt: g.startedAt ?? (next.hours || next.percent ? now : undefined) };

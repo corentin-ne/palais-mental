@@ -41,6 +41,9 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      - name: Unit tests
+        run: npm test
+
       - name: Generate the native Android project
         run: npx expo prebuild --platform android --no-install
         env:

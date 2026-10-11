@@ -125,7 +125,8 @@
       "title": "A–Z",
       "next": "Prochaines sorties",
       "rating": "Note"
-    }
+    },
+    "elsewhere": "Aussi dans"
   },
   "show": {
     "upNext": "À suivre",
@@ -458,6 +459,7 @@
     "droppedOn": "Abandonné le {{date}}",
     "book": {
       "started": "En lecture",
+      "paused": "En pause",
       "want": "À lire",
       "upcoming": "Bientôt",
       "finished": "Lus",
@@ -465,11 +467,15 @@
     },
     "game": {
       "started": "En cours",
+      "paused": "En pause",
       "want": "À jouer",
       "upcoming": "Bientôt",
       "finished": "Terminés",
       "dropped": "Abandonnés"
-    }
+    },
+    "pause": "Mettre en pause",
+    "pausedBook": "En pause. Reprenez-le quand vous voulez.",
+    "pausedGame": "En pause. Reprenez-le quand vous voulez."
   },
   "book": {
     "pages_one": "{{count}} page",
@@ -545,6 +551,14 @@
       "movie": "Ton avis sur le film…",
       "book": "Ton avis sur le livre…",
       "game": "Ton avis sur le jeu…"
+    },
+    "filter": {
+      "all": "Tout",
+      "episodes": "Épisodes",
+      "show": "Séries",
+      "movie": "Films",
+      "book": "Livres",
+      "game": "Jeux"
     }
   },
   "update": {
@@ -704,8 +718,7 @@
     "emptyMine": "Tu n'as encore rien recommandé. Ouvre une fiche et appuie sur Recommander.",
     "emptyRatings": "Aucune note partagée pour l'instant. Active « Partager mes notes » dans Personnes, ou montre une note depuis sa fiche.",
     "inLibrary": "Dans ta bibliothèque",
-    "notInLibrary": "Pas encore dans ta bibliothèque",
-    "syncedAt": "Mis à jour : {{when}}. Tout reste consultable hors ligne."
+    "notInLibrary": "Pas encore dans ta bibliothèque"
   },
   "data": {
     "backup": "Sauvegarde",

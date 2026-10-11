@@ -16,7 +16,6 @@ import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
-import { relativeDay } from '@/lib/format';
 import { leaveFriends, setShareRatings, syncFriends } from '@/lib/friends';
 import { bandOf, quorumFor, starsText, useDigest, useLocalHrefs } from '@/lib/ribbons';
 import type { MediaKind } from '@/lib/types';
@@ -42,7 +41,6 @@ export default function SocialScreen() {
   const insets = useSafeAreaInsets();
   const { gutter, content } = useLayout();
   const me = useFriends((s) => s.me);
-  const syncedAt = useFriends((s) => s.syncedAt);
   const [tab, setTab] = useState<Tab>('recos');
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
@@ -87,7 +85,6 @@ export default function SocialScreen() {
                 <NameField />
               </View>
             </Group>
-            {syncedAt > 0 && <Text style={styles.footnote}>{t('friends.syncedAt', { when: relativeDay(syncedAt) })}</Text>}
           </>
         ) : (
           <>
@@ -167,7 +164,7 @@ function Recos({ me }: { me: string }) {
                     {title.title}
                   </Text>
                   <Text style={styles.cardMeta} numberOfLines={1}>
-                    {[r.user === me ? t('friends.you') : members[r.user].name, relativeDay(r.at), title.year].filter(Boolean).join(' · ')}
+                    {[r.user === me ? t('friends.you') : members[r.user].name, title.year].filter(Boolean).join(' · ')}
                   </Text>
                   <View style={styles.tags}>
                     {r.favorite && (

@@ -30,6 +30,7 @@ type ShowFilter = 'all' | ShowState;
 type MovieFilter = 'watchlist' | 'upcoming' | 'watched';
 type Sort = 'recent' | 'title' | 'next' | 'rating';
 const SORTS: Sort[] = ['recent', 'title', 'next', 'rating'];
+const SHELF_GROUPS = (): Record<ShelfState, Unit<Book | Game>[]> => ({ started: [], paused: [], want: [], upcoming: [], finished: [], dropped: [] });
 const norm = (s: string) => s.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 /** A title on its own, or a series kept together (two or more of it in the library; `item` is its first). */
@@ -61,6 +62,7 @@ function shelfUnitState(u: Unit<Book | Game>, now: number): ShelfState {
   const states = u.group.members.map((m) => shelfState(m.item, now));
   const has = (s: ShelfState) => states.includes(s);
   if (has('started') || (has('finished') && has('want'))) return 'started';
+  if (has('paused')) return 'paused';
   if (has('want')) return 'want';
   if (has('upcoming')) return 'upcoming';
   return has('finished') ? 'finished' : 'dropped';
@@ -161,7 +163,7 @@ export default function LibraryScreen() {
     const now = Date.now();
     const list: (Book | Game)[] = tab === 'books' ? Object.values(books) : tab === 'games' ? Object.values(games) : [];
     type U = Unit<Book | Game>;
-    const groups: Record<ShelfState, U[]> = { started: [], want: [], upcoming: [], finished: [], dropped: [] };
+    const groups: Record<ShelfState, U[]> = SHELF_GROUPS();
     for (const u of unitsOf(list)) groups[shelfUnitState(u, now)].push(u);
     const activity = (u: U) => over(u, shelfActivity) ?? 0;
     const release = (u: U) => over(u, (i) => (i.finishedAt ? undefined : i.releaseDate), true);
@@ -200,7 +202,7 @@ export default function LibraryScreen() {
 
   const shelfCaption = (item: Book | Game, state: ShelfState) => {
     if (state === 'upcoming' && item.releaseDate) return countdown(item.releaseDate);
-    if (state === 'started') {
+    if (state === 'started' || state === 'paused') {
       if (tab === 'books') {
         const b = item as Book;
         return b.page ? (b.pages ? t('book.pageOf', { page: b.page, count: b.pages }) : t('book.pageN', { page: b.page })) : t('book.notStartedPage');
@@ -211,11 +213,14 @@ export default function LibraryScreen() {
     return tab === 'books' ? ((item as Book).authors[0] ?? (item.year ? String(item.year) : undefined)) : item.year ? String(item.year) : undefined;
   };
 
+  // Typing searches the whole tab, whatever the state chips say, and counts matches in the other tabs.
   const q = norm(query.trim());
+  const movieUnits = q ? (['watchlist', 'upcoming', 'watched'] as const).flatMap((f) => movieGroups[f].map((u) => ({ u, state: f }))) : movieGroups[movieFilter].map((u) => ({ u, state: movieFilter }));
+  const shelfUnits = q ? SHELF_STATES.flatMap((f) => shelf[f].map((u) => ({ u, state: f }))) : shelf[activeShelf].map((u) => ({ u, state: activeShelf }));
   const allTiles: Tile[] =
     tab === 'shows'
       ? showTiles
-          .filter((s) => (showFilter === 'all' ? s.state !== 'dropped' : s.state === showFilter))
+          .filter((s) => q || (showFilter === 'all' ? s.state !== 'dropped' : s.state === showFilter))
           .map(({ show, state, progress }) => ({
             key: show.id,
             href: `/show/${show.tvmazeId}`,
@@ -233,7 +238,7 @@ export default function LibraryScreen() {
                   : t(`state.${state}`),
           }))
       : tab === 'movies'
-        ? movieGroups[movieFilter].map(({ item: m, group }) =>
+        ? movieUnits.map(({ u: { item: m, group }, state }) =>
             group
               ? groupTile('movie', group)
               : {
@@ -243,22 +248,34 @@ export default function LibraryScreen() {
                   poster: m.poster,
                   ribbon: ribbon('movie', m),
                   search: [m.director, ...m.genres].filter(Boolean).join(' '),
-                  caption: movieFilter === 'upcoming' && m.releaseDate ? countdown(m.releaseDate) : m.year ? String(m.year) : undefined,
+                  caption: state === 'upcoming' && m.releaseDate ? countdown(m.releaseDate) : m.year ? String(m.year) : undefined,
                 },
           )
-        : shelf[activeShelf].map(({ item, group }) => group ? groupTile(tab === 'books' ? 'book' : 'game', group, activeShelf === 'dropped') : ({
+        : shelfUnits.map(({ u: { item, group }, state }) => group ? groupTile(tab === 'books' ? 'book' : 'game', group, state === 'dropped') : ({
             key: item.id,
             href: `/${TAB_KIND[tab]}/${item.id}`,
             title: item.title,
             poster: item.cover,
             ribbon: ribbon(TAB_KIND[tab], item),
-            caption: shelfCaption(item, activeShelf),
-            progress: activeShelf === 'started' ? (tab === 'books' ? bookFraction(item as Book) : gameFraction(item as Game)) : undefined,
-            dim: activeShelf === 'dropped',
+            caption: shelfCaption(item, state),
+            progress: state === 'started' || state === 'paused' ? (tab === 'books' ? bookFraction(item as Book) : gameFraction(item as Game)) : undefined,
+            dim: state === 'dropped',
             search: tab === 'books' ? [...(item as Book).authors, ...(item as Book).subjects, (item as Book).series?.name].filter(Boolean).join(' ') : [(item as Game).developer, ...(item as Game).platforms, ...(item as Game).genres, item.series?.name].filter(Boolean).join(' '),
           }));
 
   const tiles = q ? allTiles.filter((tile) => norm(tile.title).includes(q) || (!!tile.search && norm(tile.search).includes(q))) : allTiles;
+  const elsewhere = useMemo(() => {
+    if (!q) return [];
+    const hit = (...texts: (string | undefined)[]) => texts.some((x) => !!x && norm(x).includes(q));
+    const counts: Record<Tab, number> = {
+      shows: Object.values(shows).filter((s) => hit(s.title, s.network)).length,
+      movies: Object.values(movies).filter((m) => hit(m.title, m.director)).length,
+      books: Object.values(books).filter((b) => hit(b.title, ...b.authors, b.series?.name)).length,
+      games: Object.values(games).filter((g) => hit(g.title, g.developer, g.series?.name)).length,
+    };
+    return (Object.keys(counts) as Tab[]).filter((k) => k !== tab && counts[k] > 0).map((k) => ({ tab: k, count: counts[k] }));
+  }, [q, tab, shows, movies, books, games]);
+  const [sortOpen, setSortOpen] = useState(false);
   const gridKey = `${tab}${showFilter}${movieFilter}${activeShelf}${columns}`;
   const shown = useProgressive(tiles.length, `${gridKey}${q}${sort}`);
   const empty = !Object.keys(shows).length && !Object.keys(movies).length && !Object.keys(books).length && !Object.keys(games).length;
@@ -291,16 +308,39 @@ export default function LibraryScreen() {
                 depth={0.92}
                 style={styles.sort}
                 accessibilityLabel={t('library.sortBy')}
+                accessibilityState={{ expanded: sortOpen }}
                 onPress={() => {
                   haptics.select();
-                  setSort(SORTS[(SORTS.indexOf(sort) + 1) % SORTS.length]);
+                  setSortOpen((o) => !o);
                 }}
               >
                 <Icon name="sort" size={16} color={palette.ink} />
                 <Text style={styles.sortText}>{t(`library.sort.${sort}`)}</Text>
               </PressableScale>
             </View>
-            {tab === 'shows' ? (
+            {sortOpen && (
+              <Chips<Sort>
+                inset={gutter}
+                value={sort}
+                onChange={(next) => {
+                  setSort(next);
+                  setSortOpen(false);
+                }}
+                options={SORTS.map((value) => ({ value, label: t(`library.sort.${value}`) }))}
+              />
+            )}
+            {q ? (
+              elsewhere.length > 0 && (
+                <View style={styles.elsewhere}>
+                  <Text style={styles.caption}>{t('library.elsewhere')}</Text>
+                  {elsewhere.map((e) => (
+                    <PressableScale key={e.tab} depth={0.94} onPress={() => setTab(e.tab)} style={styles.elsewhereChip}>
+                      <Text style={styles.elsewhereText}>{`${t(`common.${e.tab}`)} · ${e.count}`}</Text>
+                    </PressableScale>
+                  ))}
+                </View>
+              )
+            ) : tab === 'shows' ? (
               <Chips
                 inset={gutter}
                 value={showFilter}
@@ -387,4 +427,7 @@ const useStyles = makeStyles(({ palette, fonts, type }) => ({
   searchInput: { flex: 1, height: 40, ...fonts.body, fontSize: 14, color: palette.ink },
   sort: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   sortText: { ...fonts.medium, fontSize: 13, color: palette.ink },
+  elsewhere: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  elsewhereChip: { height: 30, paddingHorizontal: 12, borderRadius: 15, justifyContent: 'center', backgroundColor: palette.primaryTint },
+  elsewhereText: { ...fonts.semibold, fontSize: 12.5, color: palette.primaryText },
 }));
