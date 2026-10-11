@@ -1,8 +1,8 @@
-import '@/locales/i18n';
+import i18n from '@/locales/i18n';
 
 import { useEffect, useState } from 'react';
 import { Platform, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Href, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
@@ -14,10 +14,12 @@ import UpdatePrompt from '@/components/ui/UpdatePrompt';
 import { useSparkOptions, useTheme } from '@/constants/theme';
 import { useLanguageSync } from '@/hooks/useLanguageSync';
 import { startFriends } from '@/lib/friends';
+import { onStorageError } from '@/lib/storage';
 import { startSync } from '@/lib/sync';
 import { startWidget } from '@/lib/widget';
 import { SparkProvider } from '@/spark';
 import { useLibrary } from '@/store/useLibrary';
+import { useUi } from '@/store/useUi';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -28,7 +30,7 @@ function useNotificationRouting() {
     if (Platform.OS === 'web') return;
     const open = (r: Notifications.NotificationResponse | null) => {
       const url = r?.notification.request.content.data?.url;
-      if (typeof url === 'string') router.push(url as never);
+      if (typeof url === 'string') router.push(url as Href);
     };
     Notifications.getLastNotificationResponseAsync().then(open).catch(() => undefined);
     const sub = Notifications.addNotificationResponseReceivedListener(open);
@@ -57,6 +59,8 @@ export default function RootLayout() {
   useEffect(() => startSync(), []);
   useEffect(() => startFriends(), []);
   useEffect(() => (hydrated ? startWidget() : undefined), [hydrated]);
+  // A change that couldn't be written (storage full): said once, not lost in silence.
+  useEffect(() => onStorageError(() => useUi.getState().showToast(i18n.t('toast.notSaved'))), []);
 
   // System fonts (Spark UI kit): nothing to load, the splash waits only for your saved theme and accent.
   useEffect(() => {

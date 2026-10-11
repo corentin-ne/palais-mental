@@ -1,6 +1,6 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import NameField from '@/components/friends/NameField';
@@ -141,7 +141,7 @@ function Recos({ me }: { me: string }) {
           const thanked = thanks.filter((x) => x.recoUser === r.user && x.title === r.title);
           return (
             <FadeIn key={`${r.user}-${r.title}`} index={i} distance={8}>
-              <PressableScale depth={0.98} style={styles.card} onPress={() => router.push(href as never)} accessibilityLabel={title.title}>
+              <PressableScale depth={0.98} style={styles.card} onPress={() => router.push(href as Href)} accessibilityLabel={title.title}>
                 <Poster uri={title.poster} title={title.title} width={76} kind={title.kind} elevated={false} radius={8} ribbon={ribbon && bandOf(t, ribbon, members)} />
                 <View style={{ flex: 1, gap: 4 }}>
                   <Text style={styles.cardTitle} numberOfLines={2}>
@@ -242,7 +242,7 @@ function Ratings({ me }: { me: string }) {
           const ribbon = d?.ribbons.get(title.id);
           return (
             <FadeIn key={title.id} index={i} distance={8}>
-              <PressableScale depth={0.98} style={[styles.card, { alignItems: 'center' }]} onPress={() => router.push(hrefs(title).href as never)} accessibilityLabel={title.title}>
+              <PressableScale depth={0.98} style={[styles.card, { alignItems: 'center' }]} onPress={() => router.push(hrefs(title).href as Href)} accessibilityLabel={title.title}>
                 <Poster uri={title.poster} title={title.title} width={48} kind={title.kind} elevated={false} radius={6} />
                 <View style={{ flex: 1, gap: 4 }}>
                   <View style={styles.rowHead}>

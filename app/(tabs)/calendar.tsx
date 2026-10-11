@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import Button from '@/components/ui/Button';
@@ -52,7 +52,7 @@ export default function CalendarScreen() {
   }, []);
 
   const related = useMemo(() => (relatedOn ? visibleRelated(relatedAll) : []), [relatedOn, relatedAll, shows, movies, books, games]);
-  const all = useMemo(() => getUpcoming(shows, movies, Date.now(), related, books, games), [shows, movies, related, books, games]);
+  const all = useMemo(() => getUpcoming({ shows, movies, books, games }, related), [shows, movies, related, books, games]);
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
     for (const u of all) c[u.kind] = (c[u.kind] ?? 0) + 1;
@@ -158,7 +158,7 @@ function Entry({ u }: { u: UpcomingEntry }) {
           ? { title: u.book.title, poster: u.book.cover, href: `/book/${u.book.id}`, kind: 'book' as const, detail: [t('calendar.bookOut'), u.book.authors[0]].filter(Boolean).join(' · ') }
           : { title: u.game.title, poster: u.game.cover, href: `/game/${u.game.id}`, kind: 'game' as const, detail: [t('calendar.gameOut'), u.game.platforms.slice(0, 3).join(', ')].filter(Boolean).join(' · ') };
   return (
-    <PressableScale depth={0.98} style={styles.entry} onPress={() => router.push(href as never)}>
+    <PressableScale depth={0.98} style={styles.entry} onPress={() => router.push(href as Href)}>
       <Poster uri={poster} title={title} width={46} kind={kind} elevated={false} radius={7} />
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={styles.entryTitle} numberOfLines={1}>
@@ -187,7 +187,7 @@ function RelatedEntry({ u }: { u: Extract<UpcomingEntry, { kind: 'related' }> })
   const router = useRouter();
   const r = u.related;
   return (
-    <PressableScale depth={0.98} style={[styles.entry, styles.entryRelated]} onPress={async () => router.push((await relatedHref(r)) as never)}>
+    <PressableScale depth={0.98} style={[styles.entry, styles.entryRelated]} onPress={async () => router.push((await relatedHref(r)) as Href)}>
       <Poster uri={r.poster} title={r.title} width={46} kind={r.kind} elevated={false} radius={7} />
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={styles.entryTitle} numberOfLines={1}>

@@ -132,7 +132,7 @@ export default function SettingsScreen() {
         </Group>
 
         <Group index={2} title={t('profile.data')}>
-          <ActionRow icon="download" tint="#0B63CE" label={t('profile.data')} hint={t('data.hint')} onPress={() => router.push('/data' as never)} last />
+          <ActionRow icon="download" tint="#0B63CE" label={t('profile.data')} hint={t('data.hint')} onPress={() => router.push('/data')} last />
         </Group>
 
         <Group index={3} title={t('settings.services')}>

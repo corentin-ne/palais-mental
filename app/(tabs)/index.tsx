@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import FriendsRail from '@/components/friends/FriendsRail';
@@ -27,7 +27,7 @@ import { OUT_NOW, refreshRelated, relatedHref, relationLabel, visibleRelated } f
 import { refreshLibrary } from '@/lib/sync';
 import { Book, Game } from '@/lib/types';
 import { RelatedRelease, useConnections } from '@/store/useConnections';
-import { useLibrary } from '@/store/useLibrary';
+import { useLibrary, useLibraryEmpty } from '@/store/useLibrary';
 
 /** What to watch now: the next episode of every show in progress, the books and games you're in, then what is waiting. Dates live in the calendar. */
 export default function UpNextScreen() {
@@ -48,7 +48,10 @@ export default function UpNextScreen() {
 
   const { upNext, waiting } = useMemo(() => {
     const now = Date.now();
-    const list = Object.values(shows).map((show) => ({ show, progress: progressOf(show, now), state: showState(show, now) }));
+    const list = Object.values(shows).map((show) => {
+      const progress = progressOf(show, now);
+      return { show, progress, state: showState(show, now, progress) };
+    });
     const lastActivity = (s: (typeof list)[number]) => Math.max(s.show.addedAt, ...Object.values(s.show.watched));
     return {
       upNext: list.filter((s) => s.state === 'watching').sort((a, b) => lastActivity(b) - lastActivity(a)),
@@ -108,7 +111,7 @@ export default function UpNextScreen() {
     setRefreshing(false);
   }, []);
 
-  const empty = !Object.keys(shows).length && !Object.keys(movies).length && !Object.keys(books).length && !Object.keys(games).length;
+  const empty = useLibraryEmpty();
   const cols = wide ? 2 : 1;
   const cardW = Math.floor((inner - gap * (cols - 1)) / cols);
   // What friends recommend that you don't have yet (nothing until you have joined them).
@@ -117,7 +120,7 @@ export default function UpNextScreen() {
       title={t('friends.suggested')}
       count={suggestions.length}
       action={
-        <PressableScale onPress={() => router.push('/social' as never)} style={styles.link}>
+        <PressableScale onPress={() => router.push('/social')} style={styles.link}>
           <Text style={styles.linkText}>{t('common.seeAll')}</Text>
           <Icon name="chevronRight" size={14} color={palette.primaryText} strokeWidth={2.2} />
         </PressableScale>
@@ -213,7 +216,7 @@ function RelatedRail({ items }: { items: RelatedRelease[] }) {
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -gutter }} contentContainerStyle={{ paddingHorizontal: gutter, gap: 14, paddingBottom: 6 }}>
       {items.map((r, i) => (
         <FadeIn key={r.imdbId} index={i} distance={10}>
-          <PressableScale onPress={async () => router.push((await relatedHref(r)) as never)} style={{ width: railPoster, gap: 8 }} accessibilityLabel={r.title}>
+          <PressableScale onPress={async () => router.push((await relatedHref(r)) as Href)} style={{ width: railPoster, gap: 8 }} accessibilityLabel={r.title}>
             <Poster uri={r.poster} title={r.title} width={railPoster} kind={r.kind} />
             <View style={{ gap: 1 }}>
               <Text style={styles.soonTitle} numberOfLines={1}>
@@ -255,7 +258,7 @@ function Welcome() {
       )}
       <View style={{ alignItems: 'center', marginTop: 28, gap: 6 }}>
         <Button label={t('welcome.connect')} icon="link" variant="ghost" compact onPress={() => router.push('/connections')} />
-        <Button label={t('welcome.import')} icon="upload" variant="ghost" compact onPress={() => router.push('/data' as never)} />
+        <Button label={t('welcome.import')} icon="upload" variant="ghost" compact onPress={() => router.push('/data')} />
       </View>
     </View>
   );

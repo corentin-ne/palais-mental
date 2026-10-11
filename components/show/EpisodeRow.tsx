@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
@@ -15,8 +15,11 @@ import { episodeCode, hasAired } from '@/lib/progress';
 import { Episode, EpisodeNote } from '@/lib/types';
 import { Lit } from '@/spark';
 
-/** One episode: its still, code and name, a tick, and once open the synopsis, your note and what friends said. */
-export default function EpisodeRow({
+/**
+ * One episode: its still, code and name, a tick, and once open the synopsis, your note and what friends said.
+ * Memoised: a row redraws when its own episode changes, not on every tick elsewhere in the season.
+ */
+export default memo(function EpisodeRow({
   e,
   index,
   watched,
@@ -39,10 +42,10 @@ export default function EpisodeRow({
   note?: EpisodeNote;
   synopsis?: string;
   open: boolean;
-  onOpen: () => void;
-  onToggle: () => void;
-  onUpTo: () => void;
-  onNote: (patch: Partial<Omit<EpisodeNote, 'at'>>) => void;
+  onOpen: (e: Episode) => void;
+  onToggle: (e: Episode) => void;
+  onUpTo: (e: Episode) => void;
+  onNote: (e: Episode, patch: Partial<Omit<EpisodeNote, 'at'>>) => void;
   /** What friends said about it (closed until you have seen it), and how many messages that is. */
   talk?: ReactNode;
   talkCount?: number;
@@ -54,7 +57,7 @@ export default function EpisodeRow({
   return (
     <FadeIn index={index} distance={8}>
       <Lit style={[styles.episode, isNext && styles.episodeNext, !aired && { opacity: 0.6 }]}>
-        <PressableScale depth={0.99} onPress={onOpen} style={{ gap: 10 }}>
+        <PressableScale depth={0.99} onPress={() => onOpen(e)} style={{ gap: 10 }}>
           <View style={styles.epTop}>
             <View style={styles.still}>
               {e.image ? <Image source={{ uri: e.image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : <Text style={styles.stillNum}>{e.number}</Text>}
@@ -79,7 +82,7 @@ export default function EpisodeRow({
                 {e.airstamp ? (aired ? fullDate(e.airstamp) : `${relativeDay(e.airstamp)} · ${countdown(e.airstamp)}`) : t('show.tba')}
               </Text>
             </View>
-            <CheckButton checked={watched} onPress={onToggle} onLongPress={aired ? onUpTo : undefined} disabled={!aired} label={episodeCode(e)} />
+            <CheckButton checked={watched} onPress={() => onToggle(e)} onLongPress={aired ? () => onUpTo(e) : undefined} disabled={!aired} label={episodeCode(e)} />
           </View>
           {open && !!synopsis && <Text style={styles.epSynopsis}>{synopsis}</Text>}
         </PressableScale>
@@ -88,16 +91,16 @@ export default function EpisodeRow({
           <View style={styles.notePanel}>
             <View style={styles.rate}>
               <Text style={styles.rateLabel}>{t('journal.episodeRating')}</Text>
-              <StarRating value={note?.rating} onChange={(rating) => onNote({ rating })} size={20} />
+              <StarRating value={note?.rating} onChange={(rating) => onNote(e, { rating })} size={20} />
             </View>
-            <NoteInput value={note?.text} placeholder={t('journal.notePlaceholder')} onSave={(text) => onNote({ text })} />
+            <NoteInput value={note?.text} placeholder={t('journal.notePlaceholder')} onSave={(text) => onNote(e, { text })} />
           </View>
         )}
         {open && aired && talk}
       </Lit>
     </FadeIn>
   );
-}
+});
 
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   rate: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },

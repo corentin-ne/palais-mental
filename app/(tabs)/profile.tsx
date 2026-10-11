@@ -61,7 +61,7 @@ export default function ProfileScreen() {
       )}
 
       <View style={[styles.group, { marginTop: 12 }]}>
-        <ActionRow icon="download" label={t('profile.data')} hint={t('data.hint')} onPress={() => router.push('/data' as never)} />
+        <ActionRow icon="download" label={t('profile.data')} hint={t('data.hint')} onPress={() => router.push('/data')} />
         <ActionRow icon="settings" label={t('settings.title')} hint={t('settings.hint')} onPress={() => router.push('/settings')} last />
       </View>
 
@@ -85,7 +85,7 @@ function Journal() {
       count={all.length || undefined}
       action={
         all.length > JOURNAL ? (
-          <PressableScale onPress={() => router.push('/journal' as never)} style={styles.link}>
+          <PressableScale onPress={() => router.push('/journal')} style={styles.link}>
             <Text style={styles.linkText}>{t('common.seeAll')}</Text>
             <Icon name="chevronRight" size={14} color={palette.primaryText} strokeWidth={2.2} />
           </PressableScale>

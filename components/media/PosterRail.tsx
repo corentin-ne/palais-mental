@@ -1,5 +1,5 @@
 import { ScrollView, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 
 import Poster from '@/components/ui/Poster';
 import PressableScale from '@/components/ui/PressableScale';
@@ -29,7 +29,7 @@ export default function PosterRail({ items }: { items: RailItem[] }) {
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -gutter }} contentContainerStyle={{ paddingHorizontal: gutter, gap: 14, paddingBottom: 6 }}>
       {items.map((it, i) => (
         <FadeIn key={it.key} index={i} distance={10}>
-          <PressableScale onPress={() => router.push(it.href as never)} style={{ width: railPoster, gap: 8 }} accessibilityLabel={it.title}>
+          <PressableScale onPress={() => router.push(it.href as Href)} style={{ width: railPoster, gap: 8 }} accessibilityLabel={it.title}>
             <Poster uri={it.poster} title={it.title} width={railPoster} kind={it.kind} progress={it.progress} ribbon={it.ribbon} />
             <View style={{ gap: 1 }}>
               <Text style={styles.title} numberOfLines={1}>

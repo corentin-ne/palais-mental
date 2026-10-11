@@ -6,8 +6,12 @@ export const isWatched = (show: Show, e: Episode) => !!show.watched[e.id];
 export const episodeCode = (e: Pick<Episode, 'season' | 'number'>) =>
   `S${String(e.season).padStart(2, '0')}E${String(e.number).padStart(2, '0')}`;
 
+const byOrder = (a: Episode, b: Episode) => a.season - b.season || a.number - b.number;
+
+/** In viewing order. Lists come sorted from the source: one already in order is returned as is. */
 export function sortEpisodes(list: Episode[]) {
-  return [...list].sort((a, b) => a.season - b.season || a.number - b.number);
+  for (let i = 1; i < list.length; i++) if (byOrder(list[i - 1], list[i]) > 0) return [...list].sort(byOrder);
+  return list;
 }
 
 export interface Progress {
@@ -50,9 +54,9 @@ export function progressOf(show: Show, now = Date.now()): Progress {
   return { aired, watched, left, next: ahead[0], ahead, skipped, upcoming, fraction: aired ? Math.min(1, (aired - left) / aired) : 0 };
 }
 
-export function showState(show: Show, now = Date.now()): ShowState {
+/** `p`: the show's progress when the caller already worked it out. */
+export function showState(show: Show, now = Date.now(), p = progressOf(show, now)): ShowState {
   if (show.droppedAt) return 'dropped';
-  const p = progressOf(show, now);
   if (p.watched === 0) return 'notStarted';
   if (p.next) return 'watching';
   return show.status === 'Ended' && !p.upcoming ? 'finished' : 'upToDate';
@@ -79,7 +83,8 @@ export function seasonsOf(episodes: Episode[]) {
 /** Shows you are watching, last touched first, each with the episode you pick up at. */
 export function upNextShows(shows: Record<string, Show>, now = Date.now()) {
   return Object.values(shows)
-    .map((show) => ({ show, progress: progressOf(show, now), state: showState(show, now) }))
+    .map((show) => ({ show, progress: progressOf(show, now) }))
+    .map((s) => ({ ...s, state: showState(s.show, now, s.progress) }))
     .filter((s) => s.state === 'watching' && s.progress.next)
     .map((s) => ({ ...s, activity: Math.max(s.show.addedAt, ...Object.values(s.show.watched)) }))
     .sort((a, b) => b.activity - a.activity)

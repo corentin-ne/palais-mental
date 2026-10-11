@@ -1,5 +1,5 @@
 import { ScrollView, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import Poster from '@/components/ui/Poster';
@@ -24,7 +24,7 @@ export default function FriendsRail({ items }: { items: Suggestion[] }) {
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -gutter }} contentContainerStyle={{ paddingHorizontal: gutter, gap: 14, paddingBottom: 6 }}>
       {items.map(({ title, recos, ratings, ribbon }, i) => (
         <FadeIn key={title.id} index={i} distance={10}>
-          <PressableScale onPress={() => router.push(hrefOf(title, tmdbKey) as never)} style={{ width: railPoster, gap: 8 }} accessibilityLabel={title.title}>
+          <PressableScale onPress={() => router.push(hrefOf(title, tmdbKey) as Href)} style={{ width: railPoster, gap: 8 }} accessibilityLabel={title.title}>
             <Poster uri={title.poster} title={title.title} width={railPoster} kind={title.kind} ribbon={ribbon && bandOf(t, ribbon, members)} />
             <View style={{ gap: 1 }}>
               <Text style={styles.title} numberOfLines={1}>

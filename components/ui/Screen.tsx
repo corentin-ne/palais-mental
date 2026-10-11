@@ -1,5 +1,5 @@
 import { ReactNode, useRef } from 'react';
-import { Animated, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Animated, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,13 +14,18 @@ interface Props {
   children: ReactNode;
   refreshing?: boolean;
   onRefresh?: () => void;
+  /** Called whenever less than a screen or so is left below (long lists show more then). */
+  onEndReached?: () => void;
 }
+
+/** How close to the end of the page counts as near it. */
+const NEAR_END = 900;
 
 /**
  * Tab screen: a large title that hands over to a frosted compact bar as you scroll,
  * content centred in a readable column on wide screens.
  */
-export default function Screen({ title, subtitle, right, children, refreshing, onRefresh }: Props) {
+export default function Screen({ title, subtitle, right, children, refreshing, onRefresh, onEndReached }: Props) {
   const { type, palette, glass } = useTheme();
   const styles = useStyles();
   const insets = useSafeAreaInsets();
@@ -29,6 +34,11 @@ export default function Screen({ title, subtitle, right, children, refreshing, o
   const barOpacity = y.interpolate({ inputRange: [40, 80], outputRange: [0, 1], extrapolate: 'clamp' });
   const titleScale = y.interpolate({ inputRange: [-120, 0], outputRange: [1.12, 1], extrapolate: 'clamp' });
   const titleShift = y.interpolate({ inputRange: [-120, 0, 80], outputRange: [10, 0, -12], extrapolate: 'clamp' });
+  // Where the page is, kept outside React: checked on scroll and whenever the page or its content changes size.
+  const page = useRef({ y: 0, height: 0, content: 0 }).current;
+  const checkEnd = () => {
+    if (onEndReached && page.height && page.content - page.y - page.height < NEAR_END) onEndReached();
+  };
 
   return (
     <View style={styles.root}>
@@ -36,7 +46,23 @@ export default function Screen({ title, subtitle, right, children, refreshing, o
       <Animated.ScrollView
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y } } }], { useNativeDriver: true })}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y } } }], {
+          useNativeDriver: true,
+          listener: onEndReached
+            ? (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+                page.y = e.nativeEvent.contentOffset.y;
+                checkEnd();
+              }
+            : undefined,
+        })}
+        onLayout={(e) => {
+          page.height = e.nativeEvent.layout.height;
+          checkEnd();
+        }}
+        onContentSizeChange={(_, height) => {
+          page.content = height;
+          checkEnd();
+        }}
         contentContainerStyle={{ paddingTop: insets.top + 18, paddingBottom: insets.bottom + 128, alignItems: 'center' }}
         refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={palette.inkSoft} progressViewOffset={insets.top} /> : undefined}
       >

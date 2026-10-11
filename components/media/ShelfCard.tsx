@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import Icon from '@/components/ui/Icon';
@@ -47,7 +47,7 @@ export default function ShelfCard({ kind, item, width }: Props) {
   return (
     // The card opens the title and the + moves you on: siblings, not one button inside another.
     <Lit style={[styles.card, { width }]}>
-      <PressableScale depth={0.98} onPress={() => router.push(`/${kind}/${item.id}` as never)} style={styles.open} accessibilityLabel={item.title}>
+      <PressableScale depth={0.98} onPress={() => router.push(`/${kind}/${item.id}` as Href)} style={styles.open} accessibilityLabel={item.title}>
         <Poster uri={item.cover} title={item.title} width={52} kind={kind} elevated={false} radius={7} />
         <View style={styles.info}>
           <Text style={styles.title} numberOfLines={1}>

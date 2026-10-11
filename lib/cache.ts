@@ -5,12 +5,16 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { CacheIndex, overflow } from './cacheBudget';
+
 const PREFIX = 'palais-mental/http/';
 const INDEX = 'palais-mental/http-index';
 /** Entries kept on the device; the oldest go first. */
 const MAX = 200;
 /** Bigger answers stay in memory only: Android's storage is small and shared with the library. */
 const MAX_BYTES = 48_000;
+/** All of them together stay under this, whatever their number. */
+const BUDGET = 2_000_000;
 
 interface Entry<T> {
   at: number;
@@ -19,7 +23,7 @@ interface Entry<T> {
 
 const memory = new Map<string, Entry<unknown>>();
 const inflight = new Map<string, Promise<unknown>>();
-let index: Record<string, number> | undefined;
+let index: CacheIndex | undefined;
 let indexTimer: ReturnType<typeof setTimeout> | undefined;
 
 /** Short, stable key for long URLs and queries (cyrb53). */
@@ -46,18 +50,15 @@ async function loadIndex() {
   return index!;
 }
 
-/** Index writes are batched; the oldest entries are dropped past MAX. */
-function touch(key: string, at: number) {
+/** Index writes are batched; the oldest entries are dropped past MAX entries or BUDGET bytes. */
+function touch(key: string, at: number, bytes: number) {
   if (!index) return;
-  index[key] = at;
+  index[key] = [at, bytes];
   clearTimeout(indexTimer);
   indexTimer = setTimeout(() => {
-    const keys = Object.keys(index!);
-    if (keys.length > MAX) {
-      const old = keys.sort((a, b) => index![a] - index![b]).slice(0, keys.length - MAX);
-      for (const k of old) delete index![k];
-      AsyncStorage.multiRemove(old.map((k) => PREFIX + k)).catch(() => undefined);
-    }
+    const old = overflow(index!, MAX, BUDGET);
+    for (const k of old) delete index![k];
+    if (old.length) AsyncStorage.multiRemove(old.map((k) => PREFIX + k)).catch(() => undefined);
     AsyncStorage.setItem(INDEX, JSON.stringify(index)).catch(() => undefined);
   }, 1500);
 }
@@ -87,7 +88,7 @@ function load<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
       const raw = JSON.stringify(entry);
       if (raw.length <= MAX_BYTES) {
         await loadIndex();
-        touch(key, entry.at);
+        touch(key, entry.at, raw.length);
         AsyncStorage.setItem(PREFIX + key, raw).catch(() => undefined);
       }
       return value;

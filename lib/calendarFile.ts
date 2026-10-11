@@ -70,7 +70,7 @@ function event(u: UpcomingEntry): string[] {
 export async function exportCalendar() {
   const { shows, movies, books, games, settings } = useLibrary.getState();
   const related = settings.related ? visibleRelated(useConnections.getState().related.entries) : [];
-  const upcoming = getUpcoming(shows, movies, Date.now(), related, books, games).slice(0, 500);
+  const upcoming = getUpcoming({ shows, movies, books, games }, related).slice(0, 500);
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',

@@ -16,7 +16,7 @@ import { refreshMovieSeries } from './collections';
 import { refreshRelated, relationLabel, visibleRelated } from './related';
 import { episodeCode } from './progress';
 import { Book, Episode, Game, Movie, Show } from './types';
-import { useLibrary } from '@/store/useLibrary';
+import { Refreshed, useLibrary } from '@/store/useLibrary';
 import { RelatedRelease, useConnections } from '@/store/useConnections';
 
 const SHOW_EVERY = 6 * 3_600_000;
@@ -25,6 +25,8 @@ const MOVIE_EVERY = 86_400_000;
 const CHANNEL = 'releases';
 /** iOS keeps at most 64 pending notifications. */
 const MAX_SCHEDULED = 60;
+/** How often a refresh pass hands what it fetched to the library. */
+const LAND = 1500;
 
 export type UpcomingEntry =
   | { kind: 'episode'; date: number; show: Show; episode: Episode }
@@ -33,15 +35,10 @@ export type UpcomingEntry =
   | { kind: 'game'; date: number; game: Game }
   | { kind: 'related'; date: number; related: RelatedRelease };
 
+type Library = { shows: Record<string, Show>; movies: Record<string, Movie>; books: Record<string, Book>; games: Record<string, Game> };
+
 /** Everything still to come, soonest first. Anything from today stays visible all day. */
-export function getUpcoming(
-  shows: Record<string, Show>,
-  movies: Record<string, Movie>,
-  now = Date.now(),
-  related: RelatedRelease[] = [],
-  books: Record<string, Book> = {},
-  games: Record<string, Game> = {},
-): UpcomingEntry[] {
+export function getUpcoming({ shows, movies, books, games }: Library, related: RelatedRelease[] = [], now = Date.now()): UpcomingEntry[] {
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
   const from = start.getTime();
@@ -74,30 +71,43 @@ export async function refreshLibrary(force = false) {
     const staleGames = Object.values(games).filter(awaited);
     const staleShows = Object.values(shows).filter((s) => force || now - s.syncedAt > (s.status === 'Ended' ? ENDED_EVERY : SHOW_EVERY));
     const staleMovies = Object.values(movies).filter((m) => force || (!m.watchedAt && (!m.releaseDate || m.releaseDate > now - 30 * 86_400_000) && now - m.syncedAt > MOVIE_EVERY));
+    // What comes back lands in the library every LAND ms, not title by title: each landing redraws
+    // the screens and reschedules, so a pass over a big library costs a few of them, not hundreds.
+    let fresh: Refreshed = { shows: [], movies: [], books: [], games: [] };
+    const land = () => {
+      if (fresh.shows.length + fresh.movies.length + fresh.books.length + fresh.games.length) useLibrary.getState().updateMany(fresh);
+      fresh = { shows: [], movies: [], books: [], games: [] };
+    };
+    const landing = setInterval(land, LAND);
     /** `size` at a time: each source has its own rate limit (TVmaze about 20 calls per 10 s). */
     const inBatches = async <T,>(list: T[], size: number, run: (x: T) => Promise<void>) => {
       for (let i = 0; i < list.length; i += size) await Promise.all(list.slice(i, i + size).map((x) => run(x).catch(() => undefined)));
     };
     // Different hosts: shows, films, books and games refresh side by side. Failures (offline,
     // rate limited) keep what we have until next time.
-    await Promise.all([
-      inBatches(staleShows, 4, async (s) => {
-        const { show } = await fetchShow(s.tvmazeId, settings.tmdbKey || undefined);
-        useLibrary.getState().updateShow(show);
-      }),
-      inBatches(staleMovies, 8, async (m) => {
-        const { movie } = await fetchMovie(m.id, { tmdbKey: settings.tmdbKey || undefined, lang });
-        useLibrary.getState().updateMovie({ ...movie, poster: movie.poster ?? m.poster });
-      }),
-      inBatches(staleBooks, 4, async (b) => {
-        const { book, redirect } = await fetchBook(b.id, lang);
-        if (!redirect) useLibrary.getState().updateBook({ ...book, cover: book.cover ?? b.cover });
-      }),
-      inBatches(staleGames, 4, async (g) => {
-        const { game, redirect } = await fetchGame(g.id, lang);
-        if (!redirect) useLibrary.getState().updateGame({ ...game, cover: game.cover ?? g.cover });
-      }),
-    ]);
+    try {
+      await Promise.all([
+        inBatches(staleShows, 4, async (s) => {
+          const { show } = await fetchShow(s.tvmazeId, settings.tmdbKey || undefined);
+          fresh.shows.push(show);
+        }),
+        inBatches(staleMovies, 8, async (m) => {
+          const { movie } = await fetchMovie(m.id, { tmdbKey: settings.tmdbKey || undefined, lang });
+          fresh.movies.push({ ...movie, poster: movie.poster ?? m.poster });
+        }),
+        inBatches(staleBooks, 4, async (b) => {
+          const { book, redirect } = await fetchBook(b.id, lang);
+          if (!redirect) fresh.books.push({ ...book, cover: book.cover ?? b.cover });
+        }),
+        inBatches(staleGames, 4, async (g) => {
+          const { game, redirect } = await fetchGame(g.id, lang);
+          if (!redirect) fresh.games.push({ ...game, cover: game.cover ?? g.cover });
+        }),
+      ]);
+    } finally {
+      clearInterval(landing);
+      land();
+    }
   } finally {
     refreshing = false;
   }
@@ -147,28 +157,38 @@ function notificationFor(u: UpcomingEntry) {
   }
 }
 
+/** The plan scheduled since launch: the same one again leaves the phone's notifications alone. */
+let scheduled: string | undefined;
+
 /** Rebuild every scheduled notification from the library (idempotent). */
 export async function scheduleNotifications() {
   if (Platform.OS === 'web') return;
-  const { shows, movies, books, games, settings } = useLibrary.getState();
+  const library = useLibrary.getState();
+  const { settings } = library;
   try {
-    await Notifications.cancelAllScheduledNotificationsAsync();
-    if (!settings.notifications || (await notificationPermission()) !== 'granted') return;
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync(CHANNEL, { name: i18n.t('calendar.channel'), importance: Notifications.AndroidImportance.DEFAULT });
-    }
+    const on = settings.notifications && (await notificationPermission()) === 'granted';
     const now = Date.now();
     const related = settings.related ? visibleRelated(useConnections.getState().related.entries) : [];
-    const entries = getUpcoming(shows, movies, now, related, books, games)
-      .map((u) => ({ u, at: u.kind === 'episode' ? u.date : morningOf(u.date) }))
-      .filter(({ at }) => at > now + 60_000)
-      .slice(0, MAX_SCHEDULED);
-    for (const { u, at } of entries) {
+    const plan = on
+      ? getUpcoming(library, related, now)
+          .map((u) => ({ at: u.kind === 'episode' ? u.date : morningOf(u.date), content: notificationFor(u) }))
+          .filter(({ at }) => at > now + 60_000)
+          .slice(0, MAX_SCHEDULED)
+      : [];
+    const signature = JSON.stringify(plan);
+    if (signature === scheduled) return;
+    scheduled = undefined;
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    if (on && Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync(CHANNEL, { name: i18n.t('calendar.channel'), importance: Notifications.AndroidImportance.DEFAULT });
+    }
+    for (const { at, content } of plan) {
       await Notifications.scheduleNotificationAsync({
-        content: notificationFor(u),
+        content,
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(at), channelId: CHANNEL },
       });
     }
+    scheduled = signature;
   } catch {
     // Best effort: the calendar still shows everything.
   }

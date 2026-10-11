@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import DetailLayout from '@/components/media/DetailLayout';
@@ -141,7 +141,7 @@ export default function CollectionScreen() {
           const caption = [r.ordinal != null ? `#${r.ordinal}` : undefined, when, r.item && !checked ? t('collection.inLibrary') : undefined].filter(Boolean).join(' · ');
           return (
             <FadeIn key={r.key} index={Math.min(i, 12)} distance={8}>
-              <PressableScale depth={0.99} onPress={() => router.push(r.href as never)} style={[styles.row, !released && { opacity: 0.6 }]} accessibilityLabel={r.title}>
+              <PressableScale depth={0.99} onPress={() => router.push(r.href as Href)} style={[styles.row, !released && { opacity: 0.6 }]} accessibilityLabel={r.title}>
                 <Poster uri={r.cover} title={r.title} width={46} kind={kind} radius={8} />
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={styles.name} numberOfLines={2}>

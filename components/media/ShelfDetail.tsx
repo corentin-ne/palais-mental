@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import CollectionLink from './CollectionLink';
@@ -50,7 +50,7 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
     const lib = useLibrary.getState();
     const done = (m: BookMeta | GameMeta, redirect?: string) => {
       // A Wikidata entry with an Open Library or Steam twin opens there, unless you added it as is.
-      if (redirect && !(isBook ? lib.books[id] : lib.games[id])) return router.replace(`/${kind}/${redirect}` as never);
+      if (redirect && !(isBook ? lib.books[id] : lib.games[id])) return router.replace(`/${kind}/${redirect}` as Href);
       if (redirect) return;
       setMeta(m);
       if (isBook && useLibrary.getState().books[id]) useLibrary.getState().updateBook({ ...(m as BookMeta), cover: m.cover ?? useLibrary.getState().books[id].cover });

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import Poster from '@/components/ui/Poster';
@@ -25,7 +25,7 @@ export default function JournalCard({ entry: e }: { entry: JournalEntry }) {
   const styles = useStyles();
   const router = useRouter();
   return (
-    <PressableScale depth={0.98} style={styles.entry} onPress={() => router.push(e.href as never)}>
+    <PressableScale depth={0.98} style={styles.entry} onPress={() => router.push(e.href as Href)}>
       <Poster uri={e.poster} title={e.title} width={44} kind={e.kind} elevated={false} radius={6} />
       <View style={{ flex: 1, gap: 3 }}>
         <View style={styles.entryHead}>

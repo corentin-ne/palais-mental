@@ -191,7 +191,8 @@
     "addedBook": "{{title}} added to your reading list",
     "addedGame": "{{title}} added to your games",
     "finishedBook": "{{title}} finished",
-    "finishedGame": "{{title}} finished"
+    "finishedGame": "{{title}} finished",
+    "notSaved": "Couldn't save your changes: the phone's storage is full. Export a backup in You › Your data."
   },
   "profile": {
     "title": "You",

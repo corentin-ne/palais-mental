@@ -14,12 +14,13 @@ import PressableScale from '@/components/ui/PressableScale';
 import { animateLayout } from '@/components/ui/Motion';
 import { makeStyles } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
+import { useStable } from '@/hooks/useStable';
 import { Extras as ExtrasData, ShowDetails, fetchShow, fetchShowExtras, tvmazeIdByImdb, tvmazeIdByName } from '@/lib/api';
 import { runtime } from '@/lib/format';
 import { findTitle, loadPosts } from '@/lib/friends';
 import { episodeCode, hasAired, progressOf, seasonsOf, showState } from '@/lib/progress';
 import { useRibbons } from '@/lib/ribbons';
-import { Episode, Show } from '@/lib/types';
+import { Episode, EpisodeNote, Show } from '@/lib/types';
 import { Post, useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 import { useUi } from '@/store/useUi';
@@ -86,7 +87,7 @@ export default function ShowScreen() {
     for (const p of posts ?? []) by.set(p.episode, [...(by.get(p.episode) ?? []), p]);
     return by;
   }, [posts]);
-  const state = show && tracked ? showState(show) : undefined;
+  const state = show && tracked ? showState(show, Date.now(), progress) : undefined;
   const seasons = useMemo(() => (show ? seasonsOf(show.episodes) : []), [show]);
   const current = season ?? progress?.next?.season ?? [...seasons].reverse().find((s) => s.episodes.some((e) => hasAired(e)))?.season ?? seasons[0]?.season;
   const episodes = seasons.find((s) => s.season === current)?.episodes ?? [];
@@ -100,11 +101,12 @@ export default function ShowScreen() {
     useLibrary.getState().addShow(details.show);
     useUi.getState().showToast(t('toast.followed', { title: details.show.title }));
   };
-  const toggle = (e: Episode) => {
+  // Handed to every episode row: stable, so ticking one episode redraws that row and not the season.
+  const toggle = useStable((e: Episode) => {
     ensureTracked();
     const watched = useLibrary.getState().toggleEpisode(id, e.id);
     watched ? haptics.success() : haptics.tap();
-  };
+  });
   /** Marks several episodes at once; the undo unmarks only the ones this added. */
   const markMany = (list: Episode[], message: string) => {
     ensureTracked();
@@ -114,11 +116,19 @@ export default function ShowScreen() {
     haptics.success();
     useUi.getState().showToast(message, added.length ? () => useLibrary.getState().setEpisodes(id, added, false) : undefined);
   };
-  const watchUpTo = (e: Episode) => {
+  const watchUpTo = useStable((e: Episode) => {
     if (!show) return;
     const upTo = show.episodes.filter((x) => (x.season < e.season || (x.season === e.season && x.number <= e.number)) && (hasAired(x) || x.id === e.id));
     markMany(upTo, t('toast.upTo', { code: episodeCode(e) }));
-  };
+  });
+  const openEpisode = useStable((e: Episode) => {
+    animateLayout(220);
+    setExpanded(expanded === e.id ? undefined : e.id);
+  });
+  const noteEpisode = useStable((e: Episode, patch: Partial<Omit<EpisodeNote, 'at'>>) => {
+    ensureTracked();
+    useLibrary.getState().setEpisodeNote(id, e.id, patch);
+  });
   const seasonAired = episodes.filter((e) => hasAired(e));
   const seasonDone = seasonAired.length > 0 && seasonAired.every((e) => show?.watched[e.id]);
   const toggleSeason = () => {
@@ -196,20 +206,15 @@ export default function ShowScreen() {
                     watched={!!show.watched[e.id]}
                     isNext={!!tracked && state !== 'dropped' && progress.next?.id === e.id}
                     note={show.notes?.[e.id]}
-                    onNote={(patch) => {
-                      ensureTracked();
-                      useLibrary.getState().setEpisodeNote(id, e.id, patch);
-                    }}
+                    onNote={noteEpisode}
                     synopsis={details?.synopsis[e.id]}
                     open={expanded === e.id}
-                    onOpen={() => {
-                      animateLayout(220);
-                      setExpanded(expanded === e.id ? undefined : e.id);
-                    }}
-                    onToggle={() => toggle(e)}
-                    onUpTo={() => watchUpTo(e)}
+                    onOpen={openEpisode}
+                    onToggle={toggle}
+                    onUpTo={watchUpTo}
                     talkCount={me ? talk.get(e.id)?.length : undefined}
-                    talk={me ? <EpisodeTalk show={show} titleId={titleId} episodeId={e.id} watched={!!show.watched[e.id]} posts={talk.get(e.id) ?? []} note={show.notes?.[e.id]} /> : undefined}
+                    // Only the open episode shows its thread: the others are handed nothing that changes.
+                    talk={me && expanded === e.id ? <EpisodeTalk show={show} titleId={titleId} episodeId={e.id} watched={!!show.watched[e.id]} posts={talk.get(e.id) ?? []} note={show.notes?.[e.id]} /> : undefined}
                   />
                 ))}
               </View>

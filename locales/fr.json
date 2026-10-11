@@ -191,7 +191,8 @@
     "addedBook": "{{title}} ajouté à vos lectures",
     "addedGame": "{{title}} ajouté à vos jeux",
     "finishedBook": "{{title}} terminé",
-    "finishedGame": "{{title}} terminé"
+    "finishedGame": "{{title}} terminé",
+    "notSaved": "Impossible d'enregistrer vos changements : le stockage du téléphone est plein. Exportez une sauvegarde dans Vous › Vos données."
   },
   "profile": {
     "title": "Vous",

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { episodeCode, progressOf, showState, upNextShows } from '../lib/progress';
+import { episodeCode, progressOf, showState, sortEpisodes, upNextShows } from '../lib/progress';
 import type { Episode, Show } from '../lib/types';
 
 const NOW = 1_000_000;
@@ -47,4 +47,13 @@ test('up next lists shows in progress, last touched first, with the episode to p
   assert.deepEqual(list.map((s) => s.show.id), ['b', 'a']);
   assert.equal(list[0].next.id, 2);
   assert.equal(list[0].left, 2);
+});
+
+test('episodes out of order are sorted; a sorted list is returned as is', () => {
+  const sorted = [ep(1, 1, 10), ep(2, 2, 20)];
+  assert.equal(sortEpisodes(sorted), sorted);
+  const mixed = [ep(2, 2, 20), ep(1, 1, 10)];
+  assert.deepEqual(sortEpisodes(mixed).map((e) => e.id), [1, 2]);
+  assert.deepEqual(mixed.map((e) => e.id), [2, 1]);
+  assert.equal(progressOf(show({ episodes: mixed, watched: { 1: 1 } }), NOW).next?.id, 2);
 });

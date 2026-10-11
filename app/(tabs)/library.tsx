@@ -1,7 +1,8 @@
 import { memo, useEffect, useMemo, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/react/shallow';
 
 import Chips from '@/components/ui/Chips';
 import Empty from '@/components/ui/Empty';
@@ -22,7 +23,7 @@ import { progressOf, showState } from '@/lib/progress';
 import { Band, useRibbons } from '@/lib/ribbons';
 import { SHELF_STATES, bookFraction, gameFraction, shelfActivity, shelfState } from '@/lib/shelf';
 import { Book, Game, MediaKind, Movie, ShelfState, ShowState } from '@/lib/types';
-import { useLibrary } from '@/store/useLibrary';
+import { useLibrary, useLibraryEmpty } from '@/store/useLibrary';
 import { usePrefs } from '@/store/usePrefs';
 
 type Tab = 'shows' | 'movies' | 'books' | 'games';
@@ -32,7 +33,8 @@ type MovieFilter = 'watchlist' | 'upcoming' | 'watched';
 type Sort = 'recent' | 'title' | 'next' | 'rating';
 const SORTS: Sort[] = ['recent', 'title', 'next', 'rating'];
 const SHELF_GROUPS = (): Record<ShelfState, Unit<Book | Game>[]> => ({ started: [], paused: [], want: [], upcoming: [], finished: [], dropped: [] });
-const norm = (s: string) => s.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+/** Case and accents folded, every script kept (lib/api's `norm` keeps Latin letters only: right for matching titles, wrong for typing one in Japanese). */
+const fold = (s: string) => s.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 /** A title on its own, or a series kept together (two or more of it in the library; `item` is its first). */
 type Unit<T extends CollectionItem> = { item: T; group?: Collection<T> };
@@ -99,7 +101,7 @@ export default function LibraryScreen() {
   const games = useLibrary((s) => s.games);
   const ribbon = useRibbons();
   // The tab, filters and sort you left the library on come back next time (prefs, kept across launches).
-  const prefs = usePrefs();
+  const prefs = usePrefs(useShallow((p) => ({ libraryTab: p.libraryTab, showFilter: p.showFilter, movieFilter: p.movieFilter, shelfFilter: p.shelfFilter, sort: p.sort })));
   const setPrefs = usePrefs((p) => p.set);
   const pick = <T extends string>(v: string | undefined, allowed: readonly T[], fallback: T): T => (allowed.includes(v as T) ? (v as T) : fallback);
   const shelfFilter = pick<ShelfState>(prefs.shelfFilter, SHELF_STATES, 'started');
@@ -119,7 +121,10 @@ export default function LibraryScreen() {
   const showTiles = useMemo(() => {
     const now = Date.now();
     return Object.values(shows)
-      .map((show) => ({ show, state: showState(show, now), progress: progressOf(show, now), activity: Math.max(show.addedAt, ...Object.values(show.watched)) }))
+      .map((show) => {
+        const progress = progressOf(show, now);
+        return { show, state: showState(show, now, progress), progress, activity: Math.max(show.addedAt, ...Object.values(show.watched)) };
+      })
       .sort((a, b) => {
         if (sort === 'title') return a.show.title.localeCompare(b.show.title);
         if (sort === 'rating') return (b.show.rating ?? 0) - (a.show.rating ?? 0) || b.activity - a.activity;
@@ -215,7 +220,7 @@ export default function LibraryScreen() {
   };
 
   // Typing searches the whole tab, whatever the state chips say, and counts matches in the other tabs.
-  const q = norm(query.trim());
+  const q = fold(query.trim());
   const movieUnits = q ? (['watchlist', 'upcoming', 'watched'] as const).flatMap((f) => movieGroups[f].map((u) => ({ u, state: f }))) : movieGroups[movieFilter].map((u) => ({ u, state: movieFilter }));
   const shelfUnits = q ? SHELF_STATES.flatMap((f) => shelf[f].map((u) => ({ u, state: f }))) : shelf[activeShelf].map((u) => ({ u, state: activeShelf }));
   const allTiles: Tile[] =
@@ -264,10 +269,10 @@ export default function LibraryScreen() {
             search: tab === 'books' ? [...(item as Book).authors, ...(item as Book).subjects, (item as Book).series?.name].filter(Boolean).join(' ') : [(item as Game).developer, ...(item as Game).platforms, ...(item as Game).genres, item.series?.name].filter(Boolean).join(' '),
           }));
 
-  const tiles = q ? allTiles.filter((tile) => norm(tile.title).includes(q) || (!!tile.search && norm(tile.search).includes(q))) : allTiles;
+  const tiles = q ? allTiles.filter((tile) => fold(tile.title).includes(q) || (!!tile.search && fold(tile.search).includes(q))) : allTiles;
   const elsewhere = useMemo(() => {
     if (!q) return [];
-    const hit = (...texts: (string | undefined)[]) => texts.some((x) => !!x && norm(x).includes(q));
+    const hit = (...texts: (string | undefined)[]) => texts.some((x) => !!x && fold(x).includes(q));
     const counts: Record<Tab, number> = {
       shows: Object.values(shows).filter((s) => hit(s.title, s.network)).length,
       movies: Object.values(movies).filter((m) => hit(m.title, m.director)).length,
@@ -278,11 +283,12 @@ export default function LibraryScreen() {
   }, [q, tab, shows, movies, books, games]);
   const [sortOpen, setSortOpen] = useState(false);
   const gridKey = `${tab}${showFilter}${movieFilter}${activeShelf}${columns}`;
-  const shown = useProgressive(tiles.length, `${gridKey}${q}${sort}`);
-  const empty = !Object.keys(shows).length && !Object.keys(movies).length && !Object.keys(books).length && !Object.keys(games).length;
+  // A few screens of posters to start with, more as the end of the page comes near.
+  const [shown, showMore] = useProgressive(tiles.length, `${gridKey}${q}${sort}`, columns * 8, columns * 6);
+  const empty = useLibraryEmpty();
 
   return (
-    <Screen title={t('library.title')} right={<SearchButton query={query.trim() || undefined} />}>
+    <Screen title={t('library.title')} right={<SearchButton query={query.trim() || undefined} />} onEndReached={showMore}>
       {empty ? (
         <Empty icon="grid" title={t('library.emptyTitle')} body={t('library.emptyBody')} cta={t('welcome.cta')} onPress={() => router.push('/search')} />
       ) : (
@@ -402,7 +408,7 @@ const PosterTile = memo(function PosterTile({ href, title, poster, caption, prog
   const router = useRouter();
   const styles = useStyles();
   return (
-    <PressableScale onPress={() => router.push(href as never)} style={{ width, gap: 7 }} accessibilityLabel={title}>
+    <PressableScale onPress={() => router.push(href as Href)} style={{ width, gap: 7 }} accessibilityLabel={title}>
       <View>
         {/* A series: the next posters peek out above the first, like a pile. */}
         {stack && (

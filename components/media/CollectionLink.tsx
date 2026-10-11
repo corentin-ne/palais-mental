@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import Icon from '@/components/ui/Icon';
@@ -17,7 +17,7 @@ export default function CollectionLink({ kind, item }: { kind: SeriesKind; item:
   const s = seriesOf(item);
   if (!s) return null;
   return (
-    <PressableScale depth={0.98} style={styles.row} onPress={() => router.push(collectionHref(kind, s, item.wikidataId) as never)} accessibilityLabel={t('collection.open', { name: s.name })}>
+    <PressableScale depth={0.98} style={styles.row} onPress={() => router.push(collectionHref(kind, s, item.wikidataId) as Href)} accessibilityLabel={t('collection.open', { name: s.name })}>
       <View style={styles.icon}>
         <Icon name="library" size={18} color={palette.primaryText} />
       </View>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import PosterRail from '@/components/media/PosterRail';
@@ -282,7 +282,7 @@ function ResultRow({ r, onUse }: { r: SearchResult; onUse?: () => void }) {
         depth={0.98}
         onPress={() => {
           onUse?.();
-          router.push(hrefOf(r) as never);
+          router.push(hrefOf(r) as Href);
         }}
         style={styles.open}
         accessibilityLabel={r.title}
