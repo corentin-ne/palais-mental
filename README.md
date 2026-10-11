@@ -19,12 +19,13 @@ npm test
 
 **Tracking**
 
-- **Up next.** The next episode of every show you're watching, one tick to mark it; it picks up after the furthest episode you ticked, not at the first gap. Books you're reading and games you're playing sit there too, with a one-tap + (a page, ten on a long press, an hour of play). Below: what you haven't started. On Android, a home-screen widget shows the same episodes, with the tick.
+- **Up next.** The next episode of every show you're watching, one tick to mark it; it picks up after the furthest episode you ticked, not at the first gap. Books you're reading and games you're playing sit there too, with a one-tap + (a page, ten on a long press, an hour of play). Below: what you haven't started, with **Pick one** when you can't decide. On Android, a home-screen widget shows the same episodes, with the tick.
 - **Library.** A poster wall per kind, by state (watching, not started, up to date, finished, dropped; to watch, coming soon, watched; reading or playing, paused, to read or play…). Typing searches the whole tab and counts matches in the others; sort by recent, A–Z, next out or rating.
 - **Series kept together.** Films, books and games of one series share a poster and a page listing every entry in order, the ones you don't have included. Tick one to mark it, hold a tick to mark everything up to it. Series come from Wikidata, or from the number in the title.
 - **Detail pages.** Synopsis, cast, seasons and episodes; tick an episode, a season, everything up to an episode or everything left, each with undo. Trailer, where to watch in your country, similar titles, IMDb link. Games get average playtime from HowLongToBeat.
 - **Calendar.** Every upcoming episode, film, book and game you follow, day by day, with a local notification on the day. Sequels and titles from the same series or universe as something you have show up too (dashed).
 - **Journal and ratings.** Half-star ratings and a few words on an episode, a series, a film, a book or a game; **You** lists them.
+- **Statistics.** **You → Statistics**: a year of yours (or all of them) in numbers. Episodes, films, books and games month by month, time spent, active days and days in a row, your genres, how you rate, the shows you watched most. Set a goal for the year (films, books, games) and follow it there.
 - **Search.** One field for shows, films, books and games; add straight from the results.
 
 **Your data**
@@ -85,7 +86,7 @@ app/                     screens (Expo Router)
   (tabs)/                Calendar · Library · Up next · Social · You
   show|movie|book|game/  detail pages
   collection/            a series: every entry in order
-  search, data, journal, connections, settings
+  search, data, journal, stats, connections, settings
 components/
   media/ show/           detail layout, cards, rails, episode rows
   friends/               Social: your name, the block on each page, episode discussions
@@ -95,7 +96,7 @@ constants/theme.ts       the app's theme on the kit's tokens
 lib/
   api, books, games      metadata sources
   series, collections, related, extras, wikidata   series, universes and page extras
-  progress, shelf, journal   pure logic: where you are in a show, a book, a game
+  progress, shelf, journal, stats   pure logic: where you are in a show, a book, a game; your numbers
   sync                   refresh, upcoming releases, notifications
   connect, sources/      connections: readers per service, matching, additive sync, export files
   backup, calendarFile   JSON / CSV / .ics export, import, automatic copies

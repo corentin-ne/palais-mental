@@ -2,8 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import { lazyStorage } from '@/lib/storage';
+import type { StatKind } from '@/lib/stats';
 
-/** How you left the screens: the library tab, its filters and sort, your recent searches. Kept across launches. */
+/** How you left the screens: the library tab, its filters and sort, your recent searches, the goals you set. Kept across launches. */
 interface PrefsState {
   libraryTab?: 'shows' | 'movies' | 'books' | 'games';
   showFilter: string;
@@ -12,6 +13,8 @@ interface PrefsState {
   sort: string;
   /** Latest first, at most RECENT_MAX. */
   recentSearches: string[];
+  /** How many films, books and games you mean to get through in a year; none until you set one. */
+  goals: Partial<Record<StatKind, number>>;
   set: (patch: Partial<Omit<PrefsState, 'set' | 'addSearch' | 'clearSearches'>>) => void;
   addSearch: (q: string) => void;
   clearSearches: () => void;
@@ -27,6 +30,7 @@ export const usePrefs = create<PrefsState>()(
       shelfFilter: 'started',
       sort: 'recent',
       recentSearches: [],
+      goals: {},
       set: (patch) => set(patch),
       addSearch: (q) =>
         set((s) => {

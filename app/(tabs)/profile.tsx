@@ -7,7 +7,8 @@ import JournalCard, { useJournal } from '@/components/media/JournalCard';
 import Icon, { IconName } from '@/components/ui/Icon';
 import PressableScale from '@/components/ui/PressableScale';
 import Screen, { Section } from '@/components/ui/Screen';
-import { FadeIn, useCountUp } from '@/components/ui/Motion';
+import Stat from '@/components/ui/Stat';
+import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 import { duration } from '@/lib/format';
@@ -61,6 +62,7 @@ export default function ProfileScreen() {
       )}
 
       <View style={[styles.group, { marginTop: 12 }]}>
+        <ActionRow icon="chart" label={t('stats.title')} hint={t('stats.hint')} onPress={() => router.push('/stats')} />
         <ActionRow icon="download" label={t('profile.data')} hint={t('data.hint')} onPress={() => router.push('/data')} />
         <ActionRow icon="settings" label={t('settings.title')} hint={t('settings.hint')} onPress={() => router.push('/settings')} last />
       </View>
@@ -110,23 +112,6 @@ function Journal() {
   );
 }
 
-function Stat({ icon, value, text, label, index }: { icon: IconName; value?: number; text?: string; label: string; index: number }) {
-  const styles = useStyles();
-  const { palette } = useTheme();
-  const shown = useCountUp(value ?? 0);
-  return (
-    <FadeIn index={index} style={styles.stat}>
-      <Icon name={icon} size={18} color={palette.primaryText} />
-      <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
-        {text ?? Math.round(shown).toLocaleString()}
-      </Text>
-      <Text style={styles.statLabel} numberOfLines={1}>
-        {label}
-      </Text>
-    </FadeIn>
-  );
-}
-
 function Row({ icon, label, hint, last, children }: { icon: IconName; label: string; hint?: string; last?: boolean; children: ReactNode }) {
   const styles = useStyles();
   const { palette } = useTheme();
@@ -155,9 +140,6 @@ function ActionRow({ icon, label, hint, last, onPress }: { icon: IconName; label
 
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 },
-  stat: { flexGrow: 1, flexBasis: '45%', padding: 16, gap: 6, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
-  statValue: { ...fonts.bold, fontSize: 26, letterSpacing: -0.8, color: palette.ink },
-  statLabel: { ...type.small },
   group: { borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14 },
   line: { borderBottomWidth: 1, borderBottomColor: palette.hairline },

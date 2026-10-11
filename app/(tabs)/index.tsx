@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +16,7 @@ import Screen, { Section } from '@/components/ui/Screen';
 import SearchButton from '@/components/ui/SearchButton';
 import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
+import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
 import { SearchResult, popularShows } from '@/lib/api';
 import { countdown } from '@/lib/format';
@@ -45,6 +46,8 @@ export default function UpNextScreen() {
   const ribbon = useRibbons();
   const suggestions = useSuggestions();
   const [refreshing, setRefreshing] = useState(false);
+  const haptics = useHaptics();
+  const lastPick = useRef<string>(undefined);
 
   const { upNext, waiting } = useMemo(() => {
     const now = Date.now();
@@ -110,6 +113,16 @@ export default function UpNextScreen() {
     await refreshRelated(true);
     setRefreshing(false);
   }, []);
+
+  // Can't decide: one of the titles waiting, never the same twice in a row.
+  const pickOne = () => {
+    const pool = waiting.filter((w) => w.key !== lastPick.current);
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    if (!pick) return;
+    lastPick.current = pick.key;
+    haptics.tap();
+    router.push(pick.href as Href);
+  };
 
   const empty = useLibraryEmpty();
   const cols = wide ? 2 : 1;
@@ -197,7 +210,18 @@ export default function UpNextScreen() {
           )}
 
           {waiting.length > 0 && (
-            <Section title={t('upNext.waiting')} count={waiting.length}>
+            <Section
+              title={t('upNext.waiting')}
+              count={waiting.length}
+              action={
+                waiting.length > 2 ? (
+                  <PressableScale onPress={pickOne} style={styles.link} accessibilityLabel={t('upNext.pick')}>
+                    <Icon name="sparkle" size={15} color={palette.primaryText} strokeWidth={2.2} />
+                    <Text style={[styles.linkText, { marginLeft: 4 }]}>{t('upNext.pick')}</Text>
+                  </PressableScale>
+                ) : undefined
+              }
+            >
               <PosterRail items={waiting} />
             </Section>
           )}

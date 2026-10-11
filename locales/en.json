@@ -58,7 +58,8 @@
     "reading": "Reading",
     "playing": "Playing",
     "episodes": "Episodes to watch",
-    "waiting": "Waiting for you"
+    "waiting": "Waiting for you",
+    "pick": "Pick one"
   },
   "calendar": {
     "title": "Calendar",
@@ -725,5 +726,26 @@
     "hint": "Connected services, backups, CSV sheets and automatic copies",
     "csvLabel": "Pick what to export",
     "csvExport": "Export CSV"
+  },
+  "stats": {
+    "title": "Statistics",
+    "hint": "Year by year: months, genres, ratings and goals",
+    "allTime": "All time",
+    "episodes": "Episodes",
+    "activeDays": "Active days",
+    "streak": "Days in a row",
+    "byMonth": "Month by month",
+    "byYear": "Year by year",
+    "goals": "Goals for {{year}}",
+    "goalsHint": "Films watched, books and games finished this year. Leave a goal at 0 to go without.",
+    "perYear": "this year",
+    "goalDone_one": "{{count}}, reached",
+    "goalDone_other": "{{count}}, reached",
+    "genres": "Genres",
+    "ratings": "Your ratings",
+    "average": "{{value}} stars on average",
+    "topShows": "Most watched shows",
+    "emptyTitle": "Nothing marked yet",
+    "emptyBody": "Tick an episode, mark a film as watched or finish a book or a game: it is counted here, on the day you did."
   }
 }

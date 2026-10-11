@@ -88,6 +88,7 @@ export default function RootLayout() {
           <Stack.Screen name="collection/[kind]/[key]" />
           <Stack.Screen name="data" />
           <Stack.Screen name="journal" />
+          <Stack.Screen name="stats" />
           <Stack.Screen name="connections" />
           <Stack.Screen name="settings" />
         </Stack>
