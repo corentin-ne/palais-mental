@@ -40,7 +40,9 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
     const inDay = (d?: number) => !!d && d > now - DAY / 2 && d < now + DAY;
     return (
       Object.values(s.shows).some((sh) => !sh.droppedAt && sh.episodes.some((e) => inDay(e.airstamp))) ||
-      Object.values(s.movies).some((m) => !m.watchedAt && inDay(m.releaseDate))
+      Object.values(s.movies).some((m) => !m.watchedAt && inDay(m.releaseDate)) ||
+      Object.values(s.books).some((b) => !b.finishedAt && !b.droppedAt && inDay(b.releaseDate)) ||
+      Object.values(s.games).some((g) => !g.finishedAt && !g.droppedAt && inDay(g.releaseDate))
     );
   });
 

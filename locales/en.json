@@ -54,12 +54,10 @@
     "episodes_one": "{{count}} episode",
     "episodes_other": "{{count}} episodes",
     "caughtUp": "You're all caught up.",
-    "comingUp": "Coming up",
-    "notStarted": "Haven't started",
-    "watchlist": "Films to watch",
     "reading": "Reading",
     "playing": "Playing",
-    "episodes": "Episodes to watch"
+    "episodes": "Episodes to watch",
+    "waiting": "Waiting for you"
   },
   "calendar": {
     "title": "Calendar",
@@ -198,14 +196,12 @@
     "showTime": "Time on shows",
     "films": "Films watched",
     "filmTime": "Time on films",
-    "settings": "Settings",
     "notifications": "Release notifications",
     "notificationsHint": "New episodes and release days",
     "notificationsWeb": "Available in the phone app",
     "haptics": "Haptics",
     "language": "Language",
     "system": "System",
-    "sources": "Sources",
     "sourcesNote": "Shows come from TVmaze. Films from IMDb, iTunes, Wikidata and Wikipedia, or TMDB with a key. Books from Open Library and Google Books, games from Steam and Wikidata.",
     "tmdb": "TMDB key",
     "active": "Active",
@@ -217,8 +213,6 @@
     "data": "Your data",
     "exportJson": "Export backup",
     "exportJsonHint": "Everything, as a JSON file you can import again",
-    "exportShows": "Export shows (CSV)",
-    "exportMovies": "Export films (CSV)",
     "import": "Import backup",
     "importHint": "Merged with what's already here",
     "exportFailed": "Export failed",
@@ -234,9 +228,7 @@
     "books": "Books read",
     "pages": "Pages read",
     "games": "Games finished",
-    "playTime": "Hours played",
-    "exportBooks": "Export books (CSV)",
-    "exportGames": "Export games (CSV)"
+    "playTime": "Hours played"
   },
   "extras": {
     "trailer": "Trailer",
@@ -314,17 +306,6 @@
       "gameAdaptations": "Adaptations",
       "basedOn": "Based on"
     }
-  },
-  "history": {
-    "title": "History",
-    "hint": "Everything you watched, read and played, by day",
-    "film": "Film",
-    "emptyTitle": "Nothing watched yet",
-    "emptyBody": "Episodes and films you watch, books and games you start and finish appear here.",
-    "bookStarted": "Started reading",
-    "bookFinished": "Finished reading",
-    "gameStarted": "Started playing",
-    "gameFinished": "Finished"
   },
   "rating": {
     "label": "Your rating",
@@ -528,7 +509,7 @@
   },
   "settings": {
     "title": "Settings",
-    "hint": "Notifications, appearance, sources and backups",
+    "hint": "Notifications, appearance, sources",
     "general": "General",
     "look": "Appearance and language",
     "services": "Services and sources",
@@ -715,5 +696,11 @@
     "inLibrary": "In your library",
     "notInLibrary": "Not in your library yet",
     "syncedAt": "Updated: {{when}}. All of it reads offline."
+  },
+  "data": {
+    "backup": "Backup",
+    "hint": "Connected services, backups, CSV sheets and automatic copies",
+    "csvLabel": "Pick what to export",
+    "csvExport": "Export CSV"
   }
 }

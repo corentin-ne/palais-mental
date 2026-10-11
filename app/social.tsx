@@ -82,6 +82,11 @@ export default function SocialScreen() {
               />
             </View>
             {tab === 'recos' ? <Recos me={me} /> : tab === 'ratings' ? <Ratings me={me} /> : <People me={me} />}
+            <Group index={2} title={t('friends.name')}>
+              <View style={styles.block}>
+                <NameField />
+              </View>
+            </Group>
             {syncedAt > 0 && <Text style={styles.footnote}>{t('friends.syncedAt', { when: relativeDay(syncedAt) })}</Text>}
           </>
         ) : (

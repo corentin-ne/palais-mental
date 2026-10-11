@@ -3,7 +3,6 @@ import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 
-import NameField from '@/components/friends/NameField';
 import Icon, { IconName } from '@/components/ui/Icon';
 import Poster from '@/components/ui/Poster';
 import PressableScale from '@/components/ui/PressableScale';
@@ -20,10 +19,9 @@ import { useLibrary } from '@/store/useLibrary';
 
 const JOURNAL = 8;
 
-/** A few honest numbers and the notes you kept along the way. Settings live one tap away. */
+/** Social first, a few honest numbers, your data and settings, and the notes you kept along the way. */
 export default function ProfileScreen() {
   const { t } = useTranslation();
-  const { palette } = useTheme();
   const styles = useStyles();
   const { wide } = useLayout();
   const shows = useLibrary((s) => s.shows);
@@ -48,17 +46,10 @@ export default function ProfileScreen() {
     };
   }, [shows, movies, books, games]);
 
-  const settingsButton = (
-    <PressableScale onPress={() => router.push('/settings')} style={styles.gear} accessibilityLabel={t('settings.title')}>
-      <Icon name="settings" size={22} color={palette.ink} />
-    </PressableScale>
-  );
-
   return (
-    <Screen title={t('profile.title')} right={settingsButton}>
-      <View style={[styles.group, styles.name]}>
-        <Text style={styles.nameLabel}>{t('friends.name')}</Text>
-        <NameField />
+    <Screen title={t('profile.title')}>
+      <View style={[styles.group, { marginTop: 16 }]}>
+        <ActionRow icon="heart" label={t('friends.title')} hint={friends ? t('friends.rowJoined', { count: friends }) : t('friends.rowHint')} onPress={() => router.push('/social' as never)} last />
       </View>
       <View style={[styles.stats, wide && { flexWrap: 'nowrap' }]}>
         <Stat index={0} icon="series" value={stats.episodes} label={t('profile.episodes')} />
@@ -76,8 +67,7 @@ export default function ProfileScreen() {
       )}
 
       <View style={[styles.group, { marginTop: 12 }]}>
-        <ActionRow icon="heart" label={t('friends.title')} hint={friends ? t('friends.rowJoined', { count: friends }) : t('friends.rowHint')} onPress={() => router.push('/social' as never)} />
-        <ActionRow icon="clock" label={t('history.title')} hint={t('history.hint')} onPress={() => router.push('/history')} />
+        <ActionRow icon="download" label={t('profile.data')} hint={t('data.hint')} onPress={() => router.push('/data' as never)} />
         <ActionRow icon="settings" label={t('settings.title')} hint={t('settings.hint')} onPress={() => router.push('/settings')} last />
       </View>
 
@@ -199,14 +189,11 @@ function ActionRow({ icon, label, hint, last, onPress }: { icon: IconName; label
 }
 
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
-  gear: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, marginBottom: 2 },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 },
   stat: { flexGrow: 1, flexBasis: '45%', padding: 16, gap: 6, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   statValue: { ...fonts.bold, fontSize: 26, letterSpacing: -0.8, color: palette.ink },
   statLabel: { ...type.small },
   group: { borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, overflow: 'hidden' },
-  name: { marginTop: 16, padding: 14, gap: 10 },
-  nameLabel: { ...type.label },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14 },
   line: { borderBottomWidth: 1, borderBottomColor: palette.hairline },
   rowLabel: { ...fonts.medium, fontSize: 15, color: palette.ink },

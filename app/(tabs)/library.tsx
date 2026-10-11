@@ -296,7 +296,7 @@ export default function LibraryScreen() {
                   setSort(SORTS[(SORTS.indexOf(sort) + 1) % SORTS.length]);
                 }}
               >
-                <Icon name="settings" size={16} color={palette.ink} />
+                <Icon name="sort" size={16} color={palette.ink} />
                 <Text style={styles.sortText}>{t(`library.sort.${sort}`)}</Text>
               </PressableScale>
             </View>
