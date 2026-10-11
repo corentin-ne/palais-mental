@@ -1,24 +1,39 @@
-import { ReactNode, useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import NameField from '@/components/friends/NameField';
 import Button from '@/components/ui/Button';
+import Chips from '@/components/ui/Chips';
 import Icon from '@/components/ui/Icon';
+import Poster from '@/components/ui/Poster';
 import PressableScale from '@/components/ui/PressableScale';
+import Segmented from '@/components/ui/Segmented';
+import { StarBadge } from '@/components/ui/StarRating';
 import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
+import { relativeDay } from '@/lib/format';
 import { leaveFriends, setShareRatings, syncFriends } from '@/lib/friends';
-import { quorumFor, useDigest } from '@/lib/ribbons';
+import { bandOf, quorumFor, starsText, useDigest, useLocalHrefs } from '@/lib/ribbons';
+import type { MediaKind } from '@/lib/types';
 import { Aurora, Switch } from '@/spark';
-import { useFriends } from '@/store/useFriends';
+import { BAND_COLORS, useFriends } from '@/store/useFriends';
 import { useUi } from '@/store/useUi';
 
-/** Social: who is there, what you share with them, and the way out. Choosing a name is all it takes to be in. */
+type Tab = 'recos' | 'ratings' | 'people';
+type RecoFilter = 'all' | 'forMe' | 'mine';
+type KindFilter = 'all' | MediaKind;
+const KIND_LABEL = { show: 'common.shows', movie: 'common.movies', book: 'common.books', game: 'common.games' } as const;
+const LIST = 60;
+
+/**
+ * Social, in one place: every recommendation, what the group rated, and who is there. All of it is read
+ * from what the phone last synced, so it opens the same offline; choosing a name is all it takes to be in.
+ */
 export default function SocialScreen() {
   const { t } = useTranslation();
   const { palette, type } = useTheme();
@@ -27,9 +42,18 @@ export default function SocialScreen() {
   const insets = useSafeAreaInsets();
   const { gutter, content } = useLayout();
   const me = useFriends((s) => s.me);
+  const syncedAt = useFriends((s) => s.syncedAt);
+  const [tab, setTab] = useState<Tab>('recos');
+  const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     syncFriends(true);
   }, []);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await syncFriends(true);
+    setRefreshing(false);
+  }, []);
+
   return (
     <View style={styles.root}>
       <Aurora />
@@ -39,9 +63,27 @@ export default function SocialScreen() {
         </PressableScale>
         <Text style={type.hero}>{t('friends.title')}</Text>
       </View>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: insets.bottom + 48, paddingHorizontal: gutter, width: content, alignSelf: 'center' }}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        refreshControl={me ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.inkSoft} /> : undefined}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 48, paddingHorizontal: gutter, width: content, alignSelf: 'center' }}
+      >
         {me ? (
-          <Joined me={me} />
+          <>
+            <View style={{ marginTop: 12 }}>
+              <Segmented<Tab>
+                value={tab}
+                onChange={setTab}
+                options={[
+                  { value: 'recos', label: t('friends.tab.recos') },
+                  { value: 'ratings', label: t('friends.tab.ratings') },
+                  { value: 'people', label: t('friends.tab.people') },
+                ]}
+              />
+            </View>
+            {tab === 'recos' ? <Recos me={me} /> : tab === 'ratings' ? <Ratings me={me} /> : <People me={me} />}
+            {syncedAt > 0 && <Text style={styles.footnote}>{t('friends.syncedAt', { when: relativeDay(syncedAt) })}</Text>}
+          </>
         ) : (
           <>
             <FadeIn style={styles.intro}>
@@ -71,7 +113,174 @@ function Group({ title, index, children }: { title: string; index: number; child
   );
 }
 
-function Joined({ me }: { me: string }) {
+/** Every recommendation, latest first: the group's, the ones meant for you, or your own. */
+function Recos({ me }: { me: string }) {
+  const { t } = useTranslation();
+  const { palette } = useTheme();
+  const styles = useStyles();
+  const router = useRouter();
+  const { gutter } = useLayout();
+  const members = useFriends((s) => s.members);
+  const titles = useFriends((s) => s.titles);
+  const recos = useFriends((s) => s.recos);
+  const thanks = useFriends((s) => s.thanks);
+  const d = useDigest();
+  const hrefs = useLocalHrefs();
+  const [filter, setFilter] = useState<RecoFilter>('all');
+
+  const lists = useMemo(() => {
+    const all = recos.filter((r) => members[r.user] && titles[r.title]).sort((a, b) => b.at - a.at);
+    return { all, forMe: all.filter((r) => r.to === me), mine: all.filter((r) => r.user === me) };
+  }, [recos, members, titles, me]);
+  const list = lists[filter].slice(0, LIST);
+
+  return (
+    <View style={{ marginTop: 14, gap: 12 }}>
+      <Chips<RecoFilter>
+        inset={gutter}
+        value={filter}
+        onChange={setFilter}
+        options={(['all', 'forMe', 'mine'] as const).map((f) => ({ value: f, label: t(`friends.filter.${f}`), count: lists[f].length }))}
+      />
+      {list.length === 0 ? (
+        <View style={styles.empty}>
+          <Icon name="heart" size={22} color={palette.primaryText} />
+          <Text style={styles.emptyText}>{t(filter === 'mine' ? 'friends.emptyMine' : filter === 'forMe' ? 'friends.emptyForMe' : 'friends.emptyRecos')}</Text>
+        </View>
+      ) : (
+        list.map((r, i) => {
+          const title = titles[r.title];
+          const { href, have } = hrefs(title);
+          const ribbon = d?.ribbons.get(title.id);
+          const thanked = thanks.filter((x) => x.recoUser === r.user && x.title === r.title);
+          return (
+            <FadeIn key={`${r.user}-${r.title}`} index={i} distance={8}>
+              <PressableScale depth={0.98} style={styles.card} onPress={() => router.push(href as never)} accessibilityLabel={title.title}>
+                <Poster uri={title.poster} title={title.title} width={76} kind={title.kind} elevated={false} radius={8} ribbon={ribbon && bandOf(t, ribbon, members)} />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.cardTitle} numberOfLines={2}>
+                    {title.title}
+                  </Text>
+                  <Text style={styles.cardMeta} numberOfLines={1}>
+                    {[r.user === me ? t('friends.you') : members[r.user].name, relativeDay(r.at), title.year].filter(Boolean).join(' · ')}
+                  </Text>
+                  <View style={styles.tags}>
+                    {r.favorite && (
+                      <View style={[styles.tag, { backgroundColor: BAND_COLORS.red }]}>
+                        <Text style={styles.tagText}>{t('friends.favorite')}</Text>
+                      </View>
+                    )}
+                    {(!!r.band || r.stars != null) && (
+                      <View style={[styles.tag, { backgroundColor: BAND_COLORS[r.color ?? 'red'] }]}>
+                        <Text style={styles.quote} numberOfLines={2}>
+                          {[r.stars != null ? starsText(r.stars) : undefined, r.band ? t('friends.quoted', { quote: r.band }) : undefined].filter(Boolean).join('  ')}
+                        </Text>
+                      </View>
+                    )}
+                    {!!r.to && members[r.to] && <Text style={styles.forWho}>{r.to === me ? t('friends.forYou') : t('friends.forName', { name: members[r.to].name })}</Text>}
+                  </View>
+                  {!!r.note && (
+                    <Text style={styles.note} numberOfLines={3}>
+                      {r.note}
+                    </Text>
+                  )}
+                  <Text style={styles.cardState} numberOfLines={1}>
+                    {[
+                      have ? t('friends.inLibrary') : t('friends.notInLibrary'),
+                      thanked.length
+                        ? t('friends.thankedBy', {
+                            names: thanked
+                              .map((x) => (x.from === me ? t('friends.you') : members[x.from]?.name))
+                              .filter(Boolean)
+                              .join(', '),
+                          })
+                        : undefined,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                </View>
+              </PressableScale>
+            </FadeIn>
+          );
+        })
+      )}
+    </View>
+  );
+}
+
+/** What the group rated, best first, with who gave what. */
+function Ratings({ me }: { me: string }) {
+  const { t } = useTranslation();
+  const { palette } = useTheme();
+  const styles = useStyles();
+  const router = useRouter();
+  const { gutter } = useLayout();
+  const members = useFriends((s) => s.members);
+  const titles = useFriends((s) => s.titles);
+  const d = useDigest();
+  const hrefs = useLocalHrefs();
+  const [kind, setKind] = useState<KindFilter>('all');
+
+  const rows = useMemo(() => {
+    const out = [...(d?.ratings ?? [])]
+      .filter(([id]) => titles[id])
+      .map(([id, list]) => ({ title: titles[id], list: [...list].sort((a, b) => b.rating - a.rating), average: list.reduce((n, r) => n + r.rating, 0) / list.length }));
+    // Titles several people rated come first (that is where there is a verdict), then the best rated.
+    return out.sort((a, b) => Number(b.list.length > 1) - Number(a.list.length > 1) || b.average - a.average || b.list.length - a.list.length || a.title.title.localeCompare(b.title.title));
+  }, [d, titles]);
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: rows.length };
+    for (const r of rows) c[r.title.kind] = (c[r.title.kind] ?? 0) + 1;
+    return c;
+  }, [rows]);
+  const list = rows.filter((r) => kind === 'all' || r.title.kind === kind).slice(0, LIST);
+
+  return (
+    <View style={{ marginTop: 14, gap: 10 }}>
+      <Chips<KindFilter>
+        inset={gutter}
+        value={kind}
+        onChange={setKind}
+        options={(['all', 'show', 'movie', 'book', 'game'] as const)
+          .filter((k) => k === 'all' || counts[k])
+          .map((k) => ({ value: k, label: k === 'all' ? t('common.all') : t(KIND_LABEL[k]), count: counts[k] ?? 0 }))}
+      />
+      {list.length === 0 ? (
+        <View style={styles.empty}>
+          <Icon name="star" size={22} color={palette.primaryText} />
+          <Text style={styles.emptyText}>{t('friends.emptyRatings')}</Text>
+        </View>
+      ) : (
+        list.map(({ title, list: who, average }, i) => {
+          const ribbon = d?.ribbons.get(title.id);
+          return (
+            <FadeIn key={title.id} index={i} distance={8}>
+              <PressableScale depth={0.98} style={[styles.card, { alignItems: 'center' }]} onPress={() => router.push(hrefs(title).href as never)} accessibilityLabel={title.title}>
+                <Poster uri={title.poster} title={title.title} width={48} kind={title.kind} elevated={false} radius={6} />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <View style={styles.rowHead}>
+                    <Text style={[styles.cardTitle, { flex: 1 }]} numberOfLines={1}>
+                      {title.title}
+                    </Text>
+                    <StarBadge value={average} />
+                  </View>
+                  <Text style={styles.cardMeta} numberOfLines={2}>
+                    {who.map((r) => `${r.user === me ? t('friends.you') : members[r.user]?.name} ★ ${(r.rating / 2).toLocaleString(undefined, { maximumFractionDigits: 1 })}`).join(' · ')}
+                  </Text>
+                  {!!ribbon && (ribbon.type === 'prize' || ribbon.type === 'unanimous' || ribbon.type === 'split') && <Text style={styles.verdict}>{bandOf(t, ribbon, members).text}</Text>}
+                </View>
+              </PressableScale>
+            </FadeIn>
+          );
+        })
+      )}
+    </View>
+  );
+}
+
+/** Who is there, what you share with them, your name, and the way out. */
+function People({ me }: { me: string }) {
   const { t } = useTranslation();
   const styles = useStyles();
   const haptics = useHaptics();
@@ -169,4 +378,18 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   affinity: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: palette.primaryTint },
   affinityText: { ...fonts.semibold, fontSize: 12, color: palette.primaryText },
   footnote: { ...type.small, fontSize: 12, marginTop: 10, marginHorizontal: 4, lineHeight: 17 },
+  empty: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  emptyText: { ...type.small, flex: 1 },
+  card: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 10, borderRadius: radii.md, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  rowHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cardTitle: { ...fonts.semibold, fontSize: 15, color: palette.ink, letterSpacing: -0.15 },
+  cardMeta: { ...fonts.body, fontSize: 12.5, color: palette.inkSoft },
+  cardState: { ...fonts.medium, fontSize: 12, color: palette.inkFaint },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+  tag: { borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, maxWidth: '100%' },
+  tagText: { ...fonts.bold, fontSize: 10, letterSpacing: 0.4, color: '#FFFFFF', textTransform: 'uppercase' },
+  quote: { ...fonts.displayItalic, fontWeight: '600', fontSize: 12.5, color: '#FFFFFF' },
+  forWho: { ...fonts.medium, fontSize: 12, color: palette.primaryText },
+  note: { ...fonts.displayItalic, fontSize: 15, lineHeight: 20, color: palette.ink },
+  verdict: { ...fonts.semibold, fontSize: 11.5, letterSpacing: 0.3, color: BAND_COLORS.red, textTransform: 'uppercase' },
 }));

@@ -613,7 +613,9 @@
       "unanimous": "Unanimous",
       "split": "Divisive",
       "mine": "Your favourite",
-      "quote": "“{{quote}}” — {{name}}"
+      "quote": "“{{quote}}” — {{name}}",
+      "loved": "Loved by {{names}}",
+      "lovedMany": "Loved by {{count}} people"
     },
     "ratings_one": "{{count}} rating",
     "ratings_other": "{{count}} ratings",
@@ -645,8 +647,8 @@
     "useNote": "Use my note",
     "talkLocked_one": "{{count}} message is waiting: tick the episode to read it.",
     "talkLocked_other": "{{count}} messages are waiting: tick the episode to read them.",
-    "suggested": "Recommended by the group",
-    "rowHint": "Recommendations, ratings and discussions with others",
+    "suggested": "The group liked",
+    "rowHint": "Every recommendation, the group’s ratings and who is there",
     "rowJoined_one": "{{count}} person",
     "rowJoined_other": "{{count}} people",
     "introTitle": "Together",
@@ -655,7 +657,8 @@
     "joined": "Welcome, {{name}}!",
     "error": {
       "full": "The group is full.",
-      "offline": "Couldn't reach the server. Try again in a moment."
+      "offline": "Couldn't reach the server. Try again in a moment.",
+      "taken": "That name is taken: choose another."
     },
     "members_one": "{{count}} person",
     "members_other": "{{count}} people",
@@ -694,6 +697,23 @@
       "purple": "Purple",
       "orange": "Orange",
       "black": "Black"
-    }
+    },
+    "tab": {
+      "recos": "Recs",
+      "ratings": "Ratings",
+      "people": "People"
+    },
+    "filter": {
+      "all": "All",
+      "forMe": "For me",
+      "mine": "Mine"
+    },
+    "emptyRecos": "No recommendation yet. Open a page and tap Recommend to get things going.",
+    "emptyForMe": "Nobody has sent you a recommendation yet.",
+    "emptyMine": "You haven't recommended anything yet. Open a page and tap Recommend.",
+    "emptyRatings": "No shared rating yet. Turn on “Share my ratings” in People, or show a rating from its page.",
+    "inLibrary": "In your library",
+    "notInLibrary": "Not in your library yet",
+    "syncedAt": "Updated: {{when}}. All of it reads offline."
   }
 }

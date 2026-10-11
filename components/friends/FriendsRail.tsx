@@ -22,7 +22,7 @@ export default function FriendsRail({ items }: { items: Suggestion[] }) {
   const tmdbKey = useLibrary((s) => s.settings.tmdbKey) || undefined;
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -gutter }} contentContainerStyle={{ paddingHorizontal: gutter, gap: 14, paddingBottom: 6 }}>
-      {items.map(({ title, recos, ribbon }, i) => (
+      {items.map(({ title, recos, ratings, ribbon }, i) => (
         <FadeIn key={title.id} index={i} distance={10}>
           <PressableScale onPress={() => router.push(hrefOf(title, tmdbKey) as never)} style={{ width: railPoster, gap: 8 }} accessibilityLabel={title.title}>
             <Poster uri={title.poster} title={title.title} width={railPoster} kind={title.kind} ribbon={ribbon && bandOf(t, ribbon, members)} />
@@ -31,10 +31,12 @@ export default function FriendsRail({ items }: { items: Suggestion[] }) {
                 {title.title}
               </Text>
               <Text style={styles.caption} numberOfLines={1}>
-                {recos
-                  .map((r) => members[r.user]?.name)
-                  .filter(Boolean)
-                  .join(' · ')}
+                {recos.length
+                  ? recos
+                      .map((r) => members[r.user]?.name)
+                      .filter(Boolean)
+                      .join(' · ')
+                  : ratings.map((r) => `★ ${(r.rating / 2).toLocaleString(undefined, { maximumFractionDigits: 1 })} ${members[r.user]?.name ?? ''}`).join(' · ')}
               </Text>
             </View>
           </PressableScale>

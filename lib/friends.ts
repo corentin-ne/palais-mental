@@ -85,8 +85,28 @@ interface TitleRow {
   year: number | null;
   poster: string | null;
 }
-const titleOf = (r: TitleRow): SharedTitle => ({ id: r.id, kind: r.kind, keys: r.keys, route: r.route, title: r.title, year: r.year ?? undefined, poster: r.poster ?? undefined });
-const ms = (iso: string) => Date.parse(iso) || 0;
+/** Where the app's own sources keep their artwork: the only hosts a shared poster may come from. */
+const ART_HOSTS = ['tvmaze.com', 'tmdb.org', 'media-amazon.com', 'mzstatic.com', 'steamstatic.com', 'steampowered.com', 'openlibrary.org', 'archive.org', 'google.com', 'googleusercontent.com', 'wikimedia.org'];
+/**
+ * A shared title is someone else's input: its poster is drawn only from a host the app already talks to
+ * (else a member could point it at a server of theirs and see who opens the app, and when), and its route
+ * only when it is a plain id.
+ */
+const safeArt = (url: string | null) => {
+  const host = /^https:\/\/([a-z0-9.-]+)\//i.exec(url ?? '')?.[1]?.toLowerCase();
+  return host && ART_HOSTS.some((h) => host === h || host.endsWith(`.${h}`)) ? url! : undefined;
+};
+const titleOf = (r: TitleRow): SharedTitle => ({ id: r.id, kind: r.kind, keys: r.keys, route: /^[\w.:-]+$/.test(r.route) ? r.route : '0', title: r.title, year: r.year ?? undefined, poster: safeArt(r.poster) });
+/**
+ * The server's timestamps ("2026-10-10T21:09:57.63743+00:00") read by hand: Android's engine (Hermes)
+ * rejects the microseconds, and a date it can't read would put every rating in 1970.
+ */
+export function ms(iso: string) {
+  const m = /^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d):(\d\d)(?:\.(\d+))?(?:Z|([+-])(\d\d):?(\d\d))?/.exec(iso ?? '');
+  if (!m) return 0;
+  const offset = m[8] ? (m[8] === '-' ? -1 : 1) * (Number(m[9]) * 60 + Number(m[10])) : 0;
+  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6], Number(`0.${m[7] ?? 0}`) * 1000) - offset * 60_000;
+}
 
 async function fetchAll(): Promise<FriendsData> {
   const [members, titles, ratings, recos, thanks] = await Promise.all([
@@ -208,14 +228,14 @@ export function setRatingShared(kind: MediaKind, item: Shareable, on: boolean) {
 }
 
 // ------------------------------------------------------------------ Joining
-export type JoinError = 'full' | 'offline';
+export type JoinError = 'full' | 'taken' | 'offline';
 
 /** Choosing a name is joining: everyone is in the same group. Resolves to an error name, or nothing. */
 export async function joinFriends(name: string, retry = true): Promise<JoinError | undefined> {
   try {
     const me = await signIn();
     const result = await rpc<{ ok: boolean; error?: string }>('join_base', { name });
-    if (!result.ok) return result.error === 'full' ? 'full' : 'offline';
+    if (!result.ok) return result.error === 'full' || result.error === 'taken' ? result.error : 'offline';
     useFriends.getState().set({ me, syncedAt: 0 });
     await syncFriends(true);
     return undefined;
@@ -229,11 +249,14 @@ export async function joinFriends(name: string, retry = true): Promise<JoinError
   }
 }
 
-export async function rename(name: string) {
+/** Change your name (it has to be free). Resolves to an error name, or nothing. */
+export async function rename(name: string): Promise<JoinError | undefined> {
   const { me, members } = useFriends.getState();
-  if (!me) return;
-  await api(`members?user_id=eq.${me}`, { method: 'PATCH', body: { name } });
+  if (!me) return undefined;
+  const result = await rpc<{ ok: boolean; error?: string }>('join_base', { name });
+  if (!result.ok) return result.error === 'taken' ? 'taken' : 'offline';
   useFriends.getState().set({ members: { ...members, [me]: { ...members[me], name } } });
+  return undefined;
 }
 
 /** Leave: everything you shared is deleted from the server, and the app is back to what it was. */

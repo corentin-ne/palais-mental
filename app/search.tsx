@@ -19,6 +19,8 @@ import { addBook, addGame, addMovie, followShow } from '@/lib/actions';
 import { searchBooks, trendingBooks } from '@/lib/books';
 import { popularGames, searchGames } from '@/lib/games';
 import { countdown } from '@/lib/format';
+import type { Shareable } from '@/lib/friends';
+import { useRibbons } from '@/lib/ribbons';
 import { Chip, ChipRow } from '@/spark';
 import { useLibrary } from '@/store/useLibrary';
 import { usePrefs } from '@/store/usePrefs';
@@ -27,6 +29,13 @@ import { Aurora } from '@/spark';
 type Scope = 'all' | 'shows' | 'movies' | 'books' | 'games';
 const SCOPES: Scope[] = ['all', 'shows', 'movies', 'books', 'games'];
 const hrefOf = (r: SearchResult) => `/${r.kind}/${r.id}`;
+/** A result as the group would know it: its id read back into the source and number it is made of. */
+const shareable = (r: SearchResult): Shareable => {
+  const cut = r.id.indexOf('-');
+  return r.kind === 'show'
+    ? { tvmazeId: Number(r.id), title: r.title, year: r.year }
+    : ({ id: r.id, source: r.id.slice(0, cut), sourceId: r.id.slice(cut + 1), title: r.title, year: r.year, authors: [] } as unknown as Shareable);
+};
 const caption = (r: SearchResult) => (r.releaseDate && r.releaseDate > Date.now() ? countdown(r.releaseDate) : r.subtitle ?? (r.year ? String(r.year) : undefined));
 const rail = (items: SearchResult[]) => items.map((p) => ({ key: p.id, href: hrefOf(p), title: p.title, poster: p.poster, kind: p.kind, caption: caption(p) }));
 
@@ -245,6 +254,7 @@ function ResultRow({ r, onUse }: { r: SearchResult; onUse?: () => void }) {
   const [busy, setBusy] = useState(false);
   const upcoming = r.releaseDate && r.releaseDate > Date.now();
   const meta = [r.year, r.subtitle].filter(Boolean).join(' · ');
+  const band = useRibbons()(r.kind, shareable(r));
 
   const add = async () => {
     if (inLibrary || busy) return;
@@ -286,6 +296,11 @@ function ResultRow({ r, onUse }: { r: SearchResult; onUse?: () => void }) {
             </Text>
           )}
           {upcoming && <Text style={styles.soon}>{countdown(r.releaseDate!)}</Text>}
+          {!!band && (
+            <Text style={styles.band} numberOfLines={1}>
+              {band.text}
+            </Text>
+          )}
         </View>
       </PressableScale>
       <PressableScale
@@ -317,6 +332,7 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   title: { ...fonts.semibold, fontSize: 15, color: palette.ink, letterSpacing: -0.2 },
   meta: { ...fonts.body, fontSize: 12.5, color: palette.inkSoft },
   soon: { ...fonts.semibold, fontSize: 12, color: palette.primaryText },
+  band: { ...fonts.semibold, fontSize: 11.5, letterSpacing: 0.2, color: '#C8102E' },
   add: { width: 38, height: 38, borderRadius: 19, backgroundColor: palette.primary, alignItems: 'center', justifyContent: 'center' },
   none: { ...type.small, textAlign: 'center', marginTop: 48 },
 }));

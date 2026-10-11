@@ -26,6 +26,7 @@ import { OUT_NOW, refreshRelated, relatedHref, relationLabel, visibleRelated } f
 import { getUpcoming, refreshLibrary } from '@/lib/sync';
 import { Book, Game } from '@/lib/types';
 import { RelatedRelease, useConnections } from '@/store/useConnections';
+import { useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 
 /** What to watch now: the next episode of every show in progress, the books and games you're in, then what is waiting. */
@@ -43,6 +44,7 @@ export default function UpNextScreen() {
   const related = useConnections((s) => s.related.entries);
   const ribbon = useRibbons();
   const suggestions = useSuggestions();
+  const social = useFriends((s) => !!s.me);
   const [refreshing, setRefreshing] = useState(false);
 
   const { upNext, notStarted, watchlist, soon } = useMemo(() => {
@@ -96,7 +98,9 @@ export default function UpNextScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refreshLibrary(true), syncFriends(true)]);
+    // Social catches up on its own: a server that is slow or asleep must not hold the spinner.
+    void syncFriends(true);
+    await refreshLibrary(true);
     await refreshRelated(true);
     setRefreshing(false);
   }, []);
@@ -106,13 +110,35 @@ export default function UpNextScreen() {
   const cardW = Math.floor((inner - gap * (cols - 1)) / cols);
   // What friends recommend that you don't have yet (nothing until you have joined them).
   const friendsSection = suggestions.length > 0 && (
-    <Section title={t('friends.suggested')} count={suggestions.length}>
+    <Section
+      title={t('friends.suggested')}
+      count={suggestions.length}
+      action={
+        <PressableScale onPress={() => router.push('/social' as never)} style={styles.link}>
+          <Text style={styles.linkText}>{t('common.seeAll')}</Text>
+          <Icon name="chevronRight" size={14} color={palette.primaryText} strokeWidth={2.2} />
+        </PressableScale>
+      }
+    >
       <FriendsRail items={suggestions} />
     </Section>
   );
 
   return (
-    <Screen title={t('upNext.title')} subtitle={greeting(t)} refreshing={refreshing} onRefresh={onRefresh}>
+    <Screen
+      title={t('upNext.title')}
+      subtitle={greeting(t)}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      right={
+        // Social, one tap away once you have a name (before that, nothing here changes).
+        social ? (
+          <PressableScale onPress={() => router.push('/social' as never)} style={styles.social} accessibilityLabel={t('friends.title')}>
+            <Icon name="heart" size={20} color={palette.ink} />
+          </PressableScale>
+        ) : undefined
+      }
+    >
       {empty ? (
         <>
           <Welcome />
@@ -294,6 +320,7 @@ const useStyles = makeStyles(({ palette, fonts, radii }) => ({
   cards: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 18 },
   allCaught: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18, padding: 16, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   allCaughtText: { ...fonts.medium, fontSize: 15, color: palette.ink },
+  social: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, marginBottom: 2 },
   link: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4 },
   linkText: { ...fonts.semibold, fontSize: 14, color: palette.primaryText },
   soonList: { borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, paddingVertical: 4 },

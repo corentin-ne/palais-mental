@@ -613,7 +613,9 @@
       "unanimous": "Unanime",
       "split": "Ça divise",
       "mine": "Ton coup de cœur",
-      "quote": "« {{quote}} » — {{name}}"
+      "quote": "« {{quote}} » — {{name}}",
+      "loved": "Adoré par {{names}}",
+      "lovedMany": "Adoré par {{count}} personnes"
     },
     "ratings_one": "{{count}} note",
     "ratings_other": "{{count}} notes",
@@ -645,8 +647,8 @@
     "useNote": "Reprendre ma note",
     "talkLocked_one": "{{count}} message t'attend : coche l'épisode pour le lire.",
     "talkLocked_other": "{{count}} messages t'attendent : coche l'épisode pour les lire.",
-    "suggested": "Recommandé par le groupe",
-    "rowHint": "Recommandations, notes et discussions à plusieurs",
+    "suggested": "Le groupe a aimé",
+    "rowHint": "Toutes les recos, les notes du groupe et qui est là",
     "rowJoined_one": "{{count}} personne",
     "rowJoined_other": "{{count}} personnes",
     "introTitle": "À plusieurs",
@@ -655,7 +657,8 @@
     "joined": "Bienvenue, {{name}} !",
     "error": {
       "full": "Le groupe est complet.",
-      "offline": "Impossible de joindre le serveur. Réessaie dans un instant."
+      "offline": "Impossible de joindre le serveur. Réessaie dans un instant.",
+      "taken": "Ce nom est déjà pris : choisis-en un autre."
     },
     "members_one": "{{count}} personne",
     "members_other": "{{count}} personnes",
@@ -694,6 +697,23 @@
       "purple": "Violet",
       "orange": "Orange",
       "black": "Noir"
-    }
+    },
+    "tab": {
+      "recos": "Recos",
+      "ratings": "Notes",
+      "people": "Personnes"
+    },
+    "filter": {
+      "all": "Toutes",
+      "forMe": "Pour moi",
+      "mine": "Les miennes"
+    },
+    "emptyRecos": "Aucune recommandation pour l'instant. Ouvre une fiche et appuie sur Recommander pour lancer le mouvement.",
+    "emptyForMe": "Personne ne t'a encore adressé de recommandation.",
+    "emptyMine": "Tu n'as encore rien recommandé. Ouvre une fiche et appuie sur Recommander.",
+    "emptyRatings": "Aucune note partagée pour l'instant. Active « Partager mes notes » dans Personnes, ou montre une note depuis sa fiche.",
+    "inLibrary": "Dans ta bibliothèque",
+    "notInLibrary": "Pas encore dans ta bibliothèque",
+    "syncedAt": "Mis à jour : {{when}}. Tout reste consultable hors ligne."
   }
 }

@@ -7,7 +7,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
-import { Shareable, findTitle, keysOf } from './friends';
+import { Shareable, findTitle, hrefOf, keysOf } from './friends';
 import type { MediaKind } from './types';
 import { BAND_COLORS, Member, Reco, SharedRating, SharedTitle, useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
@@ -15,7 +15,7 @@ import { useLibrary } from '@/store/useLibrary';
 /** One band per poster, the first that applies in this order. */
 export type Ribbon =
   | { type: 'quote'; reco: Reco }
-  | { type: 'direct' | 'favorite' | 'reco'; users: string[] }
+  | { type: 'direct' | 'favorite' | 'reco' | 'loved'; users: string[] }
   | { type: 'prize'; year: number }
   | { type: 'unanimous' | 'split' | 'mine' };
 
@@ -26,6 +26,8 @@ export type Ribbon =
 export const quorumFor = (members: number) => (members <= 4 ? 2 : members <= 7 ? 3 : 4);
 /** Four stars and up. */
 const LOVED = 8;
+/** Four and a half: one person's rating is enough for a band. */
+const ADORED = 9;
 /** Two and a half stars apart. */
 const SPLIT = 5;
 /** Ratings in common before two tastes are compared. */
@@ -75,6 +77,7 @@ export function digest({ me, members, titles, ratings, recos }: Input): Digest {
   for (const title of new Set([...byTitle.keys(), ...recosBy.keys()])) {
     const theirs = (recosBy.get(title) ?? []).filter((r) => r.user !== me).sort((a, b) => a.at - b.at);
     const values = (byTitle.get(title) ?? []).map((r) => r.rating);
+    const adored = (byTitle.get(title) ?? []).filter((r) => r.user !== me && r.rating >= ADORED).map((r) => r.user);
     const direct = theirs.filter((r) => r.to === me);
     const favorites = theirs.filter((r) => r.favorite);
     const users = (list: Reco[]) => list.map((r) => r.user);
@@ -95,6 +98,8 @@ export function digest({ me, members, titles, ratings, recos }: Input): Digest {
               ? { type: 'reco', users: users(theirs) }
               : values.length >= 2 && Math.max(...values) - Math.min(...values) >= SPLIT
                 ? { type: 'split' }
+                : adored.length
+                ? { type: 'loved', users: adored }
                 : recosBy.get(title)?.some((r) => r.user === me && r.favorite)
                   ? { type: 'mine' }
                   : undefined;
@@ -113,9 +118,12 @@ export function digest({ me, members, titles, ratings, recos }: Input): Digest {
   return { ribbons, ratings: byTitle, recos: recosBy, affinity };
 }
 
+/** A band is narrow: a full name gives its first word. */
+const first = (name?: string) => name?.trim().split(/\s+/)[0] ?? '';
+
 /** "Léa", "Léa and Tom"; past two, the band counts instead. */
 const names = (t: TFunction, users: string[], members: Record<string, Member>) => {
-  const list = users.map((u) => members[u]?.name).filter(Boolean);
+  const list = users.map((u) => first(members[u]?.name)).filter(Boolean);
   return list.length === 2 ? t('friends.and', { a: list[0], b: list[1] }) : list[0];
 };
 
@@ -137,7 +145,7 @@ export function quoteBand(t: TFunction, reco: Pick<Reco, 'band' | 'color' | 'sta
 }
 
 export function bandOf(t: TFunction, ribbon: Ribbon, members: Record<string, Member>): Band {
-  if (ribbon.type === 'quote') return quoteBand(t, ribbon.reco, members[ribbon.reco.user]?.name ?? '');
+  if (ribbon.type === 'quote') return quoteBand(t, ribbon.reco, first(members[ribbon.reco.user]?.name));
   if (ribbon.type === 'prize') return { text: t('friends.ribbon.prize', { year: ribbon.year }) };
   if (!('users' in ribbon)) return { text: t(`friends.ribbon.${ribbon.type}`) };
   return { text: ribbon.users.length > 2 ? t(`friends.ribbon.${ribbon.type}Many`, { count: ribbon.users.length }) : t(`friends.ribbon.${ribbon.type}`, { names: names(t, ribbon.users, members) }) };
@@ -174,13 +182,42 @@ export function useRibbons(): (kind: MediaKind, item: Shareable) => Band | undef
   }, [d, titles, members, t]);
 }
 
+/**
+ * Where a shared title opens on this phone: its page in your library when you have it (matched on any
+ * key), else the page the app can load for it.
+ */
+export function useLocalHrefs(): (title: SharedTitle) => { href: string; have: boolean } {
+  const shows = useLibrary((s) => s.shows);
+  const movies = useLibrary((s) => s.movies);
+  const books = useLibrary((s) => s.books);
+  const games = useLibrary((s) => s.games);
+  const tmdbKey = useLibrary((s) => s.settings.tmdbKey) || undefined;
+  return useMemo(() => {
+    const mine = new Map<string, string>();
+    const add = (kind: MediaKind, item: Shareable, href: string) => keysOf(kind, item).forEach((k) => mine.set(`${kind}/${k}`, href));
+    Object.values(shows).forEach((s) => add('show', s, `/show/${s.tvmazeId}`));
+    Object.values(movies).forEach((m) => add('movie', m, `/movie/${m.id}`));
+    Object.values(books).forEach((b) => add('book', b, `/book/${b.id}`));
+    Object.values(games).forEach((g) => add('game', g, `/game/${g.id}`));
+    return (title) => {
+      const local = title.keys.map((k) => mine.get(`${title.kind}/${k}`)).find(Boolean);
+      return { href: local ?? hrefOf(title, tmdbKey), have: !!local };
+    };
+  }, [shows, movies, books, games, tmdbKey]);
+}
+
 export interface Suggestion {
   title: SharedTitle;
   recos: Reco[];
+  /** The others' ratings of it, four stars and up. */
+  ratings: SharedRating[];
   ribbon?: Ribbon;
 }
 
-/** What friends recommend that you don't have yet: meant for you first, then favourites, then the tastes closest to yours. */
+/**
+ * What the others recommend or rated four stars and up, that you don't have yet: meant for you first,
+ * then favourites, then the tastes closest to yours.
+ */
 export function useSuggestions(): Suggestion[] {
   const me = useFriends((s) => s.me);
   const titles = useFriends((s) => s.titles);
@@ -199,12 +236,15 @@ export function useSuggestions(): Suggestion[] {
     add('book', Object.values(books));
     add('game', Object.values(games));
     const out: (Suggestion & { score: number; at: number })[] = [];
-    for (const [id, all] of d.recos) {
+    for (const id of new Set([...d.recos.keys(), ...d.ratings.keys()])) {
       const title = titles[id];
-      const recos = all.filter((r) => r.user !== me);
-      if (!title || !recos.length || dismissed.includes(id) || title.keys.some((k) => have.has(`${title.kind}/${k}`))) continue;
-      const score = recos.reduce((n, r) => n + (r.to === me ? 100 : 0) + (r.favorite ? 10 : 0) + 3 + 2 * (d.affinity.get(r.user) ?? 0.5), 0);
-      out.push({ title, recos, ribbon: d.ribbons.get(id), score, at: Math.max(...recos.map((r) => r.at)) });
+      const recos = (d.recos.get(id) ?? []).filter((r) => r.user !== me);
+      const ratings = (d.ratings.get(id) ?? []).filter((r) => r.user !== me && r.rating >= LOVED);
+      if (!title || (!recos.length && !ratings.length) || dismissed.includes(id) || title.keys.some((k) => have.has(`${title.kind}/${k}`))) continue;
+      const weight = (user: string) => 0.5 + (d.affinity.get(user) ?? 0.5);
+      const score =
+        recos.reduce((n, r) => n + (r.to === me ? 100 : 0) + (r.favorite ? 10 : 0) + 4 * weight(r.user), 0) + ratings.reduce((n, r) => n + (r.rating - 6) * weight(r.user), 0);
+      out.push({ title, recos, ratings, ribbon: d.ribbons.get(id), score, at: Math.max(...recos.map((r) => r.at), ...ratings.map((r) => r.at)) });
     }
     return out.sort((a, b) => b.score - a.score || b.at - a.at);
   }, [me, d, titles, dismissed, shows, movies, books, games]);

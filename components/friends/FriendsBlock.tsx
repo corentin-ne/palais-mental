@@ -62,7 +62,7 @@ export default function FriendsBlock({ kind, item, tracked, rating }: Props) {
   const average = ratings.length ? ratings.reduce((n, r) => n + r.rating, 0) / ratings.length : undefined;
   const waved = id != null && dismissed.includes(id);
   const visible = choice ?? shareRatings;
-  const preview = band.trim() || (stars && rating != null) ? quoteBand(t, { band: band.trim() || undefined, color, stars: stars ? rating : undefined }, members[me]?.name ?? '') : undefined;
+  const preview = band.trim() || (stars && rating != null) ? quoteBand(t, { band: band.trim() || undefined, color, stars: stars ? rating : undefined }, members[me]?.name.trim().split(/\s+/)[0] ?? '') : undefined;
 
   const open = () => {
     animateLayout(220);

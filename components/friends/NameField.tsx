@@ -31,7 +31,7 @@ export default function NameField() {
     setBusy(true);
     setError(undefined);
     try {
-      const failed = me ? (await rename(name), undefined) : await joinFriends(name);
+      const failed = me ? await rename(name) : await joinFriends(name);
       if (failed) return setError(failed);
       haptics.success();
       useUi.getState().showToast(t(me ? 'friends.renamed' : 'friends.joined', { name }));
