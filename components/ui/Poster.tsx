@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import Icon from './Icon';
 import { makeStyles, useTheme } from '@/constants/theme';
-import { Band, starsText } from '@/lib/ribbons';
+import type { Band } from '@/lib/ribbons';
 import type { MediaKind } from '@/lib/types';
 
 const KIND_ICON = { show: 'series', movie: 'movies', book: 'journal', game: 'gamepad' } as const;
@@ -68,12 +68,11 @@ function Poster({ uri, title, width, kind = 'show', radius, progress, dim, eleva
         )}
         {dim && <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.dimVeil }]} />}
         {!!ribbon && width >= 72 && (
-          <View style={[styles.ribbon, { bottom: Math.round(height * 0.13) }, !!ribbon.color && { backgroundColor: ribbon.color }]} accessibilityLabel={ribbon.text}>
+          <View style={[styles.ribbon, { bottom: Math.round(height * 0.13) }]} accessibilityLabel={ribbon.text}>
             <View style={styles.ribbonEdge} />
-            {ribbon.stars != null && <Text style={[styles.ribbonStars, { fontSize: Math.max(7, Math.min(11, width / 13)) }]}>{starsText(ribbon.stars)}</Text>}
             <Text
-              style={[styles.ribbonText, ribbon.quote && styles.ribbonQuote, { fontSize: Math.max(8, Math.min(13, width / 11.5)) }]}
-              numberOfLines={ribbon.quote ? 3 : 2}
+              style={[styles.ribbonText, { fontSize: Math.max(8, Math.min(13, width / 11.5)) }]}
+              numberOfLines={2}
               adjustsFontSizeToFit
               minimumFontScale={0.8}
             >
@@ -98,13 +97,10 @@ const useStyles = makeStyles(({ fonts, palette }) => ({
   genTitle: { ...fonts.displayItalic, color: palette.posterInk },
   track: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, backgroundColor: 'rgba(10,37,64,0.25)' },
   fill: { height: 4 },
-  // A fixed red whatever your accent (it is a verdict, not decoration), unless someone wrote the band and picked its colour.
+  // A fixed red whatever your accent: it is a verdict, not decoration.
   ribbon: { position: 'absolute', left: 0, right: 0, backgroundColor: '#C8102E', paddingVertical: 2, gap: 2 },
   ribbonEdge: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.55)' },
   ribbonText: { ...fonts.bold, color: '#FFFFFF', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.4, paddingHorizontal: 5 },
-  // A band someone wrote reads as a quote: their words as typed, in italics, their stars small above.
-  ribbonQuote: { ...fonts.displayItalic, fontWeight: '600', textTransform: 'none', letterSpacing: 0 },
-  ribbonStars: { color: '#FFFFFF', textAlign: 'center', letterSpacing: 1, marginBottom: -1 },
 }));
 
 /** Posters re-render only when what they show changes. */

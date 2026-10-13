@@ -8,7 +8,7 @@ import { AppState } from 'react-native';
 import { norm } from './api';
 import { ApiError, all, api, currentUser, forgetSession, rpc, signIn } from './supabase';
 import { Book, Game, MediaKind, Movie, Show } from './types';
-import { BandColor, FriendsData, Member, Post, Reco, SharedRating, SharedTitle, TitlePost, useFriends } from '@/store/useFriends';
+import { FriendsData, Member, Post, SharedRating, SharedTitle, TitlePost, useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 
 /** What a title needs to be shared: the fields the library and the detail pages both have. */
@@ -118,13 +118,10 @@ const TALK = 80;
 const POST_FIELDS = 'id,user_id,title_id,episode_id,body,rating,created_at,post_reactions(user_id,emoji)';
 
 async function fetchAll(): Promise<FriendsData> {
-  const [members, titles, ratings, recos, reviews, talk] = await Promise.all([
+  const [members, titles, ratings, reviews, talk] = await Promise.all([
     all<{ user_id: string; name: string; joined_at: string }>('members?select=user_id,name,joined_at&order=joined_at.asc,user_id.asc'),
     all<TitleRow>('titles?select=id,kind,keys,route,title,year,poster&order=id.asc'),
     all<{ user_id: string; title_id: number; rating: number; updated_at: string }>('ratings?select=user_id,title_id,rating,updated_at&order=title_id.asc,user_id.asc'),
-    all<{ user_id: string; title_id: number; note: string | null; band: string | null; band_color: BandColor | null; band_rating: number | null; favorite: boolean; to_user: string | null; created_at: string }>(
-      'recos?select=user_id,title_id,note,band,band_color,band_rating,favorite,to_user,created_at&order=title_id.asc,user_id.asc',
-    ),
     all<PostRow>(`posts?select=${POST_FIELDS}&episode_id=eq.${REVIEW}&order=created_at.desc,id.desc`),
     api<PostRow[]>(`posts?select=${POST_FIELDS}&episode_id=gt.${REVIEW}&order=created_at.desc,id.desc&limit=${TALK}`),
   ]);
@@ -132,7 +129,6 @@ async function fetchAll(): Promise<FriendsData> {
     members: Object.fromEntries(members.map((m): [string, Member] => [m.user_id, { id: m.user_id, name: m.name, joinedAt: ms(m.joined_at) }])),
     titles: Object.fromEntries(titles.map((t) => [t.id, titleOf(t)])),
     ratings: ratings.map((r): SharedRating => ({ user: r.user_id, title: r.title_id, rating: r.rating, at: ms(r.updated_at) })),
-    recos: recos.map((r): Reco => ({ user: r.user_id, title: r.title_id, note: r.note ?? undefined, band: r.band ?? undefined, color: r.band_color ?? undefined, stars: r.band_rating ?? undefined, favorite: r.favorite, to: r.to_user ?? undefined, at: ms(r.created_at) })),
     reviews: reviews.map(titlePostOf),
     talk: talk.map(titlePostOf),
   };
@@ -154,6 +150,7 @@ export function syncFriends(force = false) {
       if (!data.members[me]) return useFriends.getState().reset();
       useFriends.getState().set({ ...data, syncedAt: Date.now() });
       reviewsRead = true;
+      await moveRecos(me);
       await pushRatings();
     } catch {
       // Offline, or the server is asleep: what is on the device stays.
@@ -161,6 +158,33 @@ export function syncFriends(force = false) {
   })().finally(() => {
     pass = undefined;
   }));
+}
+
+/**
+ * Recommendations are gone (1.11): the words of yours become your review of the title when it has none,
+ * shared like the rest of that title, then every one of yours leaves the server. Once per device.
+ */
+async function moveRecos(me: string) {
+  if (useFriends.getState().recosMoved) return;
+  const rows = await api<{ title_id: number; note: string | null }[]>(`recos?select=title_id,note&user_id=eq.${me}`);
+  const { titles, shared } = useFriends.getState();
+  const lib = useLibrary.getState();
+  const lists = { show: Object.values(lib.shows), movie: Object.values(lib.movies), book: Object.values(lib.books), game: Object.values(lib.games) };
+  const setters = { show: lib.setShowReview, movie: lib.setMovieReview, book: lib.setBookReview, game: lib.setGameReview };
+  const share: Record<string, boolean> = {};
+  for (const r of rows) {
+    const title = titles[r.title_id];
+    const note = r.note?.trim();
+    if (!title || !note) continue;
+    const keys = new Set(title.keys);
+    const item = (lists[title.kind] as (Shareable & { id: string; review?: string })[]).find((i) => keysOf(title.kind, i).some((k) => keys.has(k)));
+    if (!item) continue;
+    if (!item.review?.trim()) setters[title.kind](item.id, note);
+    // It was public as a recommendation: it stays visible as a review.
+    share[localKey(title.kind, item)] = shared[localKey(title.kind, item)] ?? true;
+  }
+  if (rows.length) await api(`recos?user_id=eq.${me}`, { method: 'DELETE' });
+  useFriends.getState().set({ recosMoved: true, shared: { ...useFriends.getState().shared, ...share } });
 }
 
 // ------------------------------------------------------------------ Titles
@@ -214,7 +238,9 @@ export function pushRatings() {
     if (!me || !useLibrary.persist.hasHydrated()) return;
     const mine = new Map(ratings.filter((r) => r.user === me).map((r) => [r.title, r.rating]));
     const myReviews = reviews.filter((r) => r.user === me);
-    const local = localTakes().filter((l) => shared[localKey(l.kind, l.item)] ?? shareRatings);
+    const local = localTakes()
+      .map((l) => ({ ...l, choice: shared[localKey(l.kind, l.item)] }))
+      .filter((l) => l.choice ?? shareRatings);
     if (!local.length && !mine.size && !myReviews.length) return;
     const ids = await ensureTitles(local);
 
@@ -222,8 +248,8 @@ export function pushRatings() {
     const words = new Map<number, { body: string; rating?: number }>();
     local.forEach((l, i) => {
       if (l.rating != null) wanted.set(ids[i], Math.max(l.rating, wanted.get(ids[i]) ?? 0));
-      // Reviews were private before 1.11: they leave the phone only once you said so (shareReviews).
-      if (shareReviews && l.review && !words.has(ids[i])) words.set(ids[i], { body: l.review.slice(0, REVIEW_MAX), rating: l.rating });
+      // Reviews were private before 1.11: they leave the phone when you share that title, or once you said yes to all (shareReviews).
+      if ((l.choice || shareReviews) && l.review && !words.has(ids[i])) words.set(ids[i], { body: l.review.slice(0, REVIEW_MAX), rating: l.rating });
     });
 
     const changed = [...wanted].filter(([title, rating]) => mine.get(title) !== rating);
@@ -282,7 +308,7 @@ export function setShareRatings(shareRatings: boolean) {
 
 /** Show or hide one rating and review, whatever the general rule. */
 export function setRatingShared(kind: MediaKind, item: Shareable, on: boolean) {
-  useFriends.getState().set({ shared: { ...useFriends.getState().shared, [localKey(kind, item)]: on }, ...(on && { shareReviews: true }) });
+  useFriends.getState().set({ shared: { ...useFriends.getState().shared, [localKey(kind, item)]: on } });
   return pushRatings();
 }
 

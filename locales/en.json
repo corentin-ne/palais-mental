@@ -615,17 +615,9 @@
     "you": "You",
     "and": "{{a}} and {{b}}",
     "ribbon": {
-      "direct": "{{names}}: try this",
-      "directMany": "{{count}} people say try this",
-      "favorite": "Favourite of {{names}}",
-      "favoriteMany": "{{count}} favourites",
-      "reco": "Recommended by {{names}}",
-      "recoMany": "Recommended by {{count}} people",
       "prize": "Group prize {{year}}",
       "unanimous": "Unanimous",
       "split": "Divisive",
-      "mine": "Your favourite",
-      "quote": "“{{quote}}” — {{name}}",
       "loved": "Loved by {{names}}",
       "lovedMany": "Loved by {{count}} people"
     },

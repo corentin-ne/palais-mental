@@ -20,7 +20,6 @@ test('ratings without words gather per person and day; reviewed titles are not r
     ],
     reviews: [post(7, 'a', 3, 0, 12 * DAY + 1)],
     talk: [],
-    recos: [],
   });
   assert.deepEqual(
     feed.map((f) => f.type),
@@ -32,27 +31,9 @@ test('ratings without words gather per person and day; reviewed titles are not r
 });
 
 test('posts from unknown members or titles are left out, latest first', () => {
-  const feed = buildFeed({ members, titles, ratings: [], reviews: [], talk: [post(1, 'b', 1, 5, 2), post(2, 'z', 1, 5, 3), post(3, 'a', 9, 5, 4), post(4, 'a', 2, 5, 5)], recos: [] });
+  const feed = buildFeed({ members, titles, ratings: [], reviews: [], talk: [post(1, 'b', 1, 5, 2), post(2, 'z', 1, 5, 3), post(3, 'a', 9, 5, 4), post(4, 'a', 2, 5, 5)] });
   assert.deepEqual(
     feed.map((f) => f.key),
     ['t4', 't1'],
-  );
-});
-
-test('old recommendations keep their words unless a review replaced them', () => {
-  const feed = buildFeed({
-    members,
-    titles,
-    ratings: [],
-    reviews: [post(1, 'a', 1, 0, 5)],
-    talk: [],
-    recos: [
-      { user: 'a', title: 1, note: 'old', at: 1 },
-      { user: 'b', title: 2, note: 'go', at: 2 },
-    ],
-  });
-  assert.deepEqual(
-    feed.map((f) => f.type),
-    ['review', 'note'],
   );
 });

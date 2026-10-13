@@ -158,9 +158,8 @@ function Feed({ me }: { me: string }) {
   const ratings = useFriends((s) => s.ratings);
   const reviews = useFriends((s) => s.reviews);
   const talk = useFriends((s) => s.talk);
-  const recos = useFriends((s) => s.recos);
   const [shown, setShown] = useState(PAGE);
-  const feed = useMemo(() => buildFeed({ members, titles, ratings, reviews, talk, recos }), [members, titles, ratings, reviews, talk, recos]);
+  const feed = useMemo(() => buildFeed({ members, titles, ratings, reviews, talk }), [members, titles, ratings, reviews, talk]);
 
   return (
     <Section title={t('friends.feed')}>
@@ -231,10 +230,10 @@ function FeedCard({ item, me }: { item: FeedItem; me: string }) {
             {title.title}
             {episode}
           </Text>
-          {item.type === 'talk' ? <Spoiler title={title} post={item.post} mine={item.user === me} /> : <Text style={styles.words}>{item.type === 'review' ? item.post.body : item.note}</Text>}
+          {item.type === 'talk' ? <Spoiler title={title} post={item.post} mine={item.user === me} /> : <Text style={styles.words}>{item.post.body}</Text>}
         </View>
       </View>
-      {item.type !== 'note' && <Reactions title={title.id} post={item.post} />}
+      <Reactions title={title.id} post={item.post} />
     </PressableScale>
   );
 }

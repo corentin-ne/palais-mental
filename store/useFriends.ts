@@ -4,10 +4,6 @@ import { persist } from 'zustand/middleware';
 import { lazyStorage } from '@/lib/storage';
 import type { MediaKind } from '@/lib/types';
 
-/** The colours a band of your own can take (the automatic ones stay red). */
-export const BAND_COLORS = { red: '#C8102E', blue: '#1D4ED8', green: '#15803D', purple: '#7C3AED', orange: '#C2410C', black: '#111827' } as const;
-export type BandColor = keyof typeof BAND_COLORS;
-
 export interface Member {
   id: string;
   name: string;
@@ -34,21 +30,6 @@ export interface SharedRating {
   at: number;
 }
 
-export interface Reco {
-  user: string;
-  title: number;
-  note?: string;
-  /** A band of your own across the poster: a few words, quoted and signed, in the colour you picked. */
-  band?: string;
-  color?: BandColor;
-  /** Your stars on that band (1–10), when you chose to show them. */
-  stars?: number;
-  favorite: boolean;
-  /** The one friend it is meant for. */
-  to?: string;
-  at: number;
-}
-
 export interface Post {
   id: number;
   user: string;
@@ -69,7 +50,6 @@ export interface FriendsData {
   members: Record<string, Member>;
   titles: Record<number, SharedTitle>;
   ratings: SharedRating[];
-  recos: Reco[];
   /** What each member wrote about a title as a whole, with their stars: one per member and title. */
   reviews: TitlePost[];
   /** The latest messages on episodes, across every show: the Social feed. */
@@ -83,6 +63,8 @@ interface FriendsState extends FriendsData {
   shareRatings: boolean;
   /** Reviews go along with ratings: false for those who shared ratings before reviews were shared, until they say yes. */
   shareReviews: boolean;
+  /** Your recommendations from before 1.11 were turned into reviews. */
+  recosMoved: boolean;
   /** Ratings you decided on one by one (`kind/id` → shown or hidden), whatever the rule above says. */
   shared: Record<string, boolean>;
   syncedAt: number;
@@ -92,7 +74,7 @@ interface FriendsState extends FriendsData {
   reset: () => void;
 }
 
-const EMPTY: FriendsData = { members: {}, titles: {}, ratings: [], recos: [], reviews: [], talk: [] };
+const EMPTY: FriendsData = { members: {}, titles: {}, ratings: [], reviews: [], talk: [] };
 
 /** What your friends shared, kept on the device so it reads offline. */
 export const useFriends = create<FriendsState>()(
@@ -101,16 +83,22 @@ export const useFriends = create<FriendsState>()(
       ...EMPTY,
       shareRatings: false,
       shareReviews: false,
+      recosMoved: false,
       shared: {},
       syncedAt: 0,
       posts: {},
       set: (patch) => set(patch),
-      reset: () => set({ ...EMPTY, me: undefined, shareRatings: false, shareReviews: false, shared: {}, syncedAt: 0, posts: {} }),
+      reset: () => set({ ...EMPTY, me: undefined, shareRatings: false, shareReviews: false, recosMoved: false, shared: {}, syncedAt: 0, posts: {} }),
     }),
     {
       name: 'palais-mental/friends',
-      version: 1,
+      version: 2,
       storage: lazyStorage(),
+      // 1.11.1: recommendations, thank-yous and waved-off titles are gone; their copies leave the device.
+      migrate: (persisted) => {
+        const { recos: _r, thanks: _t, dismissed: _d, ...kept } = (persisted ?? {}) as Record<string, unknown>;
+        return kept as unknown as FriendsState;
+      },
       partialize: ({ posts: _posts, set: _set, reset: _reset, ...kept }) => kept as FriendsState,
     },
   ),

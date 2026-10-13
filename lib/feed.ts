@@ -29,11 +29,9 @@ type SharedTitle = FeedTitle;
 type TitlePost = FeedPost;
 type Member = { id: string; name: string };
 type SharedRating = { user: string; title: number; rating: number; at: number };
-type Reco = { user: string; title: number; note?: string; at: number };
 
 export type FeedItem =
   | { type: 'review'; key: string; user: string; at: number; title: SharedTitle; post: TitlePost; rating?: number }
-  | { type: 'note'; key: string; user: string; at: number; title: SharedTitle; note: string; rating?: number }
   | { type: 'talk'; key: string; user: string; at: number; title: SharedTitle; post: TitlePost }
   | { type: 'rated'; key: string; user: string; at: number; items: { title: SharedTitle; rating: number }[] };
 
@@ -43,7 +41,6 @@ interface Input {
   ratings: SharedRating[];
   reviews: TitlePost[];
   talk: TitlePost[];
-  recos: Reco[];
 }
 
 const dayOf = (ms: number) => {
@@ -51,7 +48,7 @@ const dayOf = (ms: number) => {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 };
 
-export function buildFeed({ members, titles, ratings, reviews, talk, recos }: Input): FeedItem[] {
+export function buildFeed({ members, titles, ratings, reviews, talk }: Input): FeedItem[] {
   const out: FeedItem[] = [];
   const rating = new Map(ratings.map((r) => [`${r.user}/${r.title}`, r.rating]));
   const worded = new Set<string>();
@@ -61,13 +58,6 @@ export function buildFeed({ members, titles, ratings, reviews, talk, recos }: In
     if (!title || !members[p.user]) continue;
     worded.add(`${p.user}/${p.title}`);
     out.push({ type: 'review', key: `r${p.id}`, user: p.user, at: p.at, title, post: p, rating: rating.get(`${p.user}/${p.title}`) ?? p.rating });
-  }
-  // Recommendations written before 1.11 keep their words in the feed.
-  for (const r of recos) {
-    const title = titles[r.title];
-    if (!title || !members[r.user] || !r.note || worded.has(`${r.user}/${r.title}`)) continue;
-    worded.add(`${r.user}/${r.title}`);
-    out.push({ type: 'note', key: `n${r.user}/${r.title}`, user: r.user, at: r.at, title, note: r.note, rating: rating.get(`${r.user}/${r.title}`) });
   }
   for (const p of talk) {
     const title = titles[p.title];

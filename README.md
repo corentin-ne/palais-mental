@@ -65,7 +65,7 @@ Shows still airing refresh every 6 hours, ended shows weekly, awaited films, boo
 
 A free Supabase project (Postgres, EU). The app holds its URL and publishable key (`lib/supabase.ts`); what a member can read or write is decided by the row-level security rules in `supabase/migrations/`, not by the key.
 
-- **Stored:** a name per member, the ratings and reviews they chose to show (a review is a post on episode 0, so no schema change was needed and older versions simply don't show it), recommendations from versions before 1.11, episode messages and reactions, and for each title its ids, name, year and poster link. No library, progress or history.
+- **Stored:** a name per member, the ratings and reviews they chose to show (a review is a post on episode 0, so no schema change was needed and older versions simply don't show it), episode messages and reactions, and for each title its ids, name, year and poster link. No library, progress or history.
 - **Readable by:** members of the same group only. Each member can change or delete only their own rows; leaving deletes everything they shared.
 - **Joining:** one group (`base`), open to anyone who installs the app and chooses a name (50 members at most). Groups with a hashed access code exist in the schema for the day there are several.
 - **Not end-to-end encrypted:** calls are HTTPS and the database is encrypted on disk, but members, and whoever owns the project, can read what is shared.

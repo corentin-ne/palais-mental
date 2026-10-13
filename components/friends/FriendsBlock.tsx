@@ -41,14 +41,12 @@ export default function FriendsBlock({ kind, item, rating, review }: Props) {
 
   const takes = useMemo(() => {
     if (!me || !d || id == null) return [];
-    const by = new Map<string, { user: string; rating?: number; words?: (typeof reviews)[number]; legacy?: string; at: number }>();
+    const by = new Map<string, { user: string; rating?: number; words?: (typeof reviews)[number]; at: number }>();
     const take = (user: string) => by.get(user) ?? by.set(user, { user, at: 0 }).get(user)!;
     for (const r of d.ratings.get(id) ?? []) Object.assign(take(r.user), { rating: r.rating, at: Math.max(take(r.user).at, r.at) });
     for (const p of reviews) if (p.title === id && p.episode === REVIEW && members[p.user]) Object.assign(take(p.user), { words: p, at: Math.max(take(p.user).at, p.at) });
-    // Recommendations from versions before 1.11: their words still count as a take.
-    for (const r of d.recos.get(id) ?? []) if (r.note && !take(r.user).words) Object.assign(take(r.user), { legacy: r.note, at: Math.max(take(r.user).at, r.at) });
     // Words first (that is what people read), then the latest.
-    return [...by.values()].filter((x) => x.rating != null || x.words || x.legacy).sort((a, b) => Number(!!b.words || !!b.legacy) - Number(!!a.words || !!a.legacy) || b.at - a.at);
+    return [...by.values()].filter((x) => x.rating != null || x.words).sort((a, b) => Number(!!b.words) - Number(!!a.words) || b.at - a.at);
   }, [me, d, id, reviews, members]);
 
   if (!me || !d) return null;
@@ -73,7 +71,7 @@ export default function FriendsBlock({ kind, item, rating, review }: Props) {
 
       {takes.map((x) => {
         const name = x.user === me ? t('friends.you') : members[x.user]?.name;
-        const words = x.words?.body ?? x.legacy;
+        const words = x.words?.body;
         return (
           <View key={x.user} style={styles.take}>
             <Avatar name={members[x.user]?.name} size={30} />
