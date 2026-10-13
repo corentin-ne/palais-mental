@@ -221,7 +221,6 @@ export interface Suggestion {
 export function useSuggestions(): Suggestion[] {
   const me = useFriends((s) => s.me);
   const titles = useFriends((s) => s.titles);
-  const dismissed = useFriends((s) => s.dismissed);
   const d = useDigest();
   const shows = useLibrary((s) => s.shows);
   const movies = useLibrary((s) => s.movies);
@@ -240,12 +239,12 @@ export function useSuggestions(): Suggestion[] {
       const title = titles[id];
       const recos = (d.recos.get(id) ?? []).filter((r) => r.user !== me);
       const ratings = (d.ratings.get(id) ?? []).filter((r) => r.user !== me && r.rating >= LOVED);
-      if (!title || (!recos.length && !ratings.length) || dismissed.includes(id) || title.keys.some((k) => have.has(`${title.kind}/${k}`))) continue;
+      if (!title || (!recos.length && !ratings.length) || title.keys.some((k) => have.has(`${title.kind}/${k}`))) continue;
       const weight = (user: string) => 0.5 + (d.affinity.get(user) ?? 0.5);
       const score =
         recos.reduce((n, r) => n + (r.to === me ? 100 : 0) + (r.favorite ? 10 : 0) + 4 * weight(r.user), 0) + ratings.reduce((n, r) => n + (r.rating - 6) * weight(r.user), 0);
       out.push({ title, recos, ratings, ribbon: d.ribbons.get(id), score, at: Math.max(...recos.map((r) => r.at), ...ratings.map((r) => r.at)) });
     }
     return out.sort((a, b) => b.score - a.score || b.at - a.at);
-  }, [me, d, titles, dismissed, shows, movies, books, games]);
+  }, [me, d, titles, shows, movies, books, games]);
 }

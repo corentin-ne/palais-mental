@@ -1,44 +1,44 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
 import { Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import Avatar from '@/components/friends/Avatar';
+import FriendsRail from '@/components/friends/FriendsRail';
 import NameField from '@/components/friends/NameField';
+import Reactions from '@/components/friends/Reactions';
 import Button from '@/components/ui/Button';
-import Chips from '@/components/ui/Chips';
 import Icon from '@/components/ui/Icon';
 import Poster from '@/components/ui/Poster';
 import PressableScale from '@/components/ui/PressableScale';
-import Screen from '@/components/ui/Screen';
-import Segmented from '@/components/ui/Segmented';
+import Screen, { Section } from '@/components/ui/Screen';
 import { Group } from '@/components/ui/SettingsList';
 import { StarBadge } from '@/components/ui/StarRating';
 import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
-import { leaveFriends, setShareRatings, syncFriends } from '@/lib/friends';
-import { bandOf, quorumFor, starsText, useDigest, useLocalHrefs } from '@/lib/ribbons';
-import type { MediaKind } from '@/lib/types';
+import { FeedItem, buildFeed } from '@/lib/feed';
+import { relativeDay } from '@/lib/format';
+import { leaveFriends, pushRatings, setShareRatings, syncFriends } from '@/lib/friends';
+import { useDigest, useLocalHrefs, useSuggestions } from '@/lib/ribbons';
 import { Switch } from '@/spark';
-import { BAND_COLORS, useFriends } from '@/store/useFriends';
+import { SharedTitle, useFriends } from '@/store/useFriends';
+import { useLibrary } from '@/store/useLibrary';
 import { useUi } from '@/store/useUi';
 
-type Tab = 'recos' | 'ratings' | 'people';
-type RecoFilter = 'all' | 'forMe' | 'mine';
-type KindFilter = 'all' | MediaKind;
-const KIND_LABEL = { show: 'common.shows', movie: 'common.movies', book: 'common.books', game: 'common.games' } as const;
-const LIST = 60;
+const PAGE = 25;
 
 /**
- * Social, in one place: every recommendation, what the group rated, and who is there. All of it is read
- * from what the phone last synced, so it opens the same offline; choosing a name is all it takes to be in.
+ * Social, on one page: who is in the group, what they would hand you, then everything they shared as
+ * it came — reviews, ratings, and what they said about episodes. Sharing is rating and writing a few
+ * words: there is nothing else to fill in. Read from the last sync, so it opens the same offline.
  */
 export default function SocialScreen() {
   const { t } = useTranslation();
   const styles = useStyles();
   const me = useFriends((s) => s.me);
-  const [tab, setTab] = useState<Tab>('recos');
+  const members = useFriends((s) => s.members);
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     syncFriends(true);
@@ -50,222 +50,227 @@ export default function SocialScreen() {
   }, []);
 
   // No name yet: choosing one comes first, everything else appears once you are in.
-  return (
-    <Screen title={t('friends.title')} refreshing={refreshing} onRefresh={me ? onRefresh : undefined}>
-        {me ? (
-          <>
-            <View style={{ marginTop: 12 }}>
-              <Segmented<Tab>
-                value={tab}
-                onChange={setTab}
-                options={[
-                  { value: 'recos', label: t('friends.tab.recos') },
-                  { value: 'ratings', label: t('friends.tab.ratings') },
-                  { value: 'people', label: t('friends.tab.people') },
-                ]}
-              />
-            </View>
-            {/* Your name lives with the people: one place to change it. */}
-            {tab === 'recos' ? <Recos me={me} /> : tab === 'ratings' ? <Ratings me={me} /> : <People me={me} />}
-          </>
-        ) : (
-          <>
-            <FadeIn style={styles.intro}>
-              <Text style={styles.introTitle}>{t('friends.introTitle')}</Text>
-              <Text style={styles.introBody}>{t('friends.introBody')}</Text>
-            </FadeIn>
-            <Group index={1} title={t('friends.name')}>
-              <View style={styles.block}>
-                <NameField />
-              </View>
-            </Group>
-          </>
-        )}
+  if (!me)
+    return (
+      <Screen title={t('friends.title')}>
+        <FadeIn style={styles.intro}>
+          <Text style={styles.introTitle}>{t('friends.introTitle')}</Text>
+          <Text style={styles.introBody}>{t('friends.introBody')}</Text>
+        </FadeIn>
+        <Group index={1} title={t('friends.name')}>
+          <View style={styles.block}>
+            <NameField />
+          </View>
+        </Group>
         <Text style={styles.footnote}>{t('friends.privacy')}</Text>
+      </Screen>
+    );
+
+  return (
+    <Screen title={t('friends.title')} subtitle={t('friends.members', { count: Object.keys(members).length })} refreshing={refreshing} onRefresh={onRefresh}>
+      <People me={me} />
+      <ShareNudge />
+      <ForYou />
+      <Feed me={me} />
+      <You />
+      <Text style={styles.footnote}>{t('friends.privacy')}</Text>
     </Screen>
   );
 }
 
-/** Every recommendation, latest first: the group's, the ones meant for you, or your own. */
-function Recos({ me }: { me: string }) {
-  const { t } = useTranslation();
-  const { palette } = useTheme();
-  const styles = useStyles();
-  const router = useRouter();
-  const { gutter } = useLayout();
-  const members = useFriends((s) => s.members);
-  const titles = useFriends((s) => s.titles);
-  const recos = useFriends((s) => s.recos);
-  const thanks = useFriends((s) => s.thanks);
-  const d = useDigest();
-  const hrefs = useLocalHrefs();
-  const [filter, setFilter] = useState<RecoFilter>('all');
-
-  const lists = useMemo(() => {
-    const all = recos.filter((r) => members[r.user] && titles[r.title]).sort((a, b) => b.at - a.at);
-    return { all, forMe: all.filter((r) => r.to === me), mine: all.filter((r) => r.user === me) };
-  }, [recos, members, titles, me]);
-  const list = lists[filter].slice(0, LIST);
-
-  return (
-    <View style={{ marginTop: 14, gap: 12 }}>
-      <Chips<RecoFilter>
-        inset={gutter}
-        value={filter}
-        onChange={setFilter}
-        options={(['all', 'forMe', 'mine'] as const).map((f) => ({ value: f, label: t(`friends.filter.${f}`), count: lists[f].length }))}
-      />
-      {list.length === 0 ? (
-        <View style={styles.empty}>
-          <Icon name="heart" size={22} color={palette.primaryText} />
-          <Text style={styles.emptyText}>{t(filter === 'mine' ? 'friends.emptyMine' : filter === 'forMe' ? 'friends.emptyForMe' : 'friends.emptyRecos')}</Text>
-        </View>
-      ) : (
-        list.map((r, i) => {
-          const title = titles[r.title];
-          const { href, have } = hrefs(title);
-          const ribbon = d?.ribbons.get(title.id);
-          const thanked = thanks.filter((x) => x.recoUser === r.user && x.title === r.title);
-          return (
-            <FadeIn key={`${r.user}-${r.title}`} index={i} distance={8}>
-              <PressableScale depth={0.98} style={styles.card} onPress={() => router.push(href as Href)} accessibilityLabel={title.title}>
-                <Poster uri={title.poster} title={title.title} width={76} kind={title.kind} elevated={false} radius={8} ribbon={ribbon && bandOf(t, ribbon, members)} />
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={styles.cardTitle} numberOfLines={2}>
-                    {title.title}
-                  </Text>
-                  <Text style={styles.cardMeta} numberOfLines={1}>
-                    {[r.user === me ? t('friends.you') : members[r.user].name, title.year].filter(Boolean).join(' · ')}
-                  </Text>
-                  <View style={styles.tags}>
-                    {r.favorite && (
-                      <View style={[styles.tag, { backgroundColor: BAND_COLORS.red }]}>
-                        <Text style={styles.tagText}>{t('friends.favorite')}</Text>
-                      </View>
-                    )}
-                    {(!!r.band || r.stars != null) && (
-                      <View style={[styles.tag, { backgroundColor: BAND_COLORS[r.color ?? 'red'] }]}>
-                        <Text style={styles.quote} numberOfLines={2}>
-                          {[r.stars != null ? starsText(r.stars) : undefined, r.band ? t('friends.quoted', { quote: r.band }) : undefined].filter(Boolean).join('  ')}
-                        </Text>
-                      </View>
-                    )}
-                    {!!r.to && members[r.to] && <Text style={styles.forWho}>{r.to === me ? t('friends.forYou') : t('friends.forName', { name: members[r.to].name })}</Text>}
-                  </View>
-                  {!!r.note && (
-                    <Text style={styles.note} numberOfLines={3}>
-                      {r.note}
-                    </Text>
-                  )}
-                  <Text style={styles.cardState} numberOfLines={1}>
-                    {[
-                      have ? t('friends.inLibrary') : t('friends.notInLibrary'),
-                      thanked.length
-                        ? t('friends.thankedBy', {
-                            names: thanked
-                              .map((x) => (x.from === me ? t('friends.you') : members[x.from]?.name))
-                              .filter(Boolean)
-                              .join(', '),
-                          })
-                        : undefined,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </Text>
-                </View>
-              </PressableScale>
-            </FadeIn>
-          );
-        })
-      )}
-    </View>
-  );
-}
-
-/** What the group rated, best first, with who gave what. */
-function Ratings({ me }: { me: string }) {
-  const { t } = useTranslation();
-  const { palette } = useTheme();
-  const styles = useStyles();
-  const router = useRouter();
-  const { gutter } = useLayout();
-  const members = useFriends((s) => s.members);
-  const titles = useFriends((s) => s.titles);
-  const d = useDigest();
-  const hrefs = useLocalHrefs();
-  const [kind, setKind] = useState<KindFilter>('all');
-
-  const rows = useMemo(() => {
-    const out = [...(d?.ratings ?? [])]
-      .filter(([id]) => titles[id])
-      .map(([id, list]) => ({ title: titles[id], list: [...list].sort((a, b) => b.rating - a.rating), average: list.reduce((n, r) => n + r.rating, 0) / list.length }));
-    // Titles several people rated come first (that is where there is a verdict), then the best rated.
-    return out.sort((a, b) => Number(b.list.length > 1) - Number(a.list.length > 1) || b.average - a.average || b.list.length - a.list.length || a.title.title.localeCompare(b.title.title));
-  }, [d, titles]);
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { all: rows.length };
-    for (const r of rows) c[r.title.kind] = (c[r.title.kind] ?? 0) + 1;
-    return c;
-  }, [rows]);
-  const list = rows.filter((r) => kind === 'all' || r.title.kind === kind).slice(0, LIST);
-
-  return (
-    <View style={{ marginTop: 14, gap: 10 }}>
-      <Chips<KindFilter>
-        inset={gutter}
-        value={kind}
-        onChange={setKind}
-        options={(['all', 'show', 'movie', 'book', 'game'] as const)
-          .filter((k) => k === 'all' || counts[k])
-          .map((k) => ({ value: k, label: k === 'all' ? t('common.all') : t(KIND_LABEL[k]), count: counts[k] ?? 0 }))}
-      />
-      {list.length === 0 ? (
-        <View style={styles.empty}>
-          <Icon name="star" size={22} color={palette.primaryText} />
-          <Text style={styles.emptyText}>{t('friends.emptyRatings')}</Text>
-        </View>
-      ) : (
-        list.map(({ title, list: who, average }, i) => {
-          const ribbon = d?.ribbons.get(title.id);
-          return (
-            <FadeIn key={title.id} index={i} distance={8}>
-              <PressableScale depth={0.98} style={[styles.card, { alignItems: 'center' }]} onPress={() => router.push(hrefs(title).href as Href)} accessibilityLabel={title.title}>
-                <Poster uri={title.poster} title={title.title} width={48} kind={title.kind} elevated={false} radius={6} />
-                <View style={{ flex: 1, gap: 4 }}>
-                  <View style={styles.rowHead}>
-                    <Text style={[styles.cardTitle, { flex: 1 }]} numberOfLines={1}>
-                      {title.title}
-                    </Text>
-                    <StarBadge value={average} />
-                  </View>
-                  <Text style={styles.cardMeta} numberOfLines={2}>
-                    {who.map((r) => `${r.user === me ? t('friends.you') : members[r.user]?.name} ★ ${(r.rating / 2).toLocaleString(undefined, { maximumFractionDigits: 1 })}`).join(' · ')}
-                  </Text>
-                  {!!ribbon && (ribbon.type === 'prize' || ribbon.type === 'unanimous' || ribbon.type === 'split') && <Text style={styles.verdict}>{bandOf(t, ribbon, members).text}</Text>}
-                </View>
-              </PressableScale>
-            </FadeIn>
-          );
-        })
-      )}
-    </View>
-  );
-}
-
-/** Who is there, what you share with them, your name, and the way out. */
+/** The group at a glance: a face per person, and how close their taste is to yours. */
 function People({ me }: { me: string }) {
   const { t } = useTranslation();
   const styles = useStyles();
-  const haptics = useHaptics();
+  const { gutter } = useLayout();
   const members = useFriends((s) => s.members);
-  const ratings = useFriends((s) => s.ratings);
-  const recos = useFriends((s) => s.recos);
-  const shareRatings = useFriends((s) => s.shareRatings);
   const d = useDigest();
+  const list = Object.values(members).sort((a, b) => Number(b.id === me) - Number(a.id === me) || (d?.affinity.get(b.id) ?? -1) - (d?.affinity.get(a.id) ?? -1) || a.joinedAt - b.joinedAt);
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -gutter, marginTop: 14 }} contentContainerStyle={{ paddingHorizontal: gutter, gap: 14 }}>
+      {list.map((m, i) => {
+        const affinity = d?.affinity.get(m.id);
+        return (
+          <FadeIn key={m.id} index={i} distance={6} style={styles.person}>
+            <Avatar name={m.name} size={52} />
+            <Text style={styles.personName} numberOfLines={1}>
+              {m.id === me ? t('friends.you') : m.name.trim().split(/\s+/)[0]}
+            </Text>
+            {affinity != null && <Text style={styles.match}>{t('friends.match', { percent: Math.round(affinity * 100) })}</Text>}
+          </FadeIn>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+/** Nothing of yours is shared yet, or your words stay behind: one tap, said plainly, at the top. */
+function ShareNudge() {
+  const { t } = useTranslation();
+  const { palette } = useTheme();
+  const styles = useStyles();
+  const haptics = useHaptics();
+  const shareRatings = useFriends((s) => s.shareRatings);
+  const shareReviews = useFriends((s) => s.shareReviews);
+  if (shareRatings && shareReviews) return null;
+  const words = shareRatings && !shareReviews;
+  return (
+    <FadeIn index={1} style={styles.nudge}>
+      <Icon name="heart" size={20} color={palette.primaryText} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={styles.nudgeTitle}>{t(words ? 'friends.nudgeWordsTitle' : 'friends.nudgeTitle')}</Text>
+        <Text style={styles.hint}>{t(words ? 'friends.nudgeWords' : 'friends.nudge')}</Text>
+      </View>
+      <Button
+        label={t('friends.shareCta')}
+        compact
+        onPress={() => {
+          haptics.success();
+          if (words) {
+            useFriends.getState().set({ shareReviews: true });
+            pushRatings();
+          } else setShareRatings(true);
+        }}
+      />
+    </FadeIn>
+  );
+}
+
+/** What the others loved that you don't have yet. */
+function ForYou() {
+  const { t } = useTranslation();
+  const suggestions = useSuggestions();
+  if (!suggestions.length) return null;
+  return (
+    <Section title={t('friends.suggested')} count={suggestions.length}>
+      <FriendsRail items={suggestions} />
+    </Section>
+  );
+}
+
+/** Everything shared, latest first. */
+function Feed({ me }: { me: string }) {
+  const { t } = useTranslation();
+  const { palette } = useTheme();
+  const styles = useStyles();
+  const members = useFriends((s) => s.members);
+  const titles = useFriends((s) => s.titles);
+  const ratings = useFriends((s) => s.ratings);
+  const reviews = useFriends((s) => s.reviews);
+  const talk = useFriends((s) => s.talk);
+  const recos = useFriends((s) => s.recos);
+  const [shown, setShown] = useState(PAGE);
+  const feed = useMemo(() => buildFeed({ members, titles, ratings, reviews, talk, recos }), [members, titles, ratings, reviews, talk, recos]);
+
+  return (
+    <Section title={t('friends.feed')}>
+      {feed.length === 0 ? (
+        <View style={styles.empty}>
+          <Icon name="sparkle" size={22} color={palette.primaryText} />
+          <Text style={styles.emptyText}>{t('friends.feedEmpty')}</Text>
+        </View>
+      ) : (
+        <View style={{ gap: 10 }}>
+          {feed.slice(0, shown).map((item, i) => (
+            <FadeIn key={item.key} index={Math.min(i, 8)} distance={8}>
+              <FeedCard item={item} me={me} />
+            </FadeIn>
+          ))}
+          {feed.length > shown && <Button label={t('friends.more')} variant="ghost" compact onPress={() => setShown((n) => n + PAGE)} style={{ alignSelf: 'center' }} />}
+        </View>
+      )}
+    </Section>
+  );
+}
+
+function FeedCard({ item, me }: { item: FeedItem; me: string }) {
+  const { t } = useTranslation();
+  const styles = useStyles();
+  const router = useRouter();
+  const members = useFriends((s) => s.members);
+  const hrefs = useLocalHrefs();
+  const name = item.user === me ? t('friends.you') : (members[item.user]?.name ?? '…');
+  const open = (title: SharedTitle) => router.push(hrefs(title).href as Href);
+
+  const head = (action: string, extra?: ReactNode) => (
+    <View style={styles.cardHead}>
+      <Avatar name={members[item.user]?.name} size={26} />
+      <Text style={styles.cardWho} numberOfLines={1}>
+        <Text style={styles.cardName}>{name}</Text> {action}
+      </Text>
+      {extra}
+      <Text style={styles.when}>{relativeDay(item.at)}</Text>
+    </View>
+  );
+
+  if (item.type === 'rated') {
+    return (
+      <View style={styles.card}>
+        {head(t('friends.ratedN', { count: item.items.length }))}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+          {item.items.slice(0, 12).map(({ title, rating }) => (
+            <PressableScale key={title.id} depth={0.95} onPress={() => open(title)} style={{ width: 64, gap: 5 }} accessibilityLabel={title.title}>
+              <Poster uri={title.poster} title={title.title} width={64} kind={title.kind} elevated={false} radius={6} />
+              <StarBadge value={rating} />
+            </PressableScale>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  const title = item.title;
+  const episode = item.type === 'talk' ? <EpisodeLabel title={title} episode={item.post.episode} /> : undefined;
+  return (
+    <PressableScale depth={0.98} onPress={() => open(title)} style={styles.card} accessibilityLabel={title.title}>
+      {head(t(item.type === 'talk' ? 'friends.onEpisode' : 'friends.onTitle'), 'rating' in item && item.rating != null ? <StarBadge value={item.rating} /> : undefined)}
+      <View style={styles.cardBody}>
+        <Poster uri={title.poster} title={title.title} width={52} kind={title.kind} elevated={false} radius={6} />
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {title.title}
+            {episode}
+          </Text>
+          {item.type === 'talk' ? <Spoiler title={title} post={item.post} mine={item.user === me} /> : <Text style={styles.words}>{item.type === 'review' ? item.post.body : item.note}</Text>}
+        </View>
+      </View>
+      {item.type !== 'note' && <Reactions title={title.id} post={item.post} />}
+    </PressableScale>
+  );
+}
+
+/** "· S2E5", when the show is in your library and knows the episode. */
+function EpisodeLabel({ title, episode }: { title: SharedTitle; episode: number }) {
+  const styles = useStyles();
+  const ep = useLibrary((s) => s.shows[title.route]?.episodes.find((e) => e.id === episode));
+  if (!ep) return null;
+  return <Text style={styles.cardEpisode}>{`  S${ep.season}E${ep.number}`}</Text>;
+}
+
+/** A message on an episode you haven't ticked stays veiled until you choose to read it. */
+function Spoiler({ title, post, mine }: { title: SharedTitle; post: { episode: number; body: string }; mine: boolean }) {
+  const { t } = useTranslation();
+  const { palette } = useTheme();
+  const styles = useStyles();
+  const seen = useLibrary((s) => !!s.shows[title.route]?.watched[post.episode]);
+  const [open, setOpen] = useState(false);
+  if (seen || mine || open) return <Text style={styles.message}>{post.body}</Text>;
+  return (
+    <PressableScale depth={0.97} onPress={() => setOpen(true)} style={styles.veil} accessibilityLabel={t('friends.spoilerReveal')}>
+      <Icon name="eye" size={15} color={palette.inkSoft} />
+      <Text style={styles.veilText}>{t('friends.spoiler')}</Text>
+    </PressableScale>
+  );
+}
+
+/** Your side of it: what you share, your name, and the way out. */
+function You() {
+  const { t } = useTranslation();
+  const styles = useStyles();
+  const haptics = useHaptics();
+  const shareRatings = useFriends((s) => s.shareRatings);
   const [leaving, setLeaving] = useState(false);
   const [sure, setSure] = useState(false);
-
-  const list = Object.values(members).sort((a, b) => Number(b.id === me) - Number(a.id === me) || a.joinedAt - b.joinedAt);
   const leave = async () => {
     if (!sure) return setSure(true);
     setLeaving(true);
@@ -277,34 +282,9 @@ function People({ me }: { me: string }) {
       setLeaving(false);
     }
   };
-
   return (
     <>
-      <Group index={0} title={t('friends.members', { count: list.length })}>
-        {list.map((m, i) => {
-          const affinity = d?.affinity.get(m.id);
-          const counts = [
-            t('friends.nRatings', { count: ratings.filter((r) => r.user === m.id).length }),
-            t('friends.nRecos', { count: recos.filter((r) => r.user === m.id).length }),
-          ].join(' · ');
-          return (
-            <View key={m.id} style={[styles.row, i < list.length - 1 && styles.line]}>
-              <View style={{ flex: 1, gap: 1 }}>
-                <Text style={styles.rowLabel}>{m.id === me ? t('friends.nameYou', { name: m.name }) : m.name}</Text>
-                <Text style={styles.hint}>{counts}</Text>
-              </View>
-              {affinity != null && (
-                <View style={styles.affinity}>
-                  <Text style={styles.affinityText}>{t('friends.affinity', { percent: Math.round(affinity * 100) })}</Text>
-                </View>
-              )}
-            </View>
-          );
-        })}
-      </Group>
-      <Text style={styles.footnote}>{t('friends.quorum', { count: quorumFor(list.length) })}</Text>
-
-      <Group index={1} title={t('friends.sharing')}>
+      <Group index={2} title={t('friends.sharing')}>
         <View style={styles.row}>
           <View style={{ flex: 1, gap: 1 }}>
             <Text style={styles.rowLabel}>{t('friends.shareRatings')}</Text>
@@ -318,15 +298,12 @@ function People({ me }: { me: string }) {
             }}
           />
         </View>
-      </Group>
-
-      <Group index={2} title={t('friends.name')}>
-        <View style={styles.block}>
+        <View style={[styles.block, styles.line]}>
+          <Text style={styles.rowLabel}>{t('friends.name')}</Text>
           <NameField />
         </View>
       </Group>
-
-      <FadeIn index={3} style={{ marginTop: 26, gap: 8 }}>
+      <FadeIn index={3} style={{ marginTop: 18, gap: 8 }}>
         <Button label={t(sure ? 'friends.leaveSure' : 'friends.leave')} icon="trash" variant="danger" compact onPress={leave} loading={leaving} style={{ alignSelf: 'flex-start' }} />
         <Text style={styles.hint}>{t('friends.leaveHint')}</Text>
       </FadeIn>
@@ -338,27 +315,29 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   intro: { marginTop: 18, gap: 6 },
   introTitle: { ...type.title },
   introBody: { ...type.body, color: palette.inkSoft, lineHeight: 22 },
-  group: { borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, overflow: 'hidden' },
-  block: { padding: 14, gap: 12 },
+  block: { padding: 14, gap: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14, paddingVertical: 12, minHeight: 56 },
-  line: { borderBottomWidth: 1, borderBottomColor: palette.hairline },
+  line: { borderTopWidth: 1, borderTopColor: palette.hairline },
   rowLabel: { ...fonts.medium, fontSize: 15, color: palette.ink },
   hint: { ...type.small, fontSize: 12.5, lineHeight: 17 },
-  affinity: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: palette.primaryTint },
-  affinityText: { ...fonts.semibold, fontSize: 12, color: palette.primaryText },
-  footnote: { ...type.small, fontSize: 12, marginTop: 10, marginHorizontal: 4, lineHeight: 17 },
+  footnote: { ...type.small, fontSize: 12, marginTop: 14, marginHorizontal: 4, lineHeight: 17 },
+  person: { width: 64, alignItems: 'center', gap: 5 },
+  personName: { ...fonts.medium, fontSize: 12.5, color: palette.ink, maxWidth: 64 },
+  match: { ...fonts.semibold, fontSize: 11, color: palette.primaryText, marginTop: -3 },
+  nudge: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18, padding: 14, borderRadius: radii.lg, backgroundColor: palette.primaryTint, borderWidth: 1, borderColor: palette.primaryRing },
+  nudgeTitle: { ...fonts.semibold, fontSize: 14.5, color: palette.ink },
   empty: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   emptyText: { ...type.small, flex: 1 },
-  card: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 10, borderRadius: radii.md, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
-  rowHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  card: { gap: 10, padding: 12, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cardWho: { ...fonts.body, fontSize: 13, color: palette.inkSoft, flexShrink: 1 },
+  cardName: { ...fonts.semibold, color: palette.ink },
+  when: { ...fonts.body, fontSize: 12, color: palette.inkFaint, marginLeft: 'auto' },
+  cardBody: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   cardTitle: { ...fonts.semibold, fontSize: 15, color: palette.ink, letterSpacing: -0.15 },
-  cardMeta: { ...fonts.body, fontSize: 12.5, color: palette.inkSoft },
-  cardState: { ...fonts.medium, fontSize: 12, color: palette.inkFaint },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
-  tag: { borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2, maxWidth: '100%' },
-  tagText: { ...fonts.bold, fontSize: 10, letterSpacing: 0.4, color: '#FFFFFF', textTransform: 'uppercase' },
-  quote: { ...fonts.displayItalic, fontWeight: '600', fontSize: 12.5, color: '#FFFFFF' },
-  forWho: { ...fonts.medium, fontSize: 12, color: palette.primaryText },
-  note: { ...fonts.displayItalic, fontSize: 15, lineHeight: 20, color: palette.ink },
-  verdict: { ...fonts.semibold, fontSize: 11.5, letterSpacing: 0.3, color: BAND_COLORS.red, textTransform: 'uppercase' },
+  cardEpisode: { ...fonts.medium, fontSize: 13, color: palette.primaryText },
+  words: { ...fonts.displayItalic, fontSize: 16, lineHeight: 21, color: palette.ink },
+  message: { ...type.body, fontSize: 14.5, lineHeight: 20, color: palette.ink },
+  veil: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, backgroundColor: palette.field, alignSelf: 'flex-start' },
+  veilText: { ...fonts.medium, fontSize: 13, color: palette.inkSoft },
 }));

@@ -8,12 +8,11 @@ import PressableScale from '@/components/ui/PressableScale';
 import { StarBadge } from '@/components/ui/StarRating';
 import { makeStyles, noOutline, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
-import { Shareable, addPost, react, removePost } from '@/lib/friends';
+import { Shareable, addPost, removePost } from '@/lib/friends';
 import type { EpisodeNote } from '@/lib/types';
 import { Post, useFriends } from '@/store/useFriends';
+import Reactions from './Reactions';
 import { useUi } from '@/store/useUi';
-
-const REACTIONS = ['👍', '❤️', '😂', '😮', '😢'];
 
 interface Props {
   show: Shareable;
@@ -71,8 +70,6 @@ export default function EpisodeTalk({ show, titleId, episodeId, watched, posts, 
     <View style={styles.panel}>
       <Text style={styles.label}>{t('friends.talk')}</Text>
       {posts.map((p) => {
-        const counts = new Map<string, number>();
-        for (const e of Object.values(p.reactions)) counts.set(e, (counts.get(e) ?? 0) + 1);
         return (
           <View key={p.id} style={styles.post}>
             <View style={{ flex: 1, gap: 4 }}>
@@ -86,29 +83,7 @@ export default function EpisodeTalk({ show, titleId, episodeId, watched, posts, 
                 )}
               </View>
               <Text style={styles.body}>{p.body}</Text>
-              <View style={styles.reactions}>
-                {REACTIONS.map((e) => {
-                  const on = p.reactions[me] === e;
-                  const n = counts.get(e) ?? 0;
-                  return (
-                    <PressableScale
-                      key={e}
-                      depth={0.85}
-                      hitSlop={4}
-                      accessibilityState={{ selected: on }}
-                      onPress={() => {
-                        if (titleId == null) return;
-                        haptics.select();
-                        react(titleId, p, e).catch(offline);
-                      }}
-                      style={[styles.reaction, on && styles.reactionOn, !n && { opacity: 0.45 }]}
-                    >
-                      <Text style={styles.reactionEmoji}>{e}</Text>
-                      {n > 0 && <Text style={styles.reactionCount}>{n}</Text>}
-                    </PressableScale>
-                  );
-                })}
-              </View>
+              {titleId != null && <Reactions title={titleId} post={p} />}
             </View>
           </View>
         );
@@ -144,11 +119,6 @@ const useStyles = makeStyles(({ palette, fonts, type }) => ({
   postHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   name: { ...fonts.semibold, fontSize: 13, color: palette.ink },
   body: { ...type.body, fontSize: 14.5, lineHeight: 20, color: palette.ink },
-  reactions: { flexDirection: 'row', gap: 4 },
-  reaction: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 26, paddingHorizontal: 7, borderRadius: 13, backgroundColor: palette.field, borderWidth: 1, borderColor: 'transparent' },
-  reactionOn: { backgroundColor: palette.primaryTint, borderColor: palette.primaryRing },
-  reactionEmoji: { fontSize: 13 },
-  reactionCount: { ...fonts.semibold, fontSize: 11.5, color: palette.inkSoft },
   hint: { ...type.small, fontSize: 12.5 },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   input: { flex: 1, minHeight: 40, maxHeight: 120, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: palette.field, ...fonts.body, fontSize: 14.5, color: palette.ink },

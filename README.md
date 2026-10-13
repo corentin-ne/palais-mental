@@ -41,7 +41,7 @@ npm test
 
 **Social**
 
-Choose a name in the **Social** tab (in **You** with solo mode on, see Settings) and you're in the group: no email, no password. Recommend a title with a few words, to everyone or to one person; share your ratings if you want to (one switch for all, one per title). In return: a band across posters ("Léa says try this", "Unanimous", "Divisive", or one you write yourself), a **The group liked** rail on Up next, everyone's rating on each page, and a discussion under every episode, closed until you have ticked it. Everything is read from the last sync, so the app works the same offline. Nobody sees what you watch, read or play.
+Choose a name in the **Social** tab (in **You** with solo mode on, see Settings) and you're in the group: no email, no password. Rating a title and writing a few words about it is how you recommend it: share them if you want to (one switch for all, one per title). Social is one page: the people in the group with how close their taste is to yours, what they loved that you don't have, then a feed of reviews, ratings (gathered per person and day) and episode messages, veiled until you have seen the episode. In return you also get bands across posters ("Unanimous", "Divisive", "Group prize"), a **The group liked** rail on Home, everyone's stars and words on each page, emoji reactions, and a discussion under every episode, closed until you have ticked it. Everything is read from the last sync, so the app works the same offline. Nobody sees what you watch, read or play.
 
 **Look**
 
@@ -65,7 +65,7 @@ Shows still airing refresh every 6 hours, ended shows weekly, awaited films, boo
 
 A free Supabase project (Postgres, EU). The app holds its URL and publishable key (`lib/supabase.ts`); what a member can read or write is decided by the row-level security rules in `supabase/migrations/`, not by the key.
 
-- **Stored:** a name per member, the ratings they chose to show, recommendations, thank-yous, episode messages and reactions, and for each title its ids, name, year and poster link. No library, progress or history.
+- **Stored:** a name per member, the ratings and reviews they chose to show (a review is a post on episode 0, so no schema change was needed and older versions simply don't show it), recommendations from versions before 1.11, episode messages and reactions, and for each title its ids, name, year and poster link. No library, progress or history.
 - **Readable by:** members of the same group only. Each member can change or delete only their own rows; leaving deletes everything they shared.
 - **Joining:** one group (`base`), open to anyone who installs the app and chooses a name (50 members at most). Groups with a hashed access code exist in the schema for the day there are several.
 - **Not end-to-end encrypted:** calls are HTTPS and the database is encrypted on disk, but members, and whoever owns the project, can read what is shared.

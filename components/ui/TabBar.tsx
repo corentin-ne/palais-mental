@@ -14,14 +14,14 @@ import { useHaptics } from '@/hooks/useHaptics';
 import { useLibrary } from '@/store/useLibrary';
 
 const TABS: Record<string, { icon: IconName; label: string }> = {
-  index: { icon: 'play', label: 'tabs.upNext' },
+  index: { icon: 'home', label: 'tabs.upNext' },
   calendar: { icon: 'calendar', label: 'tabs.calendar' },
   library: { icon: 'grid', label: 'tabs.library' },
   social: { icon: 'heart', label: 'tabs.social' },
   profile: { icon: 'user', label: 'tabs.you' },
 };
-/** Two places either side of the round button: Up next at the centre, or search in solo mode (Social then lives in You). */
-const ORDER = { shared: ['calendar', 'library', 'social', 'profile'], solo: ['calendar', 'profile', 'library', 'index'] } as const;
+/** Two places either side of the round button: Home at the centre, or search in solo mode (Home first, Social then lives in You). */
+const ORDER = { shared: ['calendar', 'library', 'social', 'profile'], solo: ['index', 'calendar', 'library', 'profile'] } as const;
 const CENTER = 'index';
 const TAB_MAX = 72;
 const DAY = 86_400_000;
@@ -134,7 +134,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
             depth={0.9}
           >
             <LinearGradient colors={spark.color.primaryGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: 29 }]} />
-            <Icon name={center ? 'play' : 'search'} size={24} color={palette.onInk} strokeWidth={centerActive ? 2.6 : 2.1} />
+            <Icon name={center ? 'home' : 'search'} size={24} color={palette.onInk} strokeWidth={centerActive ? 2.6 : 2.1} />
           </PressableScale>
         </Animated.View>
       </View>

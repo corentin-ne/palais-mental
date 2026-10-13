@@ -1,6 +1,6 @@
 /**
- * Friends: what a few people share with each other, and nothing else. Ratings (once you turn that on),
- * recommendations and what is said about an episode go to the server; the library, progress and history
+ * Friends: what a few people share with each other, and nothing else. Ratings and reviews (once you turn
+ * that on) and what is said about an episode go to the server; the library, progress and history
  * never do. Everything read back is kept on the device (`useFriends`), so pages draw offline.
  */
 import { AppState } from 'react-native';
@@ -8,7 +8,7 @@ import { AppState } from 'react-native';
 import { norm } from './api';
 import { ApiError, all, api, currentUser, forgetSession, rpc, signIn } from './supabase';
 import { Book, Game, MediaKind, Movie, Show } from './types';
-import { BandColor, FriendsData, Member, Post, Reco, SharedRating, SharedTitle, Thanks, useFriends } from '@/store/useFriends';
+import { BandColor, FriendsData, Member, Post, Reco, SharedRating, SharedTitle, TitlePost, useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 
 /** What a title needs to be shared: the fields the library and the detail pages both have. */
@@ -108,27 +108,40 @@ export function ms(iso: string) {
   return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6], Number(`0.${m[7] ?? 0}`) * 1000) - offset * 60_000;
 }
 
+/**
+ * A review is a post on episode 0: no episode has that id, so versions that only know episode talk never
+ * show it, and the database did not have to change for it.
+ */
+export const REVIEW = 0;
+/** How many episode messages the feed reads. */
+const TALK = 80;
+const POST_FIELDS = 'id,user_id,title_id,episode_id,body,rating,created_at,post_reactions(user_id,emoji)';
+
 async function fetchAll(): Promise<FriendsData> {
-  const [members, titles, ratings, recos, thanks] = await Promise.all([
+  const [members, titles, ratings, recos, reviews, talk] = await Promise.all([
     all<{ user_id: string; name: string; joined_at: string }>('members?select=user_id,name,joined_at&order=joined_at.asc,user_id.asc'),
     all<TitleRow>('titles?select=id,kind,keys,route,title,year,poster&order=id.asc'),
     all<{ user_id: string; title_id: number; rating: number; updated_at: string }>('ratings?select=user_id,title_id,rating,updated_at&order=title_id.asc,user_id.asc'),
     all<{ user_id: string; title_id: number; note: string | null; band: string | null; band_color: BandColor | null; band_rating: number | null; favorite: boolean; to_user: string | null; created_at: string }>(
       'recos?select=user_id,title_id,note,band,band_color,band_rating,favorite,to_user,created_at&order=title_id.asc,user_id.asc',
     ),
-    all<{ reco_user: string; title_id: number; from_user: string }>('reco_thanks?select=reco_user,title_id,from_user&order=title_id.asc,reco_user.asc,from_user.asc'),
+    all<PostRow>(`posts?select=${POST_FIELDS}&episode_id=eq.${REVIEW}&order=created_at.desc,id.desc`),
+    api<PostRow[]>(`posts?select=${POST_FIELDS}&episode_id=gt.${REVIEW}&order=created_at.desc,id.desc&limit=${TALK}`),
   ]);
   return {
     members: Object.fromEntries(members.map((m): [string, Member] => [m.user_id, { id: m.user_id, name: m.name, joinedAt: ms(m.joined_at) }])),
     titles: Object.fromEntries(titles.map((t) => [t.id, titleOf(t)])),
     ratings: ratings.map((r): SharedRating => ({ user: r.user_id, title: r.title_id, rating: r.rating, at: ms(r.updated_at) })),
     recos: recos.map((r): Reco => ({ user: r.user_id, title: r.title_id, note: r.note ?? undefined, band: r.band ?? undefined, color: r.band_color ?? undefined, stars: r.band_rating ?? undefined, favorite: r.favorite, to: r.to_user ?? undefined, at: ms(r.created_at) })),
-    thanks: thanks.map((t): Thanks => ({ recoUser: t.reco_user, title: t.title_id, from: t.from_user })),
+    reviews: reviews.map(titlePostOf),
+    talk: talk.map(titlePostOf),
   };
 }
 
 const FRESH = 3 * 60_000;
 let pass: Promise<void> | undefined;
+/** Reviews were read from the server since launch: until then, yours can't be told apart from new ones. */
+let reviewsRead = false;
 
 /** Read what friends shared, then send your ratings if you share them. Quiet when offline. */
 export function syncFriends(force = false) {
@@ -140,6 +153,7 @@ export function syncFriends(force = false) {
       // No longer in the group (you left from another device): back to the app as it was.
       if (!data.members[me]) return useFriends.getState().reset();
       useFriends.getState().set({ ...data, syncedAt: Date.now() });
+      reviewsRead = true;
       await pushRatings();
     } catch {
       // Offline, or the server is asleep: what is on the device stays.
@@ -172,43 +186,87 @@ async function ensureTitles(entries: Entry[]): Promise<number[]> {
   return ids as number[];
 }
 
-// ------------------------------------------------------------------ Ratings
-function localRatings(): (Entry & { rating: number })[] {
+// ------------------------------------------------------------------ Ratings and reviews
+type Local = Entry & { rating?: number; review?: string };
+
+/** Everything you rated or wrote a few words about. */
+function localTakes(): Local[] {
   const { shows, movies, books, games } = useLibrary.getState();
-  const of = <T extends Shareable & { rating?: number }>(kind: MediaKind, list: T[]) => list.filter((i) => i.rating != null).map((item) => ({ kind, item, rating: item.rating! }));
+  const of = <T extends Shareable & { rating?: number; review?: string }>(kind: MediaKind, list: T[]) =>
+    list.filter((i) => i.rating != null || !!i.review?.trim()).map((item) => ({ kind, item, rating: item.rating, review: item.review?.trim() || undefined }));
   return [...of('show', Object.values(shows)), ...of('movie', Object.values(movies)), ...of('book', Object.values(books)), ...of('game', Object.values(games))];
 }
+
+/** New reviews sent in one pass: the server caps posts per day, the rest go at the next sync. */
+const NEW_REVIEWS = 40;
+const REVIEW_MAX = 1000;
 
 let pushing: Promise<void> | undefined;
 
 /**
- * Make the server's copy of your ratings match what you chose to show: every rating when you share them,
- * none when you don't, and either way the ones you decided on one by one.
+ * Make the server's copy of your ratings and reviews match what you chose to show: all of them when you
+ * share them, none when you don't, and either way the ones you decided on one by one.
  */
 export function pushRatings() {
   return (pushing ??= (async () => {
-    const { me, shareRatings, shared, ratings } = useFriends.getState();
+    const { me, shareRatings, shareReviews, shared, ratings, reviews } = useFriends.getState();
     // An unread library has no ratings: sending that would wipe yours from the server.
     if (!me || !useLibrary.persist.hasHydrated()) return;
     const mine = new Map(ratings.filter((r) => r.user === me).map((r) => [r.title, r.rating]));
-    const local = localRatings().filter((l) => shared[localKey(l.kind, l.item)] ?? shareRatings);
-    if (!local.length && !mine.size) return;
+    const myReviews = reviews.filter((r) => r.user === me);
+    const local = localTakes().filter((l) => shared[localKey(l.kind, l.item)] ?? shareRatings);
+    if (!local.length && !mine.size && !myReviews.length) return;
     const ids = await ensureTitles(local);
+
     const wanted = new Map<number, number>();
-    local.forEach((l, i) => wanted.set(ids[i], Math.max(l.rating, wanted.get(ids[i]) ?? 0)));
+    const words = new Map<number, { body: string; rating?: number }>();
+    local.forEach((l, i) => {
+      if (l.rating != null) wanted.set(ids[i], Math.max(l.rating, wanted.get(ids[i]) ?? 0));
+      // Reviews were private before 1.11: they leave the phone only once you said so (shareReviews).
+      if (shareReviews && l.review && !words.has(ids[i])) words.set(ids[i], { body: l.review.slice(0, REVIEW_MAX), rating: l.rating });
+    });
+
     const changed = [...wanted].filter(([title, rating]) => mine.get(title) !== rating);
     const gone = [...mine.keys()].filter((title) => !wanted.has(title));
-    if (!changed.length && !gone.length) return;
     if (changed.length) await api('ratings?on_conflict=user_id,title_id', { method: 'POST', prefer: 'resolution=merge-duplicates', body: changed.map(([title_id, rating]) => ({ title_id, rating })) });
     for (let from = 0; from < gone.length; from += 100) await api(`ratings?user_id=eq.${me}&title_id=in.(${gone.slice(from, from + 100).join(',')})`, { method: 'DELETE' });
-    const now = Date.now();
-    const kept = new Map(useFriends.getState().ratings.filter((r) => r.user === me).map((r) => [r.title, r]));
-    useFriends.getState().set({
-      ratings: [
-        ...useFriends.getState().ratings.filter((r) => r.user !== me),
-        ...[...wanted].map(([title, rating]): SharedRating => (kept.get(title)?.rating === rating ? kept.get(title)! : { user: me, title, rating, at: now })),
-      ],
-    });
+    if (changed.length || gone.length) {
+      const now = Date.now();
+      const kept = new Map(useFriends.getState().ratings.filter((r) => r.user === me).map((r) => [r.title, r]));
+      useFriends.getState().set({
+        ratings: [
+          ...useFriends.getState().ratings.filter((r) => r.user !== me),
+          ...[...wanted].map(([title, rating]): SharedRating => (kept.get(title)?.rating === rating ? kept.get(title)! : { user: me, title, rating, at: now })),
+        ],
+      });
+    }
+
+    // Reviews: one post per title; an edit brings it back to the top of the feed.
+    if (!reviewsRead) return;
+    const held = new Map<number, TitlePost>();
+    const extra: number[] = [];
+    for (const r of myReviews) {
+      if (!held.has(r.title) && words.has(r.title)) held.set(r.title, r);
+      else extra.push(r.id);
+    }
+    const edits = [...words].filter(([title, w]) => held.has(title) && (held.get(title)!.body !== w.body || held.get(title)!.rating !== w.rating));
+    const fresh = [...words].filter(([title]) => !held.has(title)).slice(0, NEW_REVIEWS);
+    const updated = new Map<number, TitlePost>();
+    for (const [title, w] of edits) {
+      const at = new Date().toISOString();
+      await api(`posts?id=eq.${held.get(title)!.id}`, { method: 'PATCH', body: { body: w.body, rating: w.rating ?? null, created_at: at } });
+      updated.set(title, { ...held.get(title)!, body: w.body, rating: w.rating, at: ms(at) });
+    }
+    const made = fresh.length
+      ? await api<PostRow[]>('posts', { method: 'POST', prefer: 'return=representation', body: fresh.map(([title_id, w]) => ({ title_id, episode_id: REVIEW, body: w.body, rating: w.rating ?? null })) })
+      : [];
+    for (let from = 0; from < extra.length; from += 100) await api(`posts?id=in.(${extra.slice(from, from + 100).join(',')})`, { method: 'DELETE' });
+    if (edits.length || made.length || extra.length) {
+      const dropped = new Set(extra);
+      useFriends.getState().set({
+        reviews: [...made.map(titlePostOf), ...useFriends.getState().reviews.filter((r) => !dropped.has(r.id)).map((r) => (r.user === me && updated.get(r.title)?.id === r.id ? updated.get(r.title)! : r))],
+      });
+    }
   })()
     .catch(() => undefined)
     .finally(() => {
@@ -216,14 +274,15 @@ export function pushRatings() {
     }));
 }
 
+/** Share every rating and review, or none (except those decided one by one). */
 export function setShareRatings(shareRatings: boolean) {
-  useFriends.getState().set({ shareRatings });
+  useFriends.getState().set(shareRatings ? { shareRatings, shareReviews: true } : { shareRatings });
   return pushRatings();
 }
 
-/** Show or hide one rating, whatever the general rule. */
+/** Show or hide one rating and review, whatever the general rule. */
 export function setRatingShared(kind: MediaKind, item: Shareable, on: boolean) {
-  useFriends.getState().set({ shared: { ...useFriends.getState().shared, [localKey(kind, item)]: on } });
+  useFriends.getState().set({ shared: { ...useFriends.getState().shared, [localKey(kind, item)]: on }, ...(on && { shareReviews: true }) });
   return pushRatings();
 }
 
@@ -266,50 +325,10 @@ export async function leaveFriends() {
   useFriends.getState().reset();
 }
 
-// ------------------------------------------------------------------ Recommendations
-/** Recommend a title (or change what you said). Throws ApiError('favorites_full') past five favourites of a kind. */
-export async function recommend(kind: MediaKind, item: Shareable, opts: { note?: string; band?: string; color?: BandColor; stars?: number; favorite: boolean; to?: string }) {
-  const { me } = useFriends.getState();
-  if (!me) return;
-  const [title] = await ensureTitles([{ kind, item }]);
-  const note = opts.note?.trim() || undefined;
-  const band = opts.band?.trim() || undefined;
-  const stars = opts.stars;
-  // No words and no stars: no band of your own, so no colour either.
-  const color = band || stars ? opts.color : undefined;
-  await api('recos?on_conflict=user_id,title_id', { method: 'POST', prefer: 'resolution=merge-duplicates', body: { title_id: title, note: note ?? null, band: band ?? null, band_color: color ?? null, band_rating: stars ?? null, favorite: opts.favorite, to_user: opts.to ?? null } });
-  const { recos } = useFriends.getState();
-  const before = recos.find((r) => r.user === me && r.title === title);
-  useFriends.getState().set({ recos: [...recos.filter((r) => r !== before), { user: me, title, note, band, color, stars, favorite: opts.favorite, to: opts.to, at: before?.at ?? Date.now() }] });
-}
-
-export async function unrecommend(title: number) {
-  const { me } = useFriends.getState();
-  if (!me) return;
-  await api(`recos?user_id=eq.${me}&title_id=eq.${title}`, { method: 'DELETE' });
-  const { recos, thanks } = useFriends.getState();
-  useFriends.getState().set({ recos: recos.filter((r) => !(r.user === me && r.title === title)), thanks: thanks.filter((t) => !(t.recoUser === me && t.title === title)) });
-}
-
-/** Thank a friend for a recommendation, or take it back. */
-export async function thank(reco: Reco, on: boolean) {
-  const { me } = useFriends.getState();
-  if (!me) return;
-  if (on) await api('reco_thanks', { method: 'POST', prefer: 'resolution=ignore-duplicates', body: { reco_user: reco.user, title_id: reco.title } });
-  else await api(`reco_thanks?reco_user=eq.${reco.user}&title_id=eq.${reco.title}&from_user=eq.${me}`, { method: 'DELETE' });
-  const rest = useFriends.getState().thanks.filter((t) => !(t.recoUser === reco.user && t.title === reco.title && t.from === me));
-  useFriends.getState().set({ thanks: on ? [...rest, { recoUser: reco.user, title: reco.title, from: me }] : rest });
-}
-
-/** "Not for me": the recommendation leaves your suggestions (on this device only). */
-export function dismiss(title: number, on = true) {
-  const { dismissed } = useFriends.getState();
-  useFriends.getState().set({ dismissed: on ? [...new Set([...dismissed, title])] : dismissed.filter((d) => d !== title) });
-}
-
 // ------------------------------------------------------------------ Episode talk
 interface PostRow {
   id: number;
+  title_id?: number;
   user_id: string;
   episode_id: number;
   body: string;
@@ -326,16 +345,24 @@ const postOf = (r: PostRow): Post => ({
   at: ms(r.created_at),
   reactions: Object.fromEntries((r.post_reactions ?? []).map((x) => [x.user_id, x.emoji])),
 });
+const titlePostOf = (r: PostRow): TitlePost => ({ ...postOf(r), title: r.title_id ?? 0 });
+/** A change to one post, wherever it is shown: a show's thread, the reviews, the feed. */
 const setPosts = (title: number, fn: (posts: Post[]) => Post[]) => {
-  const { posts } = useFriends.getState();
-  useFriends.getState().set({ posts: { ...posts, [title]: fn(posts[title] ?? []) } });
+  const { posts, reviews, talk } = useFriends.getState();
+  const apply = (list: TitlePost[]) => {
+    const others = list.filter((p) => p.title !== title);
+    const changed = fn(list.filter((p) => p.title === title));
+    return [...others, ...changed.map((p) => ({ ...p, title }))].sort((a, b) => b.at - a.at || b.id - a.id);
+  };
+  useFriends.getState().set({ posts: posts[title] ? { ...posts, [title]: fn(posts[title]) } : posts, reviews: apply(reviews), talk: apply(talk) });
 };
 
 /** Everything said about a show's episodes. What you may read (episodes you have seen) is decided on the device. */
 export async function loadPosts(title: number) {
   try {
-    const rows = await all<PostRow>(`posts?select=id,user_id,episode_id,body,rating,created_at,post_reactions(user_id,emoji)&title_id=eq.${title}&order=created_at.asc,id.asc`);
-    setPosts(title, () => rows.map(postOf));
+    const rows = await all<PostRow>(`posts?select=id,user_id,episode_id,body,rating,created_at,post_reactions(user_id,emoji)&title_id=eq.${title}&episode_id=gt.${REVIEW}&order=created_at.asc,id.asc`);
+    const { posts } = useFriends.getState();
+    useFriends.getState().set({ posts: { ...posts, [title]: rows.map(postOf) } });
   } catch {
     // Offline: the thread shows what it had.
   }
@@ -344,7 +371,8 @@ export async function loadPosts(title: number) {
 export async function addPost(show: Shareable, episode: number, body: string, rating?: number) {
   const [title] = await ensureTitles([{ kind: 'show', item: show }]);
   const [row] = await api<PostRow[]>('posts', { method: 'POST', prefer: 'return=representation', body: { title_id: title, episode_id: episode, body: body.trim(), rating: rating ?? null } });
-  setPosts(title, (posts) => [...posts, postOf(row)]);
+  const { posts, talk } = useFriends.getState();
+  useFriends.getState().set({ posts: { ...posts, [title]: [...(posts[title] ?? []), postOf(row)] }, talk: [{ ...postOf(row), title }, ...talk].slice(0, TALK) });
 }
 
 export async function removePost(title: number, id: number) {
@@ -370,8 +398,6 @@ export async function react(title: number, post: Post, emoji: string) {
   );
 }
 
-/** The database's own word for what went wrong ("favorites_full"), when it has one. */
-export const errorCode = (err: unknown) => (err instanceof ApiError ? err.code : 'offline');
 
 // ------------------------------------------------------------------ Lifecycle
 /** Keeps friends in step: at launch, when the app comes back, and a moment after a rating changes. */

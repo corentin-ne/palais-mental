@@ -49,12 +49,6 @@ export interface Reco {
   at: number;
 }
 
-export interface Thanks {
-  recoUser: string;
-  title: number;
-  from: string;
-}
-
 export interface Post {
   id: number;
   user: string;
@@ -66,12 +60,20 @@ export interface Post {
   reactions: Record<string, string>;
 }
 
+/** A post somewhere in the group: a review of a title (episode 0) or a message on an episode. */
+export interface TitlePost extends Post {
+  title: number;
+}
+
 export interface FriendsData {
   members: Record<string, Member>;
   titles: Record<number, SharedTitle>;
   ratings: SharedRating[];
   recos: Reco[];
-  thanks: Thanks[];
+  /** What each member wrote about a title as a whole, with their stars: one per member and title. */
+  reviews: TitlePost[];
+  /** The latest messages on episodes, across every show: the Social feed. */
+  talk: TitlePost[];
 }
 
 interface FriendsState extends FriendsData {
@@ -79,10 +81,10 @@ interface FriendsState extends FriendsData {
   me?: string;
   /** Send your ratings along (off until you say so): the rule for every rating you haven't decided on. */
   shareRatings: boolean;
+  /** Reviews go along with ratings: false for those who shared ratings before reviews were shared, until they say yes. */
+  shareReviews: boolean;
   /** Ratings you decided on one by one (`kind/id` → shown or hidden), whatever the rule above says. */
   shared: Record<string, boolean>;
-  /** Recommendations you waved off ("not for me"): kept on this device. */
-  dismissed: number[];
   syncedAt: number;
   /** Episode talk, per title: read when a show opens, never stored. */
   posts: Record<number, Post[]>;
@@ -90,7 +92,7 @@ interface FriendsState extends FriendsData {
   reset: () => void;
 }
 
-const EMPTY: FriendsData = { members: {}, titles: {}, ratings: [], recos: [], thanks: [] };
+const EMPTY: FriendsData = { members: {}, titles: {}, ratings: [], recos: [], reviews: [], talk: [] };
 
 /** What your friends shared, kept on the device so it reads offline. */
 export const useFriends = create<FriendsState>()(
@@ -98,12 +100,12 @@ export const useFriends = create<FriendsState>()(
     (set) => ({
       ...EMPTY,
       shareRatings: false,
+      shareReviews: false,
       shared: {},
-      dismissed: [],
       syncedAt: 0,
       posts: {},
       set: (patch) => set(patch),
-      reset: () => set({ ...EMPTY, me: undefined, shareRatings: false, shared: {}, dismissed: [], syncedAt: 0, posts: {} }),
+      reset: () => set({ ...EMPTY, me: undefined, shareRatings: false, shareReviews: false, shared: {}, syncedAt: 0, posts: {} }),
     }),
     {
       name: 'palais-mental/friends',

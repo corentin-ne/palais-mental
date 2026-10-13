@@ -173,7 +173,7 @@ export default function ShowScreen() {
             onMarkMany={markMany}
           />
 
-          <FriendsBlock kind="show" item={show} tracked={!!tracked} rating={tracked?.rating} />
+          <FriendsBlock kind="show" item={show} rating={tracked?.rating} review={tracked?.review} />
           <Extras kind="show" title={show.title} year={show.year} imdbId={show.imdbId} extras={extras} />
           <Synopsis text={show.summary} />
 

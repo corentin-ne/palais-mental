@@ -126,7 +126,7 @@ export default function MovieScreen() {
               </>
             )}
           </FadeIn>
-          <FriendsBlock kind="movie" item={movie} tracked={!!tracked} rating={tracked?.rating} />
+          <FriendsBlock kind="movie" item={movie} rating={tracked?.rating} review={tracked?.review} />
           <CollectionLink kind="movie" item={movie} />
           <Extras kind="movie" title={movie.title} year={movie.year} imdbId={movie.imdbId} extras={extras} />
           <Synopsis text={movie.overview} />
