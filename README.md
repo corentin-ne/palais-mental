@@ -41,7 +41,7 @@ npm test
 
 **Social**
 
-Choose a name in the **Social** tab and you're in the group: no email, no password. Recommend a title with a few words, to everyone or to one person; share your ratings if you want to (one switch for all, one per title). In return: a band across posters ("Léa says try this", "Unanimous", "Divisive", or one you write yourself), a **The group liked** rail on Up next, everyone's rating on each page, and a discussion under every episode, closed until you have ticked it. Everything is read from the last sync, so the app works the same offline. Nobody sees what you watch, read or play.
+Choose a name in the **Social** tab (in **You** with solo mode on, see Settings) and you're in the group: no email, no password. Recommend a title with a few words, to everyone or to one person; share your ratings if you want to (one switch for all, one per title). In return: a band across posters ("Léa says try this", "Unanimous", "Divisive", or one you write yourself), a **The group liked** rail on Up next, everyone's rating on each page, and a discussion under every episode, closed until you have ticked it. Everything is read from the last sync, so the app works the same offline. Nobody sees what you watch, read or play.
 
 **Look**
 

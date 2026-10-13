@@ -1,12 +1,13 @@
-import { ReactNode, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 
 import JournalCard, { useJournal } from '@/components/media/JournalCard';
-import Icon, { IconName } from '@/components/ui/Icon';
+import Icon from '@/components/ui/Icon';
 import PressableScale from '@/components/ui/PressableScale';
 import Screen, { Section } from '@/components/ui/Screen';
+import { ActionRow, useStyles as useListStyles } from '@/components/ui/SettingsList';
 import Stat from '@/components/ui/Stat';
 import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
@@ -28,6 +29,8 @@ export default function ProfileScreen() {
   const books = useLibrary((s) => s.books);
   const games = useLibrary((s) => s.games);
   const router = useRouter();
+  const list = useListStyles();
+  const solo = useLibrary((s) => s.settings.solo);
 
   const stats = useMemo(() => {
     const showList = Object.values(shows);
@@ -61,10 +64,12 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      <View style={[styles.group, { marginTop: 12 }]}>
-        <ActionRow icon="chart" label={t('stats.title')} hint={t('stats.hint')} onPress={() => router.push('/stats')} />
-        <ActionRow icon="download" label={t('profile.data')} hint={t('data.hint')} onPress={() => router.push('/data')} />
-        <ActionRow icon="settings" label={t('settings.title')} hint={t('settings.hint')} onPress={() => router.push('/settings')} last />
+      <View style={[list.group, { marginTop: 16 }]}>
+        <ActionRow icon="chart" tint="" label={t('stats.title')} hint={t('stats.hint')} onPress={() => router.push('/stats')} />
+        {/* Solo mode: Social has no tab of its own, it is one row away from here. */}
+        {solo && <ActionRow icon="heart" tint="" label={t('tabs.social')} hint={t('friends.hint')} onPress={() => router.push('/social')} />}
+        <ActionRow icon="download" tint="" label={t('profile.data')} hint={t('data.hint')} onPress={() => router.push('/data')} />
+        <ActionRow icon="settings" tint="" label={t('settings.title')} hint={t('settings.hint')} onPress={() => router.push('/settings')} last />
       </View>
 
       <Journal />
@@ -112,39 +117,8 @@ function Journal() {
   );
 }
 
-function Row({ icon, label, hint, last, children }: { icon: IconName; label: string; hint?: string; last?: boolean; children: ReactNode }) {
-  const styles = useStyles();
-  const { palette } = useTheme();
-  return (
-    <View style={[styles.row, !last && styles.line]}>
-      <Icon name={icon} size={20} color={palette.ink} />
-      <View style={{ flex: 1 }}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        {!!hint && <Text style={styles.rowHint}>{hint}</Text>}
-      </View>
-      {children}
-    </View>
-  );
-}
-
-function ActionRow({ icon, label, hint, last, onPress }: { icon: IconName; label: string; hint?: string; last?: boolean; onPress: () => void }) {
-  const { palette } = useTheme();
-  return (
-    <PressableScale depth={0.98} onPress={onPress} accessibilityLabel={label}>
-      <Row icon={icon} label={label} hint={hint} last={last}>
-        <Icon name="chevronRight" size={16} color={palette.inkFaint} />
-      </Row>
-    </PressableScale>
-  );
-}
-
 const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 },
-  group: { borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14 },
-  line: { borderBottomWidth: 1, borderBottomColor: palette.hairline },
-  rowLabel: { ...fonts.medium, fontSize: 15, color: palette.ink },
-  rowHint: { ...type.small, fontSize: 12.5, lineHeight: 17 },
   emptyCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   emptyText: { ...type.small, flex: 1 },
   link: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4 },

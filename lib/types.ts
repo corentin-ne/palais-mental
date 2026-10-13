@@ -188,4 +188,6 @@ export interface Settings {
   accent: string;
   /** Display quality: full glass, or lite (opaque surfaces, no blur, no looping motion) for slower phones. */
   fx: 'full' | 'lite';
+  /** Solo mode: no Social tab (it moves into You), search at the centre of the bar, Up next at its far right. */
+  solo: boolean;
 }

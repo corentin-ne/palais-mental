@@ -5,14 +5,17 @@ import Icon from './Icon';
 import PressableScale from './PressableScale';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
+import { useLibrary } from '@/store/useLibrary';
 
-/** Search, from the title row of a screen: every show, film, book and game to add. */
+/** Search, from the title row of a screen: every show, film, book and game to add. In solo mode the bar has it, unless there is a query to carry over. */
 export default function SearchButton({ query }: { query?: string }) {
   const { t } = useTranslation();
   const { palette } = useTheme();
   const styles = useStyles();
   const router = useRouter();
   const haptics = useHaptics();
+  const solo = useLibrary((s) => s.settings.solo);
+  if (solo && !query) return null;
   return (
     <PressableScale
       onPress={() => {

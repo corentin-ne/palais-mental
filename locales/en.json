@@ -530,6 +530,8 @@
     "quality": "Display quality",
     "qualityFull": "Glass",
     "qualityLite": "Lite",
+    "solo": "Solo mode",
+    "soloHint": "Search at the centre of the bar, Up next at its right. Social moves into You.",
     "qualityHint": "Lite turns off blur and glow and makes surfaces opaque: smoother on older phones, easier on the battery.",
     "about": "About",
     "checkUpdates": "Check for updates",
@@ -608,6 +610,7 @@
   },
   "friends": {
     "title": "Social",
+    "hint": "Recommendations, the group's ratings and who is there",
     "block": "Social",
     "you": "You",
     "and": "{{a}} and {{b}}",

@@ -78,11 +78,17 @@ export default function SettingsScreen() {
               Platform.OS === 'web',
             )}
           </Row>
-          <Row icon="movies" tint="#8A5CF6" label={t('related.setting')} hint={t('related.settingHint')} last={Platform.OS === 'web'}>
+          <Row icon="movies" tint="#8A5CF6" label={t('related.setting')} hint={t('related.settingHint')}>
             {toggle(settings.related, (v) => {
               haptics.select();
               setSettings({ related: v });
               if (v) refreshRelated(true);
+            })}
+          </Row>
+          <Row icon="user" tint="" label={t('settings.solo')} hint={t('settings.soloHint')} last={Platform.OS === 'web'}>
+            {toggle(settings.solo, (v) => {
+              haptics.select();
+              setSettings({ solo: v });
             })}
           </Row>
           {Platform.OS !== 'web' && (

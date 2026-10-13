@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ import Poster from '@/components/ui/Poster';
 import PressableScale from '@/components/ui/PressableScale';
 import Screen from '@/components/ui/Screen';
 import Segmented from '@/components/ui/Segmented';
+import { Group } from '@/components/ui/SettingsList';
 import { StarBadge } from '@/components/ui/StarRating';
 import { FadeIn } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
@@ -64,12 +65,8 @@ export default function SocialScreen() {
                 ]}
               />
             </View>
+            {/* Your name lives with the people: one place to change it. */}
             {tab === 'recos' ? <Recos me={me} /> : tab === 'ratings' ? <Ratings me={me} /> : <People me={me} />}
-            <Group index={2} title={t('friends.name')}>
-              <View style={styles.block}>
-                <NameField />
-              </View>
-            </Group>
           </>
         ) : (
           <>
@@ -86,16 +83,6 @@ export default function SocialScreen() {
         )}
         <Text style={styles.footnote}>{t('friends.privacy')}</Text>
     </Screen>
-  );
-}
-
-function Group({ title, index, children }: { title: string; index: number; children: ReactNode }) {
-  const styles = useStyles();
-  return (
-    <FadeIn index={index} style={{ marginTop: 26, gap: 8 }}>
-      <Text style={styles.groupTitle}>{title}</Text>
-      <View style={styles.group}>{children}</View>
-    </FadeIn>
   );
 }
 
@@ -351,7 +338,6 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   intro: { marginTop: 18, gap: 6 },
   introTitle: { ...type.title },
   introBody: { ...type.body, color: palette.inkSoft, lineHeight: 22 },
-  groupTitle: { ...type.label, marginLeft: 4 },
   group: { borderRadius: radii.lg, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, overflow: 'hidden' },
   block: { padding: 14, gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 14, paddingVertical: 12, minHeight: 56 },

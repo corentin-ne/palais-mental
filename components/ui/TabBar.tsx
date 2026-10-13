@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -12,20 +13,22 @@ import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useLibrary } from '@/store/useLibrary';
 
-/** The four places either side; Up next (`index`) is the round button at the centre. */
 const TABS: Record<string, { icon: IconName; label: string }> = {
+  index: { icon: 'play', label: 'tabs.upNext' },
   calendar: { icon: 'calendar', label: 'tabs.calendar' },
   library: { icon: 'grid', label: 'tabs.library' },
   social: { icon: 'heart', label: 'tabs.social' },
   profile: { icon: 'user', label: 'tabs.you' },
 };
+/** Two places either side of the round button: Up next at the centre, or search in solo mode (Social then lives in You). */
+const ORDER = { shared: ['calendar', 'library', 'social', 'profile'], solo: ['calendar', 'profile', 'library', 'index'] } as const;
 const CENTER = 'index';
-const TAB_W = 68;
+const TAB_MAX = 72;
 const DAY = 86_400_000;
 const ADD_W = 64;
 
 /**
- * Floating glass tab bar with Up next at its heart (thumb zone, largest target).
+ * Floating glass tab bar with Up next, or search in solo mode, at its heart (thumb zone, largest target).
  * The active tab is all accent: its icon (bolder, a touch larger) and its label in bold.
  */
 export default function TabBar({ state, navigation }: BottomTabBarProps) {
@@ -34,6 +37,9 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   const styles = useStyles();
   const insets = useSafeAreaInsets();
   const haptics = useHaptics();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const solo = useLibrary((s) => s.settings.solo);
   // A dot on the calendar when something you follow comes out within a day.
   const soon = useLibrary((s) => {
     const now = Date.now();
@@ -46,10 +52,16 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
     );
   });
 
-  const routes = state.routes.filter((r) => TABS[r.name]);
+  const order: readonly string[] = ORDER[solo ? 'solo' : 'shared'];
+  const routes = order.map((name) => state.routes.find((r) => r.name === name)).filter((r) => !!r);
   const half = Math.ceil(routes.length / 2);
-  const center = state.routes.find((r) => r.name === CENTER);
-  const centerActive = !!center && state.routes[state.index]?.key === center.key;
+  const center = solo ? undefined : state.routes.find((r) => r.name === CENTER);
+  const current = state.routes[state.index]?.name;
+  // In solo mode Social is reached from You, which stays lit while you are there.
+  const lit = solo && current === 'social' ? 'profile' : current;
+  const centerActive = !!center && current === CENTER;
+  // Tabs shrink to fit narrow phones: the bar never overflows the screen.
+  const tabW = Math.min(TAB_MAX, Math.floor((width - 32 - 16 - ADD_W) / Math.max(1, routes.length)));
 
   // The centre button bounces once at launch: a hint of where the action is (signifier, not a tutorial).
   const hint = useRef(new Animated.Value(0)).current;
@@ -62,8 +74,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   }, [hint]);
 
   const renderTab = (route: (typeof routes)[number]) => {
-    const index = state.routes.indexOf(route);
-    const active = state.index === index;
+    const active = route.name === lit;
     const tab = TABS[route.name];
     return (
       <PressableScale
@@ -71,10 +82,10 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
         depth={0.88}
         accessibilityLabel={t(tab.label)}
         accessibilityState={{ selected: active }}
-        style={styles.tab}
+        style={[styles.tab, { width: tabW }]}
         onPress={() => {
           const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-          if (!active && !event.defaultPrevented) {
+          if (route.name !== current && !event.defaultPrevented) {
             haptics.select();
             navigation.navigate(route.name);
           }
@@ -84,7 +95,9 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
           <Icon name={tab.icon} size={22} color={active ? palette.primaryText : palette.inkSoft} strokeWidth={active ? 2.5 : 1.8} />
           {route.name === 'calendar' && soon && <View style={styles.dot} />}
         </TabIcon>
-        <Text style={[styles.label, active && styles.labelActive]}>{t(tab.label)}</Text>
+        <Text style={[styles.label, active && styles.labelActive]} numberOfLines={1}>
+          {t(tab.label)}
+        </Text>
       </PressableScale>
     );
   };
@@ -104,20 +117,24 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
         <Animated.View style={{ transform: [{ translateY: hint.interpolate({ inputRange: [0, 1], outputRange: [0, -8] }) }] }}>
           <PressableScale
             onPress={() => {
-              if (!center) return;
+              if (!center) {
+                haptics.tap();
+                router.push('/search');
+                return;
+              }
               const event = navigation.emit({ type: 'tabPress', target: center.key, canPreventDefault: true });
               if (!centerActive && !event.defaultPrevented) {
                 haptics.tap();
                 navigation.navigate(CENTER);
               }
             }}
-            accessibilityLabel={t('tabs.upNext')}
+            accessibilityLabel={t(center ? 'tabs.upNext' : 'search.title')}
             accessibilityState={{ selected: centerActive }}
-            style={[styles.add, spark.shadow.glow, !centerActive && styles.addIdle]}
+            style={[styles.add, spark.shadow.glow, center && !centerActive && styles.addIdle]}
             depth={0.9}
           >
             <LinearGradient colors={spark.color.primaryGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { borderRadius: 29 }]} />
-            <Icon name="play" size={24} color={palette.onInk} strokeWidth={centerActive ? 2.6 : 2.1} />
+            <Icon name={center ? 'play' : 'search'} size={24} color={palette.onInk} strokeWidth={centerActive ? 2.6 : 2.1} />
           </PressableScale>
         </Animated.View>
       </View>
@@ -139,7 +156,7 @@ const useStyles = makeStyles(({ palette, fonts }) => ({
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   bar: { paddingHorizontal: 8, paddingVertical: 6 },
   row: { flexDirection: 'row', alignItems: 'center' },
-  tab: { width: TAB_W, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  tab: { height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 3 },
   label: { ...fonts.medium, fontSize: 10.5, color: palette.inkSoft, letterSpacing: 0.1 },
   labelActive: { color: palette.primaryText, ...fonts.bold },
   dot: { position: 'absolute', top: -1, right: -3, width: 8, height: 8, borderRadius: 4, backgroundColor: palette.primary, borderWidth: 1.5, borderColor: palette.bg },

@@ -530,6 +530,8 @@
     "quality": "Qualité d’affichage",
     "qualityFull": "Verre",
     "qualityLite": "Allégée",
+    "solo": "Mode solo",
+    "soloHint": "La recherche au centre de la barre, À suivre à droite. Social passe dans Vous.",
     "qualityHint": "Le mode allégé coupe le flou et les halos et rend les surfaces opaques : plus fluide sur les téléphones anciens, plus économe en batterie.",
     "about": "À propos",
     "checkUpdates": "Rechercher une mise à jour",
@@ -608,6 +610,7 @@
   },
   "friends": {
     "title": "Social",
+    "hint": "Recommandations, notes du groupe et membres",
     "block": "Social",
     "you": "Toi",
     "and": "{{a}} et {{b}}",
