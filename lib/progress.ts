@@ -31,7 +31,30 @@ export interface Progress {
   fraction: number;
 }
 
+/**
+ * Progress per show, worked out again only when that show changes (a show is replaced, never edited,
+ * when anything about it does) or when one of its episodes airs: ticking an episode costs one show,
+ * not the whole library.
+ */
+const cache = new WeakMap<Show, { p: Progress; from: number; until: number }>();
+
 export function progressOf(show: Show, now = Date.now()): Progress {
+  const hit = cache.get(show);
+  if (hit && now >= hit.from && now < hit.until) return hit.p;
+  // The answer holds from the latest airing up to now until the next one.
+  let from = -Infinity;
+  let until = Infinity;
+  for (const e of show.episodes) {
+    if (!e.airstamp) continue;
+    if (e.airstamp <= now) from = Math.max(from, e.airstamp);
+    else until = Math.min(until, e.airstamp);
+  }
+  const p = computeProgress(show, now);
+  cache.set(show, { p, from, until });
+  return p;
+}
+
+function computeProgress(show: Show, now: number): Progress {
   const list = sortEpisodes(show.episodes);
   let furthest = -1;
   list.forEach((e, i) => {
@@ -80,13 +103,25 @@ export function seasonsOf(episodes: Episode[]) {
   return [...map.entries()].map(([season, list]) => ({ season, episodes: list }));
 }
 
+const activities = new WeakMap<Show, number>();
+/** When you last did something with a show: added it or ticked an episode. */
+export function lastActivity(show: Show) {
+  let at = activities.get(show);
+  if (at == null) {
+    at = show.addedAt;
+    for (const id in show.watched) if (show.watched[id] > at) at = show.watched[id];
+    activities.set(show, at);
+  }
+  return at;
+}
+
 /** Shows you are watching, last touched first, each with the episode you pick up at. */
 export function upNextShows(shows: Record<string, Show>, now = Date.now()) {
   return Object.values(shows)
     .map((show) => ({ show, progress: progressOf(show, now) }))
     .map((s) => ({ ...s, state: showState(s.show, now, s.progress) }))
     .filter((s) => s.state === 'watching' && s.progress.next)
-    .map((s) => ({ ...s, activity: Math.max(s.show.addedAt, ...Object.values(s.show.watched)) }))
+    .map((s) => ({ ...s, activity: lastActivity(s.show) }))
     .sort((a, b) => b.activity - a.activity)
     .map(({ show, progress }) => ({ show, next: progress.next!, left: progress.left }));
 }

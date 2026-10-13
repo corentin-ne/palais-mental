@@ -18,8 +18,8 @@ import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
 import { useProgressive } from '@/hooks/useProgressive';
 import { Collection, CollectionItem, artOf, collectionHref, groupCollections, isDone, refreshMovieSeries } from '@/lib/collections';
-import { countdown } from '@/lib/format';
-import { progressOf, showState } from '@/lib/progress';
+import { compareText, countdown } from '@/lib/format';
+import { lastActivity, progressOf, showState } from '@/lib/progress';
 import { Band, useRibbons } from '@/lib/ribbons';
 import { SHELF_STATES, bookFraction, gameFraction, shelfActivity, shelfState } from '@/lib/shelf';
 import { Book, Game, MediaKind, Movie, ShelfState, ShowState } from '@/lib/types';
@@ -123,12 +123,12 @@ export default function LibraryScreen() {
     return Object.values(shows)
       .map((show) => {
         const progress = progressOf(show, now);
-        return { show, state: showState(show, now, progress), progress, activity: Math.max(show.addedAt, ...Object.values(show.watched)) };
+        return { show, state: showState(show, now, progress), progress, activity: lastActivity(show) };
       })
       .sort((a, b) => {
-        if (sort === 'title') return a.show.title.localeCompare(b.show.title);
+        if (sort === 'title') return compareText(a.show.title, b.show.title);
         if (sort === 'rating') return (b.show.rating ?? 0) - (a.show.rating ?? 0) || b.activity - a.activity;
-        if (sort === 'next') return (a.progress.upcoming?.airstamp ?? Infinity) - (b.progress.upcoming?.airstamp ?? Infinity) || a.show.title.localeCompare(b.show.title);
+        if (sort === 'next') return (a.progress.upcoming?.airstamp ?? Infinity) - (b.progress.upcoming?.airstamp ?? Infinity) || compareText(a.show.title, b.show.title);
         return b.activity - a.activity;
       });
   }, [shows, sort]);
@@ -155,11 +155,11 @@ export default function LibraryScreen() {
     const watched = (u: Unit<Movie>) => over(u, (m) => m.watchedAt) ?? 0;
     const nextOut = (u: Unit<Movie>) => over(u, (m) => (m.watchedAt || !m.releaseDate || m.releaseDate <= now ? undefined : m.releaseDate), true) ?? Infinity;
     groups.watchlist.sort((a, b) =>
-      sort === 'title' ? titleOf(a).localeCompare(titleOf(b)) : sort === 'next' ? (over(b, (m) => m.releaseDate) ?? 0) - (over(a, (m) => m.releaseDate) ?? 0) : added(b) - added(a),
+      sort === 'title' ? compareText(titleOf(a), titleOf(b)) : sort === 'next' ? (over(b, (m) => m.releaseDate) ?? 0) - (over(a, (m) => m.releaseDate) ?? 0) : added(b) - added(a),
     );
     groups.upcoming.sort((a, b) => nextOut(a) - nextOut(b));
     groups.watched.sort((a, b) =>
-      sort === 'title' ? titleOf(a).localeCompare(titleOf(b)) : sort === 'rating' ? (over(b, (m) => m.rating) ?? 0) - (over(a, (m) => m.rating) ?? 0) || watched(b) - watched(a) : watched(b) - watched(a),
+      sort === 'title' ? compareText(titleOf(a), titleOf(b)) : sort === 'rating' ? (over(b, (m) => m.rating) ?? 0) - (over(a, (m) => m.rating) ?? 0) || watched(b) - watched(a) : watched(b) - watched(a),
     );
     return groups;
   }, [movies, sort]);
@@ -175,7 +175,7 @@ export default function LibraryScreen() {
     const release = (u: U) => over(u, (i) => (i.finishedAt ? undefined : i.releaseDate), true);
     const bySort = (a: U, b: U) =>
       sort === 'title'
-        ? titleOf(a).localeCompare(titleOf(b))
+        ? compareText(titleOf(a), titleOf(b))
         : sort === 'rating'
           ? (over(b, (i) => i.rating) ?? 0) - (over(a, (i) => i.rating) ?? 0) || activity(b) - activity(a)
           : sort === 'next'

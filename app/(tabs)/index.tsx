@@ -22,7 +22,7 @@ import { SearchResult, popularShows } from '@/lib/api';
 import { countdown } from '@/lib/format';
 import { syncFriends } from '@/lib/friends';
 import { useRibbons, useSuggestions } from '@/lib/ribbons';
-import { progressOf, showState } from '@/lib/progress';
+import { lastActivity, progressOf, showState } from '@/lib/progress';
 import { shelfActivity, shelfState } from '@/lib/shelf';
 import { OUT_NOW, refreshRelated, relatedHref, relationLabel, visibleRelated } from '@/lib/related';
 import { refreshLibrary } from '@/lib/sync';
@@ -55,9 +55,8 @@ export default function UpNextScreen() {
       const progress = progressOf(show, now);
       return { show, progress, state: showState(show, now, progress) };
     });
-    const lastActivity = (s: (typeof list)[number]) => Math.max(s.show.addedAt, ...Object.values(s.show.watched));
     return {
-      upNext: list.filter((s) => s.state === 'watching').sort((a, b) => lastActivity(b) - lastActivity(a)),
+      upNext: list.filter((s) => s.state === 'watching').sort((a, b) => lastActivity(b.show) - lastActivity(a.show)),
       // Shows not started and films on the watchlist, one rail, latest added first.
       waiting: [
         ...list

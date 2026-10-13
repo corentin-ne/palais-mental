@@ -74,7 +74,7 @@ export const ExtraDetails = memo(function ExtraDetails({ extras, kind }: { extra
             {extras.screenshots.map((s, i) => (
               <PressableScale key={s.thumb} depth={0.98} onPress={() => open(s.full)} accessibilityLabel={`${t('extras.screenshots')} ${i + 1}`}>
                 <View style={[styles.shot, { width: shotW, height: Math.round((shotW * 9) / 16) }]}>
-                  <Image source={{ uri: s.thumb }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} recyclingKey={s.thumb} />
+                  <Image source={{ uri: s.thumb }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={200} recyclingKey={s.thumb} />
                 </View>
               </PressableScale>
             ))}

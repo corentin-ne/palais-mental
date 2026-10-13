@@ -28,7 +28,7 @@ export interface Refreshed {
   games: GameData[];
 }
 
-interface LibraryState extends LibraryData {
+export interface LibraryState extends LibraryData {
   books: Record<string, Book>;
   games: Record<string, Game>;
   settings: Settings;

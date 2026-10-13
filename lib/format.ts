@@ -7,6 +7,9 @@ const startOfDay = (ms: number) => {
   return d.getTime();
 };
 
+/** Sorting by title: one collator made once, much cheaper than localeCompare on every comparison of a long list. */
+export const compareText = new Intl.Collator().compare;
+
 export const dayKey = (ms: number) => startOfDay(ms);
 
 /** Whole days from today to `ms` (0 = today). */

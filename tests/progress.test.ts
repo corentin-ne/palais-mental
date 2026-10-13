@@ -57,3 +57,26 @@ test('episodes out of order are sorted; a sorted list is returned as is', () => 
   assert.deepEqual(mixed.map((e) => e.id), [2, 1]);
   assert.equal(progressOf(show({ episodes: mixed, watched: { 1: 1 } }), NOW).next?.id, 2);
 });
+
+test('progress is reused for the same show until an episode airs', () => {
+  const show = {
+    id: '1',
+    tvmazeId: 1,
+    title: 'S',
+    genres: [],
+    episodes: [
+      { id: 1, season: 1, number: 1, name: '', airstamp: 100 },
+      { id: 2, season: 1, number: 2, name: '', airstamp: 200 },
+    ],
+    watched: { 1: 5 },
+    addedAt: 0,
+    syncedAt: 0,
+  };
+  const a = progressOf(show, 150);
+  assert.equal(progressOf(show, 160), a);
+  assert.equal(a.left, 0);
+  const b = progressOf(show, 250);
+  assert.notEqual(b, a);
+  assert.equal(b.left, 1);
+  assert.equal(progressOf({ ...show, watched: { 1: 5, 2: 6 } }, 250).left, 0);
+});

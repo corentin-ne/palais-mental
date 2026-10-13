@@ -13,7 +13,7 @@ import { deliver } from './backup';
 import { fetchBook, searchBooks } from './books';
 import { toCsv } from './csv';
 import { fetchGame, searchGames } from './games';
-import { hasAired, seasonsOf, sortEpisodes } from './progress';
+import { hasAired, lastActivity, seasonsOf, sortEpisodes } from './progress';
 import { readAnilist, readMal } from './sources/anime';
 import { readBookwyrm, readBooksFile, readGoodreads, readHardcover, readOpenLibrary } from './sources/books';
 import { DAY, ExternalEntry, HttpError, MissingSetup, enc, sleep } from './sources/common';
@@ -570,7 +570,7 @@ export async function exportImdbCsv() {
   }
   for (const s of Object.values(shows)) {
     if (!s.imdbId || (!Object.keys(s.watched).length && !s.rating)) continue;
-    rows.push([s.imdbId, s.rating ?? '', ymd(Math.max(s.addedAt, ...Object.values(s.watched))), s.title, `https://www.imdb.com/title/${s.imdbId}/`, 'TV Series', s.year ?? '']);
+    rows.push([s.imdbId, s.rating ?? '', ymd(lastActivity(s)), s.title, `https://www.imdb.com/title/${s.imdbId}/`, 'TV Series', s.year ?? '']);
     count++;
   }
   await deliver(`palais-mental-imdb-${stamp()}.csv`, toCsv(rows), 'text/csv');

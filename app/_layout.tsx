@@ -78,7 +78,7 @@ export default function RootLayout() {
     <SparkProvider scheme={spark.scheme} accent={spark.accent} lite={spark.lite}>
       <SafeBoundary>
         <StatusBar style={dark ? 'light' : 'dark'} />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.bg }, animation: 'slide_from_right' }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.bg }, animation: 'slide_from_right', freezeOnBlur: true }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="search" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="show/[id]" />

@@ -67,7 +67,7 @@ export default function DetailLayout({ kind, title, poster, backdrop, meta, tags
       >
         <Animated.View style={[{ height: heroH, overflow: 'hidden' }, heroStyle]}>
           {art ? (
-            <Image source={{ uri: art }} style={StyleSheet.absoluteFill} contentFit="cover" transition={350} blurRadius={backdrop ? 0 : 24} />
+            <Image source={{ uri: art }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={350} blurRadius={backdrop ? 0 : 24} />
           ) : (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.hero }]} />
           )}
@@ -163,7 +163,7 @@ export function CastRail({ cast, title }: { cast: { name: string; character?: st
           <FadeIn key={`${c.name}${i}`} index={i} style={{ width: 78, alignItems: 'center', gap: 6 }}>
             <View style={styles.face}>
               {c.image ? (
-                <Image source={{ uri: c.image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+                <Image source={{ uri: c.image }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={200} />
               ) : (
                 <Text style={styles.initials}>
                   {c.name

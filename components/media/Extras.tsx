@@ -52,7 +52,7 @@ export default function Extras({ kind, title, year, imdbId, extras }: Props) {
                 <View style={styles.logos}>
                   {list.map((prov: Provider) => (
                     <View key={prov.name} style={styles.provider} accessibilityLabel={prov.name}>
-                      {prov.logo ? <Image source={{ uri: prov.logo }} style={StyleSheet.absoluteFill} contentFit="cover" /> : <Text style={styles.provName}>{prov.name.slice(0, 2)}</Text>}
+                      {prov.logo ? <Image source={{ uri: prov.logo }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" /> : <Text style={styles.provName}>{prov.name.slice(0, 2)}</Text>}
                     </View>
                   ))}
                 </View>

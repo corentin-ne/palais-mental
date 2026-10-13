@@ -11,7 +11,7 @@ import Icon, { IconName } from './Icon';
 import PressableScale from './PressableScale';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
-import { useLibrary } from '@/store/useLibrary';
+import { LibraryState, useLibrary } from '@/store/useLibrary';
 
 const TABS: Record<string, { icon: IconName; label: string }> = {
   index: { icon: 'home', label: 'tabs.upNext' },
@@ -40,17 +40,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const solo = useLibrary((s) => s.settings.solo);
-  // A dot on the calendar when something you follow comes out within a day.
-  const soon = useLibrary((s) => {
-    const now = Date.now();
-    const inDay = (d?: number) => !!d && d > now - DAY / 2 && d < now + DAY;
-    return (
-      Object.values(s.shows).some((sh) => !sh.droppedAt && sh.episodes.some((e) => inDay(e.airstamp))) ||
-      Object.values(s.movies).some((m) => !m.watchedAt && inDay(m.releaseDate)) ||
-      Object.values(s.books).some((b) => !b.finishedAt && !b.droppedAt && inDay(b.releaseDate)) ||
-      Object.values(s.games).some((g) => !g.finishedAt && !g.droppedAt && inDay(g.releaseDate))
-    );
-  });
+  const soon = useLibrary(releaseSoon);
 
   const order: readonly string[] = ORDER[solo ? 'solo' : 'shared'];
   const routes = order.map((name) => state.routes.find((r) => r.name === name)).filter((r) => !!r);
@@ -140,6 +130,25 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
       </View>
     </View>
   );
+}
+
+let last: { shows: object; movies: object; books: object; games: object; minute: number; soon: boolean } | undefined;
+/**
+ * A dot on the calendar when something you follow comes out within a day. Read on every change to the
+ * library, so the whole scan runs only when a collection changed or a minute went by.
+ */
+function releaseSoon(s: LibraryState) {
+  const now = Date.now();
+  const minute = Math.floor(now / 60_000);
+  if (last && last.shows === s.shows && last.movies === s.movies && last.books === s.books && last.games === s.games && last.minute === minute) return last.soon;
+  const inDay = (d?: number) => !!d && d > now - DAY / 2 && d < now + DAY;
+  const soon =
+    Object.values(s.shows).some((sh) => !sh.droppedAt && sh.episodes.some((e) => inDay(e.airstamp))) ||
+    Object.values(s.movies).some((m) => !m.watchedAt && inDay(m.releaseDate)) ||
+    Object.values(s.books).some((b) => !b.finishedAt && !b.droppedAt && inDay(b.releaseDate)) ||
+    Object.values(s.games).some((g) => !g.finishedAt && !g.droppedAt && inDay(g.releaseDate));
+  last = { shows: s.shows, movies: s.movies, books: s.books, games: s.games, minute, soon };
+  return soon;
 }
 
 /** The active icon grows a little with a spring, the one you leave settles back. */

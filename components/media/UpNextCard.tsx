@@ -50,7 +50,7 @@ export default function UpNextCard({ show, progress, width }: { show: Show; prog
       <PressableScale depth={0.98} onPress={() => router.push(`/show/${show.tvmazeId}`)} style={styles.open} accessibilityLabel={show.title}>
         <View style={[styles.still, { width: imgW, height: Math.round(imgW * 0.625) }]}>
           {still ? (
-            <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" transition={220} />
+            <Image source={{ uri: still }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={220} />
           ) : (
             <View style={styles.posterFill}>
               <Poster uri={show.poster} title={show.title} width={imgW} elevated={false} radius={0} />

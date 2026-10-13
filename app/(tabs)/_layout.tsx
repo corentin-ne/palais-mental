@@ -14,7 +14,7 @@ export default function TabsLayout() {
     <View style={[styles.root, { backgroundColor: palette.bg }]}>
       <Tabs
         tabBar={(props) => <TabBar {...props} />}
-        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: palette.screen }, animation: 'shift' }}
+        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: palette.screen }, animation: 'shift', freezeOnBlur: true }}
       >
         <Tabs.Screen name="calendar" />
         <Tabs.Screen name="library" />

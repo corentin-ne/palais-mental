@@ -124,7 +124,46 @@ export function useDigest(): Digest | undefined {
   const members = useFriends((s) => s.members);
   const titles = useFriends((s) => s.titles);
   const ratings = useFriends((s) => s.ratings);
-  return useMemo(() => (me ? digest({ me, members, titles, ratings }) : undefined), [me, members, titles, ratings]);
+  return me ? digestOf(me, members, titles, ratings) : undefined;
+}
+
+let lastDigest: { me: string; members: object; titles: object; ratings: object; d: Digest } | undefined;
+/** One digest for the whole app: every screen and block that asks gets the same one until the synced data changes. */
+function digestOf(me: string, members: Record<string, Member>, titles: Record<number, SharedTitle>, ratings: SharedRating[]) {
+  const l = lastDigest;
+  if (l && l.me === me && l.members === members && l.titles === titles && l.ratings === ratings) return l.d;
+  const d = digest({ me, members, titles, ratings });
+  lastDigest = { me, members, titles, ratings, d };
+  return d;
+}
+
+const indexes = new WeakMap<object, Map<string, string>>();
+/** `kind/key` → the page of that title in your library, built once per collection and reused until it changes. */
+function localIndex<T extends Shareable>(kind: MediaKind, collection: Record<string, T>, href: (item: T) => string) {
+  let index = indexes.get(collection);
+  if (!index) {
+    index = new Map();
+    for (const item of Object.values(collection)) for (const k of keysOf(kind, item)) index.set(`${kind}/${k}`, href(item));
+    indexes.set(collection, index);
+  }
+  return index;
+}
+
+/** Every key of every title you have, per kind. */
+function useLocalIndexes() {
+  const shows = useLibrary((s) => s.shows);
+  const movies = useLibrary((s) => s.movies);
+  const books = useLibrary((s) => s.books);
+  const games = useLibrary((s) => s.games);
+  return useMemo(
+    () => ({
+      show: localIndex('show', shows, (s) => `/show/${s.tvmazeId}`),
+      movie: localIndex('movie', movies, (m) => `/movie/${m.id}`),
+      book: localIndex('book', books, (b) => `/book/${b.id}`),
+      game: localIndex('game', games, (g) => `/game/${g.id}`),
+    }),
+    [shows, movies, books, games],
+  );
 }
 
 const NONE = () => undefined;
@@ -153,23 +192,16 @@ export function useRibbons(): (kind: MediaKind, item: Shareable) => Band | undef
  * key), else the page the app can load for it.
  */
 export function useLocalHrefs(): (title: SharedTitle) => { href: string; have: boolean } {
-  const shows = useLibrary((s) => s.shows);
-  const movies = useLibrary((s) => s.movies);
-  const books = useLibrary((s) => s.books);
-  const games = useLibrary((s) => s.games);
+  const mine = useLocalIndexes();
   const tmdbKey = useLibrary((s) => s.settings.tmdbKey) || undefined;
-  return useMemo(() => {
-    const mine = new Map<string, string>();
-    const add = (kind: MediaKind, item: Shareable, href: string) => keysOf(kind, item).forEach((k) => mine.set(`${kind}/${k}`, href));
-    Object.values(shows).forEach((s) => add('show', s, `/show/${s.tvmazeId}`));
-    Object.values(movies).forEach((m) => add('movie', m, `/movie/${m.id}`));
-    Object.values(books).forEach((b) => add('book', b, `/book/${b.id}`));
-    Object.values(games).forEach((g) => add('game', g, `/game/${g.id}`));
-    return (title) => {
-      const local = title.keys.map((k) => mine.get(`${title.kind}/${k}`)).find(Boolean);
+  return useMemo(
+    () => (title) => {
+      const index = mine[title.kind];
+      const local = title.keys.map((k) => index.get(`${title.kind}/${k}`)).find(Boolean);
       return { href: local ?? hrefOf(title, tmdbKey), have: !!local };
-    };
-  }, [shows, movies, books, games, tmdbKey]);
+    },
+    [mine, tmdbKey],
+  );
 }
 
 export interface Suggestion {
@@ -186,27 +218,18 @@ export function useSuggestions(): Suggestion[] {
   const me = useFriends((s) => s.me);
   const titles = useFriends((s) => s.titles);
   const d = useDigest();
-  const shows = useLibrary((s) => s.shows);
-  const movies = useLibrary((s) => s.movies);
-  const books = useLibrary((s) => s.books);
-  const games = useLibrary((s) => s.games);
+  const have = useLocalIndexes();
   return useMemo(() => {
     if (!me || !d) return [];
-    const have = new Set<string>();
-    const add = (kind: MediaKind, list: Shareable[]) => list.forEach((item) => keysOf(kind, item).forEach((k) => have.add(`${kind}/${k}`)));
-    add('show', Object.values(shows));
-    add('movie', Object.values(movies));
-    add('book', Object.values(books));
-    add('game', Object.values(games));
     const out: (Suggestion & { score: number; at: number })[] = [];
     for (const [id, all] of d.ratings) {
       const title = titles[id];
       const ratings = all.filter((r) => r.user !== me && r.rating >= LOVED);
-      if (!title || !ratings.length || title.keys.some((k) => have.has(`${title.kind}/${k}`))) continue;
+      if (!title || !ratings.length || title.keys.some((k) => have[title.kind].has(`${title.kind}/${k}`))) continue;
       const weight = (user: string) => 0.5 + (d.affinity.get(user) ?? 0.5);
       const score = ratings.reduce((n, r) => n + (r.rating - 6) * weight(r.user), 0);
       out.push({ title, ratings, ribbon: d.ribbons.get(id), score, at: Math.max(...ratings.map((r) => r.at)) });
     }
     return out.sort((a, b) => b.score - a.score || b.at - a.at);
-  }, [me, d, titles, shows, movies, books, games]);
+  }, [me, d, titles, have]);
 }

@@ -60,7 +60,7 @@ export default memo(function EpisodeRow({
         <PressableScale depth={0.99} onPress={() => onOpen(e)} style={{ gap: 10 }}>
           <View style={styles.epTop}>
             <View style={styles.still}>
-              {e.image ? <Image source={{ uri: e.image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : <Text style={styles.stillNum}>{e.number}</Text>}
+              {e.image ? <Image source={{ uri: e.image }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={200} /> : <Text style={styles.stillNum}>{e.number}</Text>}
             </View>
             <View style={{ flex: 1, gap: 2 }}>
               <View style={styles.epCodeRow}>
