@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 
 import JournalCard, { useJournal } from '@/components/media/JournalCard';
 import Icon from '@/components/ui/Icon';
@@ -66,6 +66,7 @@ export default function ProfileScreen() {
 
       <View style={[list.group, { marginTop: 16 }]}>
         <ActionRow icon="chart" tint="" label={t('stats.title')} hint={t('stats.hint')} onPress={() => router.push('/stats')} />
+        <ActionRow icon="bookmark" tint="" label={t('lists.title')} hint={t('lists.hint')} onPress={() => router.push('/lists' as Href)} />
         {/* Solo mode: Social has no tab of its own, it is one row away from here. */}
         {solo && <ActionRow icon="heart" tint="" label={t('tabs.social')} hint={t('friends.hint')} onPress={() => router.push('/social')} />}
         <ActionRow icon="download" tint="" label={t('profile.data')} hint={t('data.hint')} onPress={() => router.push('/data')} />

@@ -74,6 +74,8 @@ export interface Movie {
   /** Last time Wikidata was asked for the series. */
   seriesAt?: number;
   watchedAt?: number;
+  /** Earlier times you watched it (a rewatch moves the previous date here). */
+  history?: number[];
   /** Your rating, 1–10 (half stars). */
   rating?: number;
   /** What you thought of it. */
@@ -125,6 +127,8 @@ export interface Book {
   /** On hold: started, set aside for now, out of Up next until you pick it up again. */
   pausedAt?: number;
   finishedAt?: number;
+  /** Earlier times you finished it (reading it again moves the previous date here). */
+  history?: number[];
   droppedAt?: number;
   /** Your rating, 1–10 (half stars). */
   rating?: number;
@@ -164,6 +168,12 @@ export interface Game {
   /** On hold: started, set aside for now, out of Up next until you pick it up again. */
   pausedAt?: number;
   finishedAt?: number;
+  /** Earlier times you finished it (playing it again moves the previous date here). */
+  history?: number[];
+  /** Tell me when it costs this much or less (US dollars, CheapShark's best price across stores). */
+  priceAlert?: number;
+  /** The best price last notified, so the same deal isn't announced twice. */
+  priceAlerted?: number;
   droppedAt?: number;
   rating?: number;
   /** What you thought of it. */

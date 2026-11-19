@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import PaceLine from '@/components/media/PaceLine';
 import Button from '@/components/ui/Button';
 import NoteInput from '@/components/ui/NoteInput';
 import PressableScale from '@/components/ui/PressableScale';
@@ -10,6 +11,7 @@ import { makeStyles, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { removeShow, setDropped } from '@/lib/actions';
 import { countdown, relativeDay } from '@/lib/format';
+import { showPace } from '@/lib/pace';
 import { Progress, episodeCode } from '@/lib/progress';
 import { Episode, Show, ShowState } from '@/lib/types';
 import { useLibrary } from '@/store/useLibrary';
@@ -57,6 +59,7 @@ export default function ShowPanel({
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${Math.round(progress.fraction * 100)}%`, backgroundColor: progress.fraction >= 1 ? palette.success : palette.primary }]} />
           </View>
+          {progress.left > 0 && state !== 'dropped' && <PaceLine pace={showPace(show)} />}
           {progress.next && state !== 'dropped' && (
             <Button label={t('show.watchedNext', { code: episodeCode(progress.next) })} icon="check" onPress={() => onToggle(progress.next!)} style={{ marginTop: 6 }} />
           )}

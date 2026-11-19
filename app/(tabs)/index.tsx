@@ -4,6 +4,9 @@ import { Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import FriendsRail from '@/components/friends/FriendsRail';
+import { SentToMe } from '@/components/friends/SendTo';
+import RecapBanner from '@/components/media/RecapBanner';
+import TonightSheet, { TonightLink } from '@/components/media/TonightSheet';
 import PosterRail, { RailItem } from '@/components/media/PosterRail';
 import ShelfCard from '@/components/media/ShelfCard';
 import UpNextCard from '@/components/media/UpNextCard';
@@ -26,6 +29,7 @@ import { lastActivity, progressOf, showState } from '@/lib/progress';
 import { shelfActivity, shelfState } from '@/lib/shelf';
 import { OUT_NOW, refreshRelated, relatedHref, relationLabel, visibleRelated } from '@/lib/related';
 import { refreshLibrary } from '@/lib/sync';
+import { recapYear } from '@/lib/recap';
 import { Book, Game } from '@/lib/types';
 import { RelatedRelease, useConnections } from '@/store/useConnections';
 import { useLibrary, useLibraryEmpty } from '@/store/useLibrary';
@@ -47,7 +51,7 @@ export default function UpNextScreen() {
   const suggestions = useSuggestions();
   const [refreshing, setRefreshing] = useState(false);
   const haptics = useHaptics();
-  const lastPick = useRef<string>(undefined);
+  const [tonight, setTonight] = useState(false);
 
   const { upNext, waiting } = useMemo(() => {
     const now = Date.now();
@@ -113,17 +117,14 @@ export default function UpNextScreen() {
     setRefreshing(false);
   }, []);
 
-  // Can't decide: one of the titles waiting, never the same twice in a row.
+  // Can't decide: what fits in the time you have tonight, and a draw among it.
   const pickOne = () => {
-    const pool = waiting.filter((w) => w.key !== lastPick.current);
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    if (!pick) return;
-    lastPick.current = pick.key;
     haptics.tap();
-    router.push(pick.href as Href);
+    setTonight(true);
   };
 
   const empty = useLibraryEmpty();
+  const recap = useMemo(() => recapYear(), []);
   const cols = wide ? 2 : 1;
   const cardW = Math.floor((inner - gap * (cols - 1)) / cols);
   // What friends recommend that you don't have yet (nothing until you have joined them).
@@ -157,9 +158,11 @@ export default function UpNextScreen() {
         </>
       ) : (
         <>
+          {/* Mid-November to January: the year's recap, first thing on Home. */}
+          {recap != null && <RecapBanner year={recap} style={{ marginTop: 14 }} />}
           {upNext.length > 0 || !Object.keys(shows).length ? (
             upNext.length > 0 && (
-              <Section title={t('upNext.episodes')} count={upNext.length} style={{ marginTop: 18 }}>
+              <Section title={t('upNext.episodes')} count={upNext.length} style={{ marginTop: 18 }} action={<TonightLink onPress={pickOne} />}>
                 <View style={[styles.cards, { gap, marginTop: 0 }]}>
                   {upNext.map(({ show, progress }, i) => (
                     <FadeIn key={show.id} index={i}>
@@ -172,7 +175,8 @@ export default function UpNextScreen() {
           ) : (
             <FadeIn style={styles.allCaught}>
               <Icon name="check" size={20} color={palette.success} strokeWidth={2.4} />
-              <Text style={styles.allCaughtText}>{t('upNext.caughtUp')}</Text>
+              <Text style={[styles.allCaughtText, { flex: 1 }]}>{t('upNext.caughtUp')}</Text>
+              {waiting.length > 0 && <TonightLink onPress={pickOne} />}
             </FadeIn>
           )}
 
@@ -200,6 +204,7 @@ export default function UpNextScreen() {
             </Section>
           )}
 
+          <SentToMe compact />
           {friendsSection}
 
           {outNow.length > 0 && (
@@ -226,6 +231,7 @@ export default function UpNextScreen() {
           )}
         </>
       )}
+      <TonightSheet visible={tonight} onClose={() => setTonight(false)} />
     </Screen>
   );
 }
@@ -261,17 +267,49 @@ function greeting(t: (k: string) => string) {
   return t(h < 5 ? 'greeting.night' : h < 12 ? 'greeting.morning' : h < 18 ? 'greeting.afternoon' : 'greeting.evening');
 }
 
-/** First run: one sentence, a search button, and what is on tonight to get going. */
+/** Where people come from, first: one tap opens that service (or the file import) in Connections. */
+const ORIGINS: { key: string; label: string; emoji: string; href: string }[] = [
+  { key: 'tvtime', label: 'TV Time', emoji: '📺', href: '/connections?open=files' },
+  { key: 'letterboxd', label: 'Letterboxd', emoji: '🎬', href: '/connections?open=letterboxd' },
+  { key: 'trakt', label: 'Trakt', emoji: '📈', href: '/connections?open=trakt' },
+  { key: 'serializd', label: 'Serializd', emoji: '🍿', href: '/connections?open=serializd' },
+  { key: 'mal', label: 'MyAnimeList', emoji: '🌸', href: '/connections?open=mal' },
+  { key: 'goodreads', label: 'Goodreads', emoji: '📚', href: '/connections?open=goodreads' },
+  { key: 'steam', label: 'Steam', emoji: '🎮', href: '/connections?open=steam' },
+  { key: 'files', label: 'IMDb, Netflix…', emoji: '🗂️', href: '/connections?open=files' },
+];
+
+/** First run: where you come from (your history follows you), or a search, and what is on tonight to get going. */
 function Welcome() {
   const { t } = useTranslation();
   const router = useRouter();
+  const styles = useStyles();
+  const { inner, gap, wide } = useLayout();
   const [popular, setPopular] = useState<SearchResult[]>([]);
   useEffect(() => {
     popularShows().then(setPopular);
   }, []);
+  const cols = wide ? 4 : 2;
+  const tileW = Math.floor((inner - gap * (cols - 1)) / cols);
   return (
     <View>
       <Empty icon="sparkle" title={t('welcome.title')} body={t('welcome.body')} cta={t('welcome.cta')} onPress={() => router.push('/search')} />
+      <Section title={t('welcome.from')} style={{ marginTop: 6 }}>
+        <Text style={styles.fromHint}>{t('welcome.fromHint')}</Text>
+        <View style={[styles.origins, { gap }]}>
+          {ORIGINS.map((o, i) => (
+            <FadeIn key={o.key} index={i} distance={10}>
+              <PressableScale depth={0.95} onPress={() => router.push(o.href as Href)} style={[styles.origin, { width: tileW }]} accessibilityLabel={o.label}>
+                <Text style={styles.originEmoji}>{o.emoji}</Text>
+                <Text style={styles.originLabel} numberOfLines={1}>
+                  {o.label}
+                </Text>
+              </PressableScale>
+            </FadeIn>
+          ))}
+        </View>
+        <Button label={t('welcome.import')} icon="upload" variant="ghost" compact onPress={() => router.push('/data')} style={{ alignSelf: 'center' }} />
+      </Section>
       {popular.length > 0 && (
         <Section title={t('search.onTonight')}>
           <PosterRail
@@ -279,10 +317,6 @@ function Welcome() {
           />
         </Section>
       )}
-      <View style={{ alignItems: 'center', marginTop: 28, gap: 6 }}>
-        <Button label={t('welcome.connect')} icon="link" variant="ghost" compact onPress={() => router.push('/connections')} />
-        <Button label={t('welcome.import')} icon="upload" variant="ghost" compact onPress={() => router.push('/data')} />
-      </View>
     </View>
   );
 }
@@ -295,4 +329,9 @@ const useStyles = makeStyles(({ palette, fonts, radii }) => ({
   linkText: { ...fonts.semibold, fontSize: 14, color: palette.primaryText },
   soonTitle: { ...fonts.semibold, fontSize: 14.5, color: palette.ink },
   soonDetail: { ...fonts.body, fontSize: 12.5, color: palette.inkSoft },
+  fromHint: { ...fonts.body, fontSize: 13.5, lineHeight: 19, color: palette.inkSoft, marginTop: -6 },
+  origins: { flexDirection: 'row', flexWrap: 'wrap' },
+  origin: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14, paddingHorizontal: 14, borderRadius: radii.md, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
+  originEmoji: { fontSize: 20 },
+  originLabel: { ...fonts.semibold, fontSize: 14.5, color: palette.ink, flexShrink: 1 },
 }));

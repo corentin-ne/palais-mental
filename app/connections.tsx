@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Linking, Platform, ScrollView, Text, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
@@ -91,6 +91,9 @@ export default function ConnectionsScreen() {
   const [progress, setProgress] = useState<[number, number]>();
   const [last, setLast] = useState<SyncResult>();
   const toast = useUi((s) => s.showToast);
+  // Opened from the welcome screen for one service (or for export files): that one comes first, open.
+  const { open: wanted } = useLocalSearchParams<{ open?: string }>();
+  const first = wanted && wanted in NAMES ? (wanted as Service) : undefined;
 
   const run = async (id: string, job: () => Promise<SyncResult>) => {
     setBusy(id);
@@ -179,9 +182,31 @@ export default function ConnectionsScreen() {
           </FadeIn>
         )}
 
+        {first && (
+          <Section title={t('connect.yours')} style={{ marginTop: 22, gap: 0 }}>
+            <FadeIn>
+              <ServiceCard
+                service={first}
+                busy={busy}
+                startOpen
+                onSync={() => run(first, () => syncService(first, (d, n) => setProgress([d, n])))}
+                onExport={exportable(first) ? () => exportFor(first) : undefined}
+              />
+            </FadeIn>
+          </Section>
+        )}
+        {wanted === 'files' && (
+          <Section title={t('connect.files')} style={{ marginTop: 22 }}>
+            <View style={[styles.card, { borderColor: palette.primaryRing }]}>
+              <Text style={styles.hint}>{t('connect.filesHint')}</Text>
+              <Button label={t('connect.pickFiles')} icon="upload" onPress={onImportFiles} loading={busy === 'files'} disabled={!!busy && busy !== 'files'} />
+            </View>
+          </Section>
+        )}
+
         {GROUPS.map((g) => (
           <Section key={g.key} title={t(`connect.group.${g.key}`)} style={{ marginTop: 26, gap: 0 }}>
-            {g.services.map((service, i) => (
+            {g.services.filter((x) => x !== first).map((service, i) => (
               <FadeIn key={service} index={i}>
                 <ServiceCard
                   service={service}
@@ -254,14 +279,14 @@ function SendRow({ icon, title, hint, id, busy, onPress }: { icon: IconName; tit
   );
 }
 
-function ServiceCard({ service, busy, onSync, onExport }: { service: Service; busy?: string; onSync: () => void; onExport?: () => void }) {
+function ServiceCard({ service, busy, onSync, onExport, startOpen }: { service: Service; busy?: string; onSync: () => void; onExport?: () => void; startOpen?: boolean }) {
   const { t } = useTranslation();
   const { palette } = useTheme();
   const styles = useStyles();
   const account = useConnections((s) => s.accounts[service]);
   const need = SETUP[service];
   const ready = isSetUp(service, account);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!startOpen);
   const [user, setUser] = useState('');
   const [token, setToken] = useState('');
   const [server, setServer] = useState('');

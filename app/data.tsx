@@ -13,6 +13,7 @@ import { ExportKind, Snapshot, autoSnapshot, exportData, listSnapshots, pickBack
 import { fullDate } from '@/lib/format';
 import { refreshLibrary } from '@/lib/sync';
 import { useLibrary } from '@/store/useLibrary';
+import { useLists } from '@/store/useLists';
 import { useUi } from '@/store/useUi';
 import { Aurora } from '@/spark';
 
@@ -43,6 +44,7 @@ export default function DataScreen() {
       const data = await pickBackup();
       if (!data) return;
       useLibrary.getState().importData(data, 'merge');
+      if (data.lists) useLists.getState().merge(data.lists);
       haptics.success();
       toast(
         t('profile.imported', {

@@ -54,6 +54,16 @@ export interface FriendsData {
   reviews: TitlePost[];
   /** The latest messages on episodes, across every show: the Social feed. */
   talk: TitlePost[];
+  /** Titles a member sent you ("you should watch this"), latest first. */
+  sentToMe: Sent[];
+}
+
+/** A title someone picked for you, with a few words. */
+export interface Sent {
+  from: string;
+  title: number;
+  note?: string;
+  at: number;
 }
 
 interface FriendsState extends FriendsData {
@@ -65,6 +75,8 @@ interface FriendsState extends FriendsData {
   shareReviews: boolean;
   /** Your recommendations from before 1.11 were turned into reviews. */
   recosMoved: boolean;
+  /** Titles sent to you that you have opened or waved off (`from:title`). */
+  sentSeen: Record<string, number>;
   /** Ratings you decided on one by one (`kind/id` → shown or hidden), whatever the rule above says. */
   shared: Record<string, boolean>;
   syncedAt: number;
@@ -74,7 +86,7 @@ interface FriendsState extends FriendsData {
   reset: () => void;
 }
 
-const EMPTY: FriendsData = { members: {}, titles: {}, ratings: [], reviews: [], talk: [] };
+const EMPTY: FriendsData = { members: {}, titles: {}, ratings: [], reviews: [], talk: [], sentToMe: [] };
 
 /** What your friends shared, kept on the device so it reads offline. */
 export const useFriends = create<FriendsState>()(
@@ -85,10 +97,11 @@ export const useFriends = create<FriendsState>()(
       shareReviews: false,
       recosMoved: false,
       shared: {},
+      sentSeen: {},
       syncedAt: 0,
       posts: {},
       set: (patch) => set(patch),
-      reset: () => set({ ...EMPTY, me: undefined, shareRatings: false, shareReviews: false, recosMoved: false, shared: {}, syncedAt: 0, posts: {} }),
+      reset: () => set({ ...EMPTY, me: undefined, shareRatings: false, shareReviews: false, recosMoved: false, shared: {}, sentSeen: {}, syncedAt: 0, posts: {} }),
     }),
     {
       name: 'palais-mental/friends',

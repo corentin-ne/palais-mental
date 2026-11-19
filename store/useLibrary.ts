@@ -7,10 +7,10 @@ import { lazyStorage } from '@/lib/storage';
 import { Book, EpisodeNote, Game, Movie, Settings, Show } from '@/lib/types';
 
 export type ShowData = Omit<Show, 'watched' | 'addedAt' | 'droppedAt' | 'rating' | 'review' | 'reviewedAt' | 'notes'>;
-export type MovieData = Omit<Movie, 'watchedAt' | 'addedAt' | 'rating' | 'review' | 'reviewedAt'>;
-type Progressless = 'touchedAt' | 'startedAt' | 'pausedAt' | 'finishedAt' | 'droppedAt' | 'rating' | 'review' | 'reviewedAt' | 'addedAt';
+export type MovieData = Omit<Movie, 'watchedAt' | 'addedAt' | 'rating' | 'review' | 'reviewedAt' | 'history'>;
+type Progressless = 'touchedAt' | 'startedAt' | 'pausedAt' | 'finishedAt' | 'droppedAt' | 'rating' | 'review' | 'reviewedAt' | 'addedAt' | 'history';
 export type BookData = Omit<Book, Progressless | 'page'>;
-export type GameData = Omit<Game, Progressless | 'hours' | 'percent'>;
+export type GameData = Omit<Game, Progressless | 'hours' | 'percent' | 'priceAlert' | 'priceAlerted'>;
 export type ShelfStatus = 'want' | 'started' | 'paused' | 'finished' | 'dropped';
 
 export interface LibraryData {
@@ -51,6 +51,10 @@ export interface LibraryState extends LibraryData {
   removeMovie: (id: string) => Movie | undefined;
   restoreMovie: (movie: Movie) => void;
   setMovieWatched: (id: string, watched: boolean, at?: number) => void;
+  /** Watched again: the previous date goes to the film's history, today becomes its last watch. */
+  rewatchMovie: (id: string, at?: number) => void;
+  /** Read or played again: the last finish goes to the history and it starts over. */
+  startAgain: (kind: 'book' | 'game', id: string) => void;
   setShowRating: (id: string, rating: number | undefined) => void;
   setMovieRating: (id: string, rating: number | undefined) => void;
   setMovieReview: (id: string, review: string) => void;
@@ -74,6 +78,8 @@ export interface LibraryState extends LibraryData {
   setGameProgress: (id: string, patch: { hours?: number; percent?: number }) => void;
   setGameStatus: (id: string, status: ShelfStatus, at?: number) => void;
   setGameRating: (id: string, rating: number | undefined) => void;
+  /** A price to be told about (dollars), or none. `alerted`: the deal just announced, null once it is over; left out, kept. */
+  setPriceAlert: (id: string, price: number | undefined, alerted?: number | null) => void;
   setGameReview: (id: string, review: string) => void;
 
   /** Refreshed metadata for many entries in one change (a refresh pass); entries removed meanwhile are left out. */
@@ -221,6 +227,21 @@ export const useLibrary = create<LibraryState>()(
         setMovieRating: movies.rate,
         setMovieReview: movies.review,
         setMovieWatched: (id, watched, at) => set((s) => patch(s, 'movies', id, (m) => ({ ...m, watchedAt: watched ? (at ?? Date.now()) : undefined }))),
+        rewatchMovie: (id, at) =>
+          set((s) => patch(s, 'movies', id, (m) => ({ ...m, history: m.watchedAt ? [...(m.history ?? []), m.watchedAt] : m.history, watchedAt: at ?? Date.now() }))),
+        startAgain: (kind, id) =>
+          set((s) => {
+            const again = <T extends Book | Game>(item: T): T => ({
+              ...item,
+              history: item.finishedAt ? [...(item.history ?? []), item.finishedAt] : item.history,
+              startedAt: Date.now(),
+              touchedAt: Date.now(),
+              finishedAt: undefined,
+              pausedAt: undefined,
+              droppedAt: undefined,
+            });
+            return kind === 'book' ? patch(s, 'books', id, (b) => ({ ...again(b), page: undefined })) : patch(s, 'games', id, (g) => ({ ...again(g), percent: undefined }));
+          }),
         patchMovies: (patches) =>
           set((s) => {
             const next = { ...s.movies };
@@ -267,6 +288,14 @@ export const useLibrary = create<LibraryState>()(
               if (next.hours != null) next.hours = Math.max(0, Math.round(next.hours * 2) / 2) || undefined;
               return { ...next, startedAt: g.startedAt ?? (next.hours || next.percent ? now : undefined) };
             }),
+          ),
+        setPriceAlert: (id, price, alerted) =>
+          set((s) =>
+            patch(s, 'games', id, (g) => ({
+              ...g,
+              priceAlert: price || undefined,
+              priceAlerted: !price || alerted === null ? undefined : (alerted ?? (price === g.priceAlert ? g.priceAlerted : undefined)),
+            })),
           ),
         setGameStatus: (id, status, at) =>
           set((s) =>

@@ -26,7 +26,14 @@ npm test
 - **Calendar.** Every upcoming episode, film, book and game you follow, day by day, with a local notification on the day. Sequels and titles from the same series or universe as something you have show up too (dashed).
 - **Journal and ratings.** Half-star ratings and a few words on an episode, a series, a film, a book or a game; **You** lists them.
 - **Statistics.** **You → Statistics**: a year of yours (or all of them) in numbers. Episodes, films, books and games month by month, time spent, active days and days in a row, your genres, how you rate, the shows you watched most. Set a goal for the year (films, books, games) and follow it there.
-- **Search.** One field for shows, films, books and games; add straight from the results.
+- **Search.** One field for shows, films, books and games; add straight from the results. What you already have shows at once, before the sources answer.
+- **Tonight?** Say how much time you have: what fits (the next episodes, a film of the right length, the last pages of a book), and a draw that lands on one.
+- **Pace.** How much is left of a show, book or game, and when you'll be done at the pace you've kept lately.
+- **Your lists.** The bookmark at the top of any page puts a title on lists of your own ("To watch with Léa", "Halloween films"), any kind mixed.
+- **Again.** Watch a film, read a book or play a game again: every time counts in your statistics.
+- **Your year.** From mid-November to January, a story of your year: totals, your best-rated, your biggest binge, your busiest day. Each card shares as an image.
+- **Moments.** Finishing a series, a season, a book or a game, or reaching a goal, gets a burst of confetti.
+- **Critics and prices.** Rotten Tomatoes, Metacritic and IMDb scores on films and shows (Wikidata); a price alert on Steam games (CheapShark), with a notification when the best deal reaches your price.
 
 **Your data**
 
@@ -41,11 +48,11 @@ npm test
 
 **Social**
 
-Choose a name in the **Social** tab (in **You** with solo mode on, see Settings) and you're in the group: no email, no password. Rating a title and writing a few words about it is how you recommend it: share them if you want to (one switch for all, one per title). Social is one page: the people in the group with how close their taste is to yours, what they loved that you don't have, then a feed of reviews, ratings (gathered per person and day) and episode messages, veiled until you have seen the episode. In return you also get bands across posters ("Unanimous", "Divisive", "Group prize"), a **The group liked** rail on Home, everyone's stars and words on each page, emoji reactions, and a discussion under every episode, closed until you have ticked it. Everything is read from the last sync, so the app works the same offline. Nobody sees what you watch, read or play.
+Send a title to someone in the group with a few words ("Send to…" on its page): it waits for them under **Sent to you**. Choose a name in the **Social** tab (in **You** with solo mode on, see Settings) and you're in the group: no email, no password. Rating a title and writing a few words about it is how you recommend it: share them if you want to (one switch for all, one per title). Social is one page: the people in the group with how close their taste is to yours, what they loved that you don't have, then a feed of reviews, ratings (gathered per person and day) and episode messages, veiled until you have seen the episode. In return you also get bands across posters ("Unanimous", "Divisive", "Group prize"), a **The group liked** rail on Home, everyone's stars and words on each page, emoji reactions, and a discussion under every episode, closed until you have ticked it. Everything is read from the last sync, so the app works the same offline. Nobody sees what you watch, read or play.
 
 **Look**
 
-The Spark UI kit (vendored in [spark/](spark/README.md)): frosted glass over a soft aurora, one accent colour you pick, light and dark, and a lite mode for older phones (no blur, no looping animation).
+Pages take the colours of their poster; a swipe to the right ticks the next episode; the system's "reduce motion" setting stills every animation. A second Android widget shows this year's goals. The Spark UI kit (vendored in [spark/](spark/README.md)): frosted glass over a soft aurora, one accent colour you pick, light and dark, and a lite mode for older phones (no blur, no looping animation).
 
 ## Data sources
 

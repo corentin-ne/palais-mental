@@ -7,6 +7,7 @@ import Avatar from '@/components/friends/Avatar';
 import FriendsRail from '@/components/friends/FriendsRail';
 import NameField from '@/components/friends/NameField';
 import Reactions from '@/components/friends/Reactions';
+import { SentToMe } from '@/components/friends/SendTo';
 import Button from '@/components/ui/Button';
 import Icon from '@/components/ui/Icon';
 import Poster from '@/components/ui/Poster';
@@ -69,6 +70,7 @@ export default function SocialScreen() {
   return (
     <Screen title={t('friends.title')} subtitle={t('friends.members', { count: Object.keys(members).length })} refreshing={refreshing} onRefresh={onRefresh}>
       <People me={me} />
+      <SentToMe />
       <ShareNudge />
       <ForYou />
       <Feed me={me} />

@@ -32,7 +32,8 @@ const ANIMATED_ITEMS = 24;
  * Enters with a short rise and fade, staggered by `index`.
  */
 export function FadeIn(props: FadeInProps) {
-  if ((props.index ?? 0) >= ANIMATED_ITEMS) return <View style={props.style}>{props.children}</View>;
+  const { spark } = useTheme();
+  if ((props.index ?? 0) >= ANIMATED_ITEMS || spark.reduceMotion) return <View style={props.style}>{props.children}</View>;
   return <Rise {...props} />;
 }
 

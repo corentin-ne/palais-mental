@@ -1,4 +1,5 @@
-import { StyleSheet, useColorScheme } from 'react-native';
+import { useSyncExternalStore } from 'react';
+import { AccessibilityInfo, StyleSheet, useColorScheme } from 'react-native';
 
 import { NATIVE_BLUE, SparkTokens, alpha, mix, mixOklab, tokensFor } from '@/spark';
 import { useLibrary } from '@/store/useLibrary';
@@ -144,14 +145,34 @@ export function themeFor(spark: SparkTokens): Theme {
   return theme;
 }
 
-/** The kit options from the settings: appearance (or the system), your accent, the display quality. */
+/** The system's "reduce motion" setting, read once and followed: entrances, loops and bursts stand still. */
+let reduceMotion = false;
+const motionListeners = new Set<() => void>();
+AccessibilityInfo.isReduceMotionEnabled?.()
+  .then((v) => {
+    reduceMotion = !!v;
+    motionListeners.forEach((l) => l());
+  })
+  .catch(() => undefined);
+AccessibilityInfo.addEventListener?.('reduceMotionChanged', (v) => {
+  reduceMotion = !!v;
+  motionListeners.forEach((l) => l());
+});
+const subscribeMotion = (l: () => void) => {
+  motionListeners.add(l);
+  return () => void motionListeners.delete(l);
+};
+export const useReduceMotion = () => useSyncExternalStore(subscribeMotion, () => reduceMotion, () => false);
+
+/** The kit options from the settings: appearance (or the system), your accent, the display quality, reduced motion. */
 export function useSparkOptions() {
   const system = useColorScheme();
   const appearance = useLibrary((s) => s.settings.appearance);
   const accent = useLibrary((s) => s.settings.accent) || NATIVE_BLUE;
   const lite = useLibrary((s) => s.settings.fx === 'lite');
+  const still = useReduceMotion();
   const scheme: 'light' | 'dark' = appearance === 'system' ? (system === 'light' ? 'light' : 'dark') : appearance;
-  return { scheme, accent, lite };
+  return { scheme, accent, lite, reduceMotion: still };
 }
 
 /** Follows the appearance setting, or the system when set to 'system' (dark when the system can't say). */

@@ -47,9 +47,10 @@ const dayOf = (ms: number) => {
 /** Everything dated in the library: one entry per episode watched, film watched, book or game finished. */
 function* marks(lib: Library): Generator<[StatKind, number]> {
   for (const show of Object.values(lib.shows)) for (const at of Object.values(show.watched)) yield ['show', at];
-  for (const m of Object.values(lib.movies)) if (m.watchedAt) yield ['movie', m.watchedAt];
-  for (const b of Object.values(lib.books)) if (b.finishedAt) yield ['book', b.finishedAt];
-  for (const g of Object.values(lib.games)) if (g.finishedAt) yield ['game', g.finishedAt];
+  // Watching, reading or playing something again counts each time.
+  for (const m of Object.values(lib.movies)) for (const at of [...(m.history ?? []), ...(m.watchedAt ? [m.watchedAt] : [])]) yield ['movie', at];
+  for (const b of Object.values(lib.books)) for (const at of [...(b.history ?? []), ...(b.finishedAt ? [b.finishedAt] : [])]) yield ['book', at];
+  for (const g of Object.values(lib.games)) for (const at of [...(g.history ?? []), ...(g.finishedAt ? [g.finishedAt] : [])]) yield ['game', at];
 }
 
 /** The years you marked something in, latest first. */
@@ -104,26 +105,24 @@ export function statsOf(lib: Library, year?: number): Stats {
     if (episodes) topShows.push({ show, episodes });
     title(episodes > 0, show, show.genres);
   }
+  /** Times in the period: the last one and the earlier ones (rewatches, rereads, replays). */
+  const times = (last: number | undefined, history: number[] | undefined) => [...(history ?? []), ...(last ? [last] : [])].filter(inPeriod).length;
   for (const m of Object.values(lib.movies)) {
-    const seen = inPeriod(m.watchedAt);
-    if (seen) {
-      out.films++;
-      out.filmMinutes += m.runtime ?? 0;
-    }
-    title(seen, m, m.genres);
+    const n = times(m.watchedAt, m.history);
+    out.films += n;
+    out.filmMinutes += n * (m.runtime ?? 0);
+    title(n > 0, m, m.genres);
   }
   for (const b of Object.values(lib.books)) {
-    const read = inPeriod(b.finishedAt);
-    if (read) {
-      out.books++;
-      out.pages += b.pages ?? b.page ?? 0;
-    }
-    title(read, b);
+    const n = times(b.finishedAt, b.history);
+    out.books += n;
+    out.pages += n * (b.pages ?? b.page ?? 0);
+    title(n > 0, b);
   }
   for (const g of Object.values(lib.games)) {
-    const done = inPeriod(g.finishedAt);
-    if (done) out.games++;
-    title(done, g, g.genres);
+    const n = times(g.finishedAt, g.history);
+    out.games += n;
+    title(n > 0, g, g.genres);
   }
 
   const rated = ratings.reduce((n, c) => n + c, 0);

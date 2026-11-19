@@ -1,5 +1,5 @@
-import { ReactNode, useRef, useState } from 'react';
-import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ReactNode, useEffect, useRef, useState } from 'react';
+import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -7,15 +7,17 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
+import ListPicker from '@/components/media/ListPicker';
 import Icon from '@/components/ui/Icon';
 import Poster from '@/components/ui/Poster';
 import PressableScale from '@/components/ui/PressableScale';
-import { FadeIn, Skeleton } from '@/components/ui/Motion';
+import { FadeIn, Pop, Skeleton } from '@/components/ui/Motion';
 import { makeStyles, useTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 import type { Band } from '@/lib/ribbons';
 import type { MediaKind } from '@/lib/types';
 import { Aurora } from '@/spark';
+import { ListItem, itemKey, useLists } from '@/store/useLists';
 
 interface Props {
   kind: MediaKind;
@@ -29,6 +31,8 @@ interface Props {
   onRetry?: () => void;
   /** What your friends made of it, across the poster. */
   ribbon?: Band;
+  /** The title as a list entry: a bookmark at the top right puts it on your lists. */
+  listItem?: Omit<ListItem, 'addedAt'>;
   children?: ReactNode;
 }
 
@@ -37,9 +41,9 @@ interface Props {
  * then fades into the paper; the poster overlaps it. A frosted bar takes the title once
  * the hero has scrolled away.
  */
-export default function DetailLayout({ kind, title, poster, backdrop, meta, tags, loading, error, onRetry, ribbon, children }: Props) {
+export default function DetailLayout({ kind, title, poster, backdrop, meta, tags, loading, error, onRetry, ribbon, listItem, children }: Props) {
   const { t } = useTranslation();
-  const { palette, type, glass } = useTheme();
+  const { palette, type, glass, spark, dark } = useTheme();
   const styles = useStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -48,6 +52,11 @@ export default function DetailLayout({ kind, title, poster, backdrop, meta, tags
   const heroH = wide ? 420 : Math.round(width * 0.78);
   const posterW = wide ? 180 : 116;
   const art = backdrop ?? poster;
+  // The hero settles in: a slow zoom out and a fade, once per page.
+  const enter = useRef(new Animated.Value(spark.reduceMotion ? 1 : 0)).current;
+  useEffect(() => {
+    if (!spark.reduceMotion) Animated.timing(enter, { toValue: 1, duration: 900, easing: Easing.bezier(0.2, 0.8, 0.2, 1), useNativeDriver: true }).start();
+  }, [enter, spark.reduceMotion]);
 
   const heroStyle = {
     transform: [
@@ -60,6 +69,13 @@ export default function DetailLayout({ kind, title, poster, backdrop, meta, tags
   return (
     <View style={styles.root}>
       <Aurora />
+      {/* The page takes the colours of its poster: the art, blurred to a wash, under the glass. Not in lite. */}
+      {!!poster && !spark.lite && (
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: enter.interpolate({ inputRange: [0, 1], outputRange: [0, dark ? 0.38 : 0.26] }) }]}>
+          <Image source={{ uri: poster }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" blurRadius={60} />
+          <LinearGradient colors={[palette.scrimClear, palette.scrimSoft, palette.screen]} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
+        </Animated.View>
+      )}
       <Animated.ScrollView
         scrollEventThrottle={16}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y } } }], { useNativeDriver: true })}
@@ -67,7 +83,9 @@ export default function DetailLayout({ kind, title, poster, backdrop, meta, tags
       >
         <Animated.View style={[{ height: heroH, overflow: 'hidden' }, heroStyle]}>
           {art ? (
+            <Animated.View style={[StyleSheet.absoluteFill, { opacity: enter, transform: [{ scale: enter.interpolate({ inputRange: [0, 1], outputRange: [1.08, 1] }) }] }]}>
             <Image source={{ uri: art }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={350} blurRadius={backdrop ? 0 : 24} />
+            </Animated.View>
           ) : (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.hero }]} />
           )}
@@ -127,7 +145,28 @@ export default function DetailLayout({ kind, title, poster, backdrop, meta, tags
         {glass.supported ? <BlurView intensity={30} tint={glass.tint} style={StyleSheet.absoluteFill} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: glass.solid }]} />}
         <Icon name="back" size={20} color={palette.ink} strokeWidth={2.2} />
       </PressableScale>
+      {listItem && <ListBookmark item={listItem} style={[styles.back, { top: insets.top + 6, left: undefined, right: gutter - 6 }]} />}
     </View>
+  );
+}
+
+/** The bookmark at the top right: filled once the title is on one of your lists. */
+function ListBookmark({ item, style }: { item: Omit<ListItem, 'addedAt'>; style: object }) {
+  const { t } = useTranslation();
+  const { palette, glass } = useTheme();
+  const [open, setOpen] = useState(false);
+  const key = itemKey(item);
+  const on = useLists((s) => Object.values(s.lists).some((l) => l.items.some((i) => itemKey(i) === key)));
+  return (
+    <>
+      <PressableScale onPress={() => setOpen(true)} style={[style, on && { backgroundColor: palette.primary }]} accessibilityLabel={t('lists.addTo')} accessibilityState={{ selected: on }}>
+        {!on && (glass.supported ? <BlurView intensity={30} tint={glass.tint} style={StyleSheet.absoluteFill} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: glass.solid }]} />)}
+        <Pop trigger={on}>
+          <Icon name="bookmark" size={19} color={on ? palette.onInk : palette.ink} strokeWidth={2.2} />
+        </Pop>
+      </PressableScale>
+      <ListPicker item={item} visible={open} onClose={() => setOpen(false)} />
+    </>
   );
 }
 

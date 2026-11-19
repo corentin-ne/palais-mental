@@ -21,7 +21,10 @@ import { BookMeta, bookPage, fetchBook, loadBookExtras } from '@/lib/books';
 import { ShelfExtras, mergeExtras } from '@/lib/extras';
 import { countdown, fullDate } from '@/lib/format';
 import { GameMeta, fetchGame, gamePage, loadGameExtras } from '@/lib/games';
-import { Playtime, playtimeOf } from '@/lib/playtime';
+import { Playtime, playtimeOf, typicalHours } from '@/lib/playtime';
+import { bookPace, gamePace } from '@/lib/pace';
+import PaceLine from '@/components/media/PaceLine';
+import PriceAlert from '@/components/media/PriceAlert';
 import { useRibbons } from '@/lib/ribbons';
 import { bookFraction, gameFraction, shelfState } from '@/lib/shelf';
 import { shareTitle } from '@/lib/share';
@@ -141,7 +144,7 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
   const links = useMemo(() => (link ? [{ label: linkLabel, url: link, icon: 'globe' as const }, ...(extras.links ?? []).filter((l) => l.label !== linkLabel)] : (extras.links ?? [])), [link, linkLabel, extras.links]);
 
   return (
-    <DetailLayout kind={kind} title={item?.title} poster={item?.cover} backdrop={game?.backdrop} meta={metaLine} tags={isBook ? book?.subjects : game?.genres} loading={!item} error={error} onRetry={load} ribbon={item && ribbon(kind, item)}>
+    <DetailLayout kind={kind} title={item?.title} poster={item?.cover} backdrop={game?.backdrop} meta={metaLine} tags={isBook ? book?.subjects : game?.genres} loading={!item} error={error} onRetry={load} ribbon={item && ribbon(kind, item)} listItem={item && { kind, id: item.id, title: item.title, poster: item.cover, year: item.year }}>
       {item && (
         <>
           <FadeIn index={3} style={styles.panel}>
@@ -239,6 +242,7 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
                     <Text style={styles.percent}>{`${Math.round(fraction * 100)} %`}</Text>
                   </View>
                 )}
+                <PaceLine pace={book ? bookPace(book) : game ? gamePace(game, typicalHours(playtime)) : undefined} />
                 <Button label={t(isBook ? 'book.finished' : 'game.finished')} icon="check" onPress={() => status('finished')} style={styles.block} />
                 <View style={styles.actions}>
                   <Button label={t('shelf.pause')} icon="pause" variant="secondary" onPress={() => status('paused')} style={{ flex: 1 }} />
@@ -257,7 +261,13 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
               <>
                 <Text style={styles.done}>
                   {state === 'finished'
-                    ? [t(isBook ? 'book.finishedOn' : 'game.finishedOn', { date: fullDate(item.finishedAt!) }), game?.hours ? t('game.hoursN', { count: game.hours }) : undefined].filter(Boolean).join(' · ')
+                    ? [
+                        t(isBook ? 'book.finishedOn' : 'game.finishedOn', { date: fullDate(item.finishedAt!) }),
+                        game?.hours ? t('game.hoursN', { count: game.hours }) : undefined,
+                        tracked?.history?.length ? t(isBook ? 'again.readTimes' : 'again.playedTimes', { count: tracked.history.length + 1 }) : undefined,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')
                     : t('shelf.droppedOn', { date: fullDate(item.droppedAt!) })}
                 </Text>
                 <View style={styles.actions}>
@@ -266,8 +276,15 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
                     icon={state === 'finished' ? 'refresh' : 'play'}
                     variant="secondary"
                     onPress={() => {
-                      if (state === 'finished') useLibrary.getState()[isBook ? 'setBookStatus' : 'setGameStatus'](id, 'want');
-                      status('started');
+                      // Once more: the finish you had goes to the history (it still counts), and it starts over.
+                      if (state === 'finished') {
+                        const before = tracked;
+                        useLibrary.getState().startAgain(kind, id);
+                        haptics.success();
+                        useUi.getState().showToast(t(isBook ? 'again.reading' : 'again.playing', { title: item.title }), () =>
+                          isBook ? useLibrary.getState().restoreBook(before as Book) : useLibrary.getState().restoreGame(before as Game),
+                        );
+                      } else status('started');
                     }}
                     style={{ flex: 1 }}
                   />
@@ -291,6 +308,7 @@ export default function ShelfDetail({ kind, id }: { kind: Kind; id: string }) {
             )}
           </FadeIn>
 
+          {!isBook && tracked && <PriceAlert game={tracked as Game} />}
           <FriendsBlock kind={kind} item={item} rating={tracked?.rating} review={tracked?.review} />
           <ExtraLinks links={links} onShare={() => shareTitle(item.title, item.year, link)} />
           <ExtraScores scores={extras.scores ?? []} />

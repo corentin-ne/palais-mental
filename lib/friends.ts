@@ -5,10 +5,10 @@
  */
 import { AppState } from 'react-native';
 
-import { norm } from './api';
+import { norm, quiet } from './api';
 import { ApiError, all, api, currentUser, forgetSession, rpc, signIn } from './supabase';
 import { Book, Game, MediaKind, Movie, Show } from './types';
-import { FriendsData, Member, Post, SharedRating, SharedTitle, TitlePost, useFriends } from '@/store/useFriends';
+import { FriendsData, Member, Post, Sent, SharedRating, SharedTitle, TitlePost, useFriends } from '@/store/useFriends';
 import { useLibrary } from '@/store/useLibrary';
 
 /** What a title needs to be shared: the fields the library and the detail pages both have. */
@@ -117,13 +117,14 @@ export const REVIEW = 0;
 const TALK = 80;
 const POST_FIELDS = 'id,user_id,title_id,episode_id,body,rating,created_at,post_reactions(user_id,emoji)';
 
-async function fetchAll(): Promise<FriendsData> {
-  const [members, titles, ratings, reviews, talk] = await Promise.all([
+async function fetchAll(me: string): Promise<FriendsData> {
+  const [members, titles, ratings, reviews, talk, sent] = await Promise.all([
     all<{ user_id: string; name: string; joined_at: string }>('members?select=user_id,name,joined_at&order=joined_at.asc,user_id.asc'),
     all<TitleRow>('titles?select=id,kind,keys,route,title,year,poster&order=id.asc'),
     all<{ user_id: string; title_id: number; rating: number; updated_at: string }>('ratings?select=user_id,title_id,rating,updated_at&order=title_id.asc,user_id.asc'),
     all<PostRow>(`posts?select=${POST_FIELDS}&episode_id=eq.${REVIEW}&order=created_at.desc,id.desc`),
     api<PostRow[]>(`posts?select=${POST_FIELDS}&episode_id=gt.${REVIEW}&order=created_at.desc,id.desc&limit=${TALK}`),
+    quiet(api<{ user_id: string; title_id: number; note: string | null; created_at: string }[]>(`recos?select=user_id,title_id,note,created_at&to_user=eq.${me}&order=created_at.desc&limit=${SENT}`), []),
   ]);
   return {
     members: Object.fromEntries(members.map((m): [string, Member] => [m.user_id, { id: m.user_id, name: m.name, joinedAt: ms(m.joined_at) }])),
@@ -131,9 +132,12 @@ async function fetchAll(): Promise<FriendsData> {
     ratings: ratings.map((r): SharedRating => ({ user: r.user_id, title: r.title_id, rating: r.rating, at: ms(r.updated_at) })),
     reviews: reviews.map(titlePostOf),
     talk: talk.map(titlePostOf),
+    sentToMe: sent.map((r): Sent => ({ from: r.user_id, title: r.title_id, note: r.note?.trim() || undefined, at: ms(r.created_at) })),
   };
 }
 
+/** How many titles sent to you are read. */
+const SENT = 50;
 const FRESH = 3 * 60_000;
 let pass: Promise<void> | undefined;
 /** Reviews were read from the server since launch: until then, yours can't be told apart from new ones. */
@@ -145,7 +149,7 @@ export function syncFriends(force = false) {
   if (!me || (!force && Date.now() - syncedAt < FRESH)) return pass ?? Promise.resolve();
   return (pass ??= (async () => {
     try {
-      const data = await fetchAll();
+      const data = await fetchAll(me);
       // No longer in the group (you left from another device): back to the app as it was.
       if (!data.members[me]) return useFriends.getState().reset();
       useFriends.getState().set({ ...data, syncedAt: Date.now() });
@@ -310,6 +314,27 @@ export function setShareRatings(shareRatings: boolean) {
 export function setRatingShared(kind: MediaKind, item: Shareable, on: boolean) {
   useFriends.getState().set({ shared: { ...useFriends.getState().shared, [localKey(kind, item)]: on } });
   return pushRatings();
+}
+
+// ------------------------------------------------------------------ Sending a title to someone
+/**
+ * "You should watch this": a title picked for one member, with a few words. One per title from you (sending
+ * it again to someone else moves it). The group can read it, like the rest of what is shared.
+ */
+export async function sendTitle(kind: MediaKind, item: Shareable, to: string, note?: string) {
+  const { me } = useFriends.getState();
+  if (!me) throw new Error('not joined');
+  const [title_id] = await ensureTitles([{ kind, item }]);
+  await api('recos?on_conflict=user_id,title_id', {
+    method: 'POST',
+    prefer: 'resolution=merge-duplicates',
+    body: [{ title_id, to_user: to, note: note?.trim().slice(0, 280) || null, created_at: new Date().toISOString() }],
+  });
+}
+
+/** Opened or waved off: it leaves "Sent to you". */
+export function markSentSeen(s: Pick<Sent, 'from' | 'title'>) {
+  useFriends.getState().set({ sentSeen: { ...useFriends.getState().sentSeen, [`${s.from}:${s.title}`]: Date.now() } });
 }
 
 // ------------------------------------------------------------------ Joining

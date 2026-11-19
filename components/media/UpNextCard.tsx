@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import CheckButton from '@/components/ui/CheckButton';
 import PressableScale from '@/components/ui/PressableScale';
+import Swipe from '@/components/ui/Swipe';
 import Poster from '@/components/ui/Poster';
 import { animateLayout } from '@/components/ui/Motion';
 import { makeStyles } from '@/constants/theme';
@@ -46,6 +47,8 @@ export default function UpNextCard({ show, progress, width }: { show: Show; prog
 
   return (
     // The card opens the show and the check marks the episode: siblings, not one control inside another.
+    // A swipe to the right marks it too.
+    <Swipe onSwipe={onCheck} icon="check" label={t('show.watchedShort')} style={{ width }}>
     <Lit style={[styles.card, { width }]}>
       <PressableScale depth={0.98} onPress={() => router.push(`/show/${show.tvmazeId}`)} style={styles.open} accessibilityLabel={show.title}>
         <View style={[styles.still, { width: imgW, height: Math.round(imgW * 0.625) }]}>
@@ -77,6 +80,7 @@ export default function UpNextCard({ show, progress, width }: { show: Show; prog
       </PressableScale>
       <CheckButton checked={false} onPress={onCheck} label={t('show.markWatched')} size={40} />
     </Lit>
+    </Swipe>
   );
 }
 

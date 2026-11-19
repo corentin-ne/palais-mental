@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import CriticScores from '@/components/media/CriticScores';
 import DetailLayout, { CastRail, Synopsis } from '@/components/media/DetailLayout';
 import Extras, { Similar } from '@/components/media/Extras';
 import EpisodeTalk from '@/components/friends/EpisodeTalk';
@@ -158,6 +159,7 @@ export default function ShowScreen() {
       error={error}
       onRetry={load}
       ribbon={show && ribbon('show', show)}
+      listItem={show && { kind: 'show', id: String(show.tvmazeId), title: show.title, poster: show.poster, year: show.year }}
     >
       {show && progress && (
         <>
@@ -175,6 +177,7 @@ export default function ShowScreen() {
 
           <FriendsBlock kind="show" item={show} rating={tracked?.rating} review={tracked?.review} />
           <Extras kind="show" title={show.title} year={show.year} imdbId={show.imdbId} extras={extras} />
+          <CriticScores title={show.title} imdbId={show.imdbId} />
           <Synopsis text={show.summary} />
 
           {seasons.length > 0 && (

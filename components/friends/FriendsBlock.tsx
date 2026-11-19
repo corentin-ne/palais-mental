@@ -13,6 +13,7 @@ import { Switch } from '@/spark';
 import { useFriends } from '@/store/useFriends';
 import Avatar from './Avatar';
 import Reactions from './Reactions';
+import { SendButton } from './SendTo';
 
 interface Props {
   kind: MediaKind;
@@ -68,6 +69,7 @@ export default function FriendsBlock({ kind, item, rating, review }: Props) {
       </View>
 
       {takes.length === 0 && <Text style={styles.hint}>{t('friends.nothingYet')}</Text>}
+      <SendButton kind={kind} item={item} />
 
       {takes.map((x) => {
         const name = x.user === me ? t('friends.you') : members[x.user]?.name;

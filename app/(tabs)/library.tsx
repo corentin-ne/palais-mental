@@ -288,7 +288,18 @@ export default function LibraryScreen() {
   const empty = useLibraryEmpty();
 
   return (
-    <Screen title={t('library.title')} right={<SearchButton query={query.trim() || undefined} />} onEndReached={showMore}>
+    <Screen
+      title={t('library.title')}
+      right={
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <PressableScale onPress={() => router.push('/lists' as Href)} style={styles.headButton} accessibilityLabel={t('lists.title')}>
+            <Icon name="bookmark" size={19} color={palette.ink} strokeWidth={2.1} />
+          </PressableScale>
+          <SearchButton query={query.trim() || undefined} />
+        </View>
+      }
+      onEndReached={showMore}
+    >
       {empty ? (
         <Empty icon="grid" title={t('library.emptyTitle')} body={t('library.emptyBody')} cta={t('welcome.cta')} onPress={() => router.push('/search')} />
       ) : (
@@ -434,6 +445,7 @@ const PosterTile = memo(function PosterTile({ href, title, poster, caption, prog
 });
 
 const useStyles = makeStyles(({ palette, fonts, type }) => ({
+  headButton: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline, marginBottom: 2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 20 },
   pile: { position: 'absolute', height: 24, borderRadius: 8, backgroundColor: palette.surfaceRaised, borderWidth: 1, borderColor: palette.hairline },
   title: { ...fonts.semibold, fontSize: 13, color: palette.ink },

@@ -9,8 +9,20 @@ export interface Toast {
   undo?: () => void;
 }
 
+/** A moment worth marking: a series, book or game finished, a goal reached. */
+export interface Celebration {
+  id: number;
+  title: string;
+  detail?: string;
+  /** A poster or cover shown in the middle of the burst. */
+  art?: string;
+}
+
 interface UiState {
   toast: Toast | null;
+  celebration: Celebration | null;
+  celebrate: (c: Omit<Celebration, 'id'>) => void;
+  endCelebration: () => void;
   showToast: (message: string, undo?: () => void) => void;
   hideToast: () => void;
   /** A newer release to offer (launch check, or Settings › Check for updates). */
@@ -21,6 +33,9 @@ interface UiState {
 /** Transient interface state shared across screens. Never persisted. */
 export const useUi = create<UiState>((set) => ({
   toast: null,
+  celebration: null,
+  celebrate: (c) => set({ celebration: { ...c, id: Date.now() } }),
+  endCelebration: () => set({ celebration: null }),
   showToast: (message, undo) => set({ toast: { id: Date.now(), message, undo } }),
   hideToast: () => set({ toast: null }),
   setUpdate: (update) => set({ update }),

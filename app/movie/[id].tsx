@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import CollectionLink from '@/components/media/CollectionLink';
+import CriticScores from '@/components/media/CriticScores';
 import DetailLayout, { CastRail, Synopsis } from '@/components/media/DetailLayout';
 import Extras, { Similar } from '@/components/media/Extras';
 import FriendsBlock from '@/components/friends/FriendsBlock';
@@ -65,6 +66,14 @@ export default function MovieScreen() {
     haptics.success();
     useUi.getState().showToast(t(markWatched ? 'toast.watchedMovie' : upcoming ? 'toast.awaitMovie' : 'toast.addedMovie', { title: details.movie.title }));
   };
+  // Seen it again: the earlier date stays in its history and counts in your statistics.
+  const rewatch = () => {
+    const before = useLibrary.getState().movies[id];
+    if (!before) return;
+    useLibrary.getState().rewatchMovie(id);
+    haptics.success();
+    useUi.getState().showToast(t('again.rewatched', { title: before.title }), () => useLibrary.getState().restoreMovie(before));
+  };
   const toggleWatched = () => {
     useLibrary.getState().setMovieWatched(id, !watched);
     watched ? haptics.tap() : haptics.success();
@@ -73,7 +82,7 @@ export default function MovieScreen() {
   const meta = movie ? [movie.year, runtime(movie.runtime), movie.director].filter(Boolean).join(' · ') : undefined;
 
   return (
-    <DetailLayout kind="movie" title={movie?.title} poster={movie?.poster} backdrop={movie?.backdrop} meta={meta} tags={movie?.genres} loading={!movie} error={error} onRetry={load} ribbon={movie && ribbon('movie', movie)}>
+    <DetailLayout kind="movie" title={movie?.title} poster={movie?.poster} backdrop={movie?.backdrop} meta={meta} tags={movie?.genres} loading={!movie} error={error} onRetry={load} ribbon={movie && ribbon('movie', movie)} listItem={movie && { kind: 'movie', id: movie.id, title: movie.title, poster: movie.poster, year: movie.year }}>
       {movie && (
         <>
           <FadeIn index={3} style={styles.panel}>
@@ -115,6 +124,14 @@ export default function MovieScreen() {
                 {!upcoming && <Button label={t('movie.seenIt')} icon="check" variant="secondary" onPress={() => add(true)} disabled={!details} style={{ alignSelf: 'stretch' }} />}
               </View>
             )}
+            {watched && tracked?.watchedAt && (
+              <View style={styles.again}>
+                <Text style={styles.hint}>
+                  {[t('again.watchedOn', { date: fullDate(tracked.watchedAt) }), tracked.history?.length ? t('again.watchedTimes', { count: tracked.history.length + 1 }) : undefined].filter(Boolean).join(' · ')}
+                </Text>
+                <Button label={t('again.watchedToday')} icon="refresh" variant="ghost" compact onPress={rewatch} />
+              </View>
+            )}
             {upcoming && !watched && <Text style={styles.hint}>{t('movie.remindHint')}</Text>}
             {tracked && !(upcoming && !watched) && (
               <>
@@ -129,6 +146,7 @@ export default function MovieScreen() {
           <FriendsBlock kind="movie" item={movie} rating={tracked?.rating} review={tracked?.review} />
           <CollectionLink kind="movie" item={movie} />
           <Extras kind="movie" title={movie.title} year={movie.year} imdbId={movie.imdbId} extras={extras} />
+          <CriticScores title={movie.title} imdbId={movie.imdbId} wikidataId={movie.wikidataId} />
           <Synopsis text={movie.overview} />
           <CastRail cast={details?.cast ?? []} />
           <Similar kind="movie" extras={extras} />
@@ -147,7 +165,8 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   countdownText: { ...fonts.semibold, fontSize: 12, color: palette.primaryText },
   actions: { flexDirection: 'row', gap: 10 },
   rate: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  hint: { ...type.small, fontSize: 12.5 },
+  hint: { ...type.small, fontSize: 12.5, flexShrink: 1 },
+  again: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' },
   reminder: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 50, borderRadius: 25, backgroundColor: palette.primaryTint },
   reminderText: { ...fonts.semibold, fontSize: 15, color: palette.primaryText },
 }));

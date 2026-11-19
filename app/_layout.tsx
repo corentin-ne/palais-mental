@@ -8,12 +8,14 @@ import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 
+import Celebration from '@/components/ui/Celebration';
 import SafeBoundary from '@/components/ui/SafeBoundary';
 import Toast from '@/components/ui/Toast';
 import UpdatePrompt from '@/components/ui/UpdatePrompt';
 import { useSparkOptions, useTheme } from '@/constants/theme';
 import { useLanguageSync } from '@/hooks/useLanguageSync';
 import { startFriends } from '@/lib/friends';
+import { startMilestones } from '@/lib/milestones';
 import { onStorageError } from '@/lib/storage';
 import { startSync } from '@/lib/sync';
 import { startWidget } from '@/lib/widget';
@@ -59,6 +61,7 @@ export default function RootLayout() {
   useEffect(() => startSync(), []);
   useEffect(() => startFriends(), []);
   useEffect(() => (hydrated ? startWidget() : undefined), [hydrated]);
+  useEffect(() => (hydrated ? startMilestones() : undefined), [hydrated]);
   // A change that couldn't be written (storage full): said once, not lost in silence.
   useEffect(() => onStorageError(() => useUi.getState().showToast(i18n.t('toast.notSaved'))), []);
 
@@ -75,7 +78,7 @@ export default function RootLayout() {
   if (!hydrated) return <View style={{ flex: 1, backgroundColor: palette.bg }} />;
 
   return (
-    <SparkProvider scheme={spark.scheme} accent={spark.accent} lite={spark.lite}>
+    <SparkProvider scheme={spark.scheme} accent={spark.accent} lite={spark.lite} reduceMotion={spark.reduceMotion}>
       <SafeBoundary>
         <StatusBar style={dark ? 'light' : 'dark'} />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: palette.bg }, animation: 'slide_from_right', freezeOnBlur: true }}>
@@ -88,11 +91,15 @@ export default function RootLayout() {
           <Stack.Screen name="collection/[kind]/[key]" />
           <Stack.Screen name="data" />
           <Stack.Screen name="journal" />
+          <Stack.Screen name="lists" />
+          <Stack.Screen name="list/[id]" />
           <Stack.Screen name="stats" />
+          <Stack.Screen name="recap" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           <Stack.Screen name="connections" />
           <Stack.Screen name="settings" />
         </Stack>
         <Toast />
+        <Celebration />
         <UpdatePrompt />
       </SafeBoundary>
     </SparkProvider>

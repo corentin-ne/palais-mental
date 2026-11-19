@@ -19,7 +19,8 @@
     "retry": "Réessayer",
     "back": "Retour",
     "books": "Livres",
-    "games": "Jeux"
+    "games": "Jeux",
+    "close": "Fermer"
   },
   "greeting": {
     "night": "Une séance de nuit ?",
@@ -32,7 +33,9 @@
     "body": "Suivez séries, films, livres et jeux, gardez votre place au fil de l'eau et sachez le jour où quelque chose de nouveau sort.",
     "cta": "Trouver quelque chose",
     "import": "Restaurer une sauvegarde",
-    "connect": "Importer Letterboxd ou vos listes d’anime"
+    "connect": "Importer Letterboxd ou vos listes d’anime",
+    "from": "Tu viens d'où ?",
+    "fromHint": "Ramène ton historique : ce que tu as vu, lu et joué arrive directement."
   },
   "search": {
     "title": "Rechercher",
@@ -46,7 +49,9 @@
     "topGames": "Meilleures ventes",
     "soonGames": "Bientôt disponibles",
     "recent": "Recherches récentes",
-    "clearRecent": "Effacer"
+    "clearRecent": "Effacer",
+    "inLibrary": "Dans ta bibliothèque",
+    "seeAll": "Voir les {{count}}"
   },
   "upNext": {
     "title": "À suivre",
@@ -154,7 +159,8 @@
     "watchAll_one": "Marquer l'épisode restant comme vu",
     "watchAll_other": "Marquer les {{count}} épisodes restants comme vus",
     "skipped_one": "{{count}} épisode précédent non coché · le marquer vu",
-    "skipped_other": "{{count}} épisodes précédents non cochés · les marquer vus"
+    "skipped_other": "{{count}} épisodes précédents non cochés · les marquer vus",
+    "watchedShort": "Vu"
   },
   "movie": {
     "releases": "Sortie le",
@@ -446,7 +452,8 @@
     "exportedEvents": "{{count}} dates exportées",
     "calendarName": "Sorties Palais Mental",
     "syncAll_one": "Synchroniser {{count}} compte",
-    "syncAll_other": "Synchroniser les {{count}} comptes"
+    "syncAll_other": "Synchroniser les {{count}} comptes",
+    "yours": "Commence ici"
   },
   "series": {
     "title": "Dans la même série",
@@ -701,5 +708,163 @@
     "topShows": "Séries les plus regardées",
     "emptyTitle": "Rien de coché pour l'instant",
     "emptyBody": "Cochez un épisode, marquez un film comme vu ou terminez un livre ou un jeu : c'est compté ici, au jour où vous l'avez fait."
+  },
+  "milestone": {
+    "goal": "Objectif atteint !",
+    "goalDetail": "{{count}} {{what}} en {{year}}",
+    "showFinished": "Série terminée",
+    "showDetail": "{{title}} : {{count}} épisodes, {{time}}",
+    "seasonDone": "Saison {{n}} terminée",
+    "bookFinished": "Livre terminé",
+    "gameFinished": "Jeu terminé"
+  },
+  "recap": {
+    "title": "Ton {{year}}",
+    "brand": "Palais Mental · {{year}}",
+    "previous": "Carte précédente",
+    "next": "Carte suivante",
+    "share": "Partager",
+    "empty": "Rien de marqué cette année pour l'instant : l'histoire commence à ta première coche.",
+    "titles_one": "titre bouclé",
+    "titles_other": "titres bouclés",
+    "timeEyebrow": "Du temps bien passé",
+    "hours_one": "heure de séries, films et jeux",
+    "hours_other": "heures de séries, films et jeux",
+    "days_one": "Soit {{count}} journée entière.",
+    "days_other": "Soit {{count}} journées entières.",
+    "showsEyebrow": "Séries",
+    "episodes_one": "épisode vu",
+    "episodes_other": "épisodes vus",
+    "binge_one": "Ton plus gros binge : {{count}} épisode le {{date}}",
+    "binge_other": "Ton plus gros binge : {{count}} épisodes le {{date}}",
+    "topShow_one": "Ta plus regardée : {{count}} épisode",
+    "topShow_other": "Ta plus regardée : {{count}} épisodes",
+    "kindsEyebrow": "Et aussi",
+    "films_one": "film vu",
+    "films_other": "films vus",
+    "books_one": "livre lu",
+    "books_other": "livres lus",
+    "games_one": "jeu terminé",
+    "games_other": "jeux terminés",
+    "pages_one": "{{count}} page tournée.",
+    "pages_other": "{{count}} pages tournées.",
+    "genreEyebrow": "Ton genre",
+    "bestMonth": "Ton mois le plus chargé : {{month}}.",
+    "topEyebrow": "Tes mieux notés",
+    "rhythmEyebrow": "Ton rythme",
+    "activeDays_one": "jour avec quelque chose de marqué",
+    "activeDays_other": "jours avec quelque chose de marqué",
+    "streak_one": "Plus longue série : {{count}} jour d'affilée.",
+    "streak_other": "Plus longue série : {{count}} jours d'affilée.",
+    "busiest_one": "Ta plus grosse journée : {{count}} coche le {{date}}.",
+    "busiest_other": "Ta plus grosse journée : {{count}} coches le {{date}}.",
+    "goalDone": "Objectif tenu : {{count}} {{what}} sur {{goal}}.",
+    "goalLeft": "Objectif : {{count}} {{what}} sur {{goal}} pour l'instant.",
+    "unit": {
+      "movie_one": "film",
+      "movie_other": "films",
+      "book_one": "livre",
+      "book_other": "livres",
+      "game_one": "jeu",
+      "game_other": "jeux"
+    },
+    "outroEyebrow": "C'est dans la boîte",
+    "outro": "À l'année prochaine",
+    "outroBody": "Quoi que {{year}} te réserve, ce sera ici.",
+    "banner": "Ton {{year}} en revue",
+    "bannerBody": "L'histoire de ce que tu as vu, lu et joué."
+  },
+  "pace": {
+    "timeLeft": "Environ {{time}} restantes",
+    "pagesLeft_one": "{{count}} page restante",
+    "pagesLeft_other": "{{count}} pages restantes",
+    "hoursLeft_one": "Environ {{count}} h restante",
+    "hoursLeft_other": "Environ {{count}} h restantes",
+    "doneBy": "fini {{when}} à ton rythme",
+    "doneAround": "fini vers le {{when}} à ton rythme",
+    "far": "à ce rythme, pas tout de suite"
+  },
+  "tonight": {
+    "title": "Ce soir",
+    "subtitle": "Tu as combien de temps ?",
+    "link": "Ce soir ?",
+    "allEvening": "Toute la soirée",
+    "draw": "Choisis pour moi",
+    "go": "C'est parti",
+    "again": "Un autre",
+    "none": "Rien ne tient dans ce temps-là. Essaie une soirée plus longue, ou ajoute de quoi regarder.",
+    "episode": "{{code}}",
+    "episodes_one": "{{count}} épisode à partir de {{from}}",
+    "episodes_other": "{{count}} épisodes à partir de {{from}}",
+    "film": "Film · {{time}}",
+    "pages_one": "Environ {{count}} page",
+    "pages_other": "Environ {{count}} pages",
+    "finishBook_one": "La dernière page : tu le finis ce soir",
+    "finishBook_other": "Les {{count}} dernières pages : tu le finis ce soir",
+    "session": "Une session de jeu"
+  },
+  "lists": {
+    "title": "Mes listes",
+    "hint": "Tes listes à toi, tous types de titres",
+    "addTo": "Ajouter à une liste",
+    "new": "Nouvelle liste",
+    "create": "Créer et ajouter",
+    "name": "Nom de la liste",
+    "namePlaceholder": "À voir avec Léa, films d'Halloween…",
+    "count_one": "{{count}} titre",
+    "count_other": "{{count}} titres",
+    "emptyTitle": "Aucune liste pour l'instant",
+    "emptyBody": "Range séries, films, livres et jeux à ta façon : touche le marque-page en haut de n'importe quelle fiche.",
+    "emptyList": "Une liste vide",
+    "emptyListBody": "Ouvre un titre et touche le marque-page en haut pour l'ajouter ici.",
+    "rename": "Renommer",
+    "delete": "Supprimer la liste",
+    "deleted": "« {{name}} » supprimée",
+    "removedFrom": "{{title}} retiré de {{list}}",
+    "holdToRemove": "Maintiens une affiche pour la retirer de la liste",
+    "gone": "Cette liste n'existe plus"
+  },
+  "again": {
+    "watchedOn": "Vu le {{date}}",
+    "watchedTimes_one": "vu {{count}} fois",
+    "watchedTimes_other": "vu {{count}} fois",
+    "watchedToday": "Revu",
+    "rewatched": "{{title}} revu",
+    "reading": "Tu relis {{title}}",
+    "playing": "Tu rejoues à {{title}}",
+    "readTimes_one": "lu {{count}} fois",
+    "readTimes_other": "lu {{count}} fois",
+    "playedTimes_one": "fini {{count}} fois",
+    "playedTimes_other": "fini {{count}} fois"
+  },
+  "scores": {
+    "title": "Critiques et public",
+    "credit": "Notes issues de Wikidata. Touche-en une pour ouvrir le site."
+  },
+  "price": {
+    "title": "Alerte prix",
+    "now": "Meilleur prix actuel : {{price}}",
+    "under": "Alerte sous",
+    "hint": "Tu recevras une notification quand il passera à {{price}} ou moins.",
+    "met": "Il est à ton prix en ce moment !",
+    "notifyTitle": "{{title}} est à ton prix",
+    "notifyBody": "{{price}} en ce moment (ton alerte : {{target}})."
+  },
+  "send": {
+    "button": "Envoyer à…",
+    "title": "Envoyer à quelqu'un",
+    "pick": "Choisis quelqu'un",
+    "to": "Envoyer à {{name}}",
+    "note": "Un petit mot",
+    "notePlaceholder": "Pourquoi ça va lui plaire (facultatif)",
+    "privacy": "Comme tout ce qui est partagé, le groupe peut le voir.",
+    "sent": "{{title}} envoyé à {{name}}",
+    "failed": "Envoi impossible : réessaie dans un instant",
+    "forYou": "Pour toi",
+    "from": "de {{name}}",
+    "dismiss": "Masquer"
+  },
+  "widget": {
+    "noGoals": "Fixe des objectifs dans Statistiques pour les voir ici."
   }
 }

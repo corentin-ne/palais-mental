@@ -13,6 +13,7 @@ import { toCsv as csv } from './csv';
 import { episodeCode, sortEpisodes } from './progress';
 import { Book, Game, Movie, Show } from './types';
 import { LibraryData, compactLibrary, useLibrary } from '@/store/useLibrary';
+import { UserList, useLists } from '@/store/useLists';
 
 const FORMAT = 'palais-mental';
 const VERSION = 1;
@@ -22,7 +23,8 @@ const iso = (ms?: number) => (ms ? new Date(ms).toISOString() : '');
 
 export function buildBackup(): string {
   const { shows, movies, books, games } = useLibrary.getState();
-  return JSON.stringify({ format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), shows, movies, books, games }, null, 2);
+  const { lists } = useLists.getState();
+  return JSON.stringify({ format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), shows, movies, books, games, lists }, null, 2);
 }
 
 
@@ -83,10 +85,11 @@ export async function exportData(kind: ExportKind) {
   return deliver(`palais-mental-films-${stamp()}.csv`, buildMoviesCsv(Object.values(movies)), 'text/csv');
 }
 
-export function parseBackup(text: string): LibraryData {
+/** A backup's library, and your lists (absent from backups made before 1.12). */
+export function parseBackup(text: string): LibraryData & { lists?: Record<string, UserList> } {
   const json = JSON.parse(text);
   if (json?.format !== FORMAT || typeof json.shows !== 'object' || typeof json.movies !== 'object') throw new Error('Not a Palais Mental backup');
-  return { shows: json.shows ?? {}, movies: json.movies ?? {}, books: json.books ?? {}, games: json.games ?? {} };
+  return { shows: json.shows ?? {}, movies: json.movies ?? {}, books: json.books ?? {}, games: json.games ?? {}, lists: json.lists && typeof json.lists === 'object' ? json.lists : undefined };
 }
 
 type PickedAsset = DocumentPicker.DocumentPickerAsset;
@@ -101,7 +104,7 @@ export async function pickFiles(multiple = false): Promise<{ name: string; text:
 }
 
 /** Pick a backup file; resolves undefined when cancelled. */
-export async function pickBackup(): Promise<LibraryData | undefined> {
+export async function pickBackup(): Promise<(LibraryData & { lists?: Record<string, UserList> }) | undefined> {
   const [file] = await pickFiles();
   return file ? parseBackup(file.text) : undefined;
 }

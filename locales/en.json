@@ -19,7 +19,8 @@
     "retry": "Try again",
     "back": "Back",
     "books": "Books",
-    "games": "Games"
+    "games": "Games",
+    "close": "Close"
   },
   "greeting": {
     "night": "Late night viewing?",
@@ -32,7 +33,9 @@
     "body": "Follow shows, films, books and games, keep your place as you go, and know the day anything new comes out.",
     "cta": "Find something",
     "import": "Restore a backup",
-    "connect": "Bring your Letterboxd or anime lists"
+    "connect": "Bring your Letterboxd or anime lists",
+    "from": "Coming from somewhere?",
+    "fromHint": "Bring your history along: what you watched, read and played comes straight in."
   },
   "search": {
     "title": "Search",
@@ -46,7 +49,9 @@
     "topGames": "Top sellers",
     "soonGames": "Coming soon",
     "recent": "Recent searches",
-    "clearRecent": "Clear"
+    "clearRecent": "Clear",
+    "inLibrary": "In your library",
+    "seeAll": "See all {{count}}"
   },
   "upNext": {
     "title": "Up next",
@@ -154,7 +159,8 @@
     "watchAll_one": "Mark the {{count}} episode left as watched",
     "watchAll_other": "Mark the {{count}} episodes left as watched",
     "skipped_one": "{{count}} earlier episode not ticked · mark it watched",
-    "skipped_other": "{{count}} earlier episodes not ticked · mark them watched"
+    "skipped_other": "{{count}} earlier episodes not ticked · mark them watched",
+    "watchedShort": "Watched"
   },
   "movie": {
     "releases": "Out on",
@@ -446,7 +452,8 @@
     "exportedEvents": "{{count}} dates exported",
     "calendarName": "Palais Mental releases",
     "syncAll_one": "Sync {{count}} account",
-    "syncAll_other": "Sync all {{count}} accounts"
+    "syncAll_other": "Sync all {{count}} accounts",
+    "yours": "Start here"
   },
   "series": {
     "title": "In the same series",
@@ -701,5 +708,163 @@
     "topShows": "Most watched shows",
     "emptyTitle": "Nothing marked yet",
     "emptyBody": "Tick an episode, mark a film as watched or finish a book or a game: it is counted here, on the day you did."
+  },
+  "milestone": {
+    "goal": "Goal reached!",
+    "goalDetail": "{{count}} {{what}} in {{year}}",
+    "showFinished": "Series finished",
+    "showDetail": "{{title}}: {{count}} episodes, {{time}}",
+    "seasonDone": "Season {{n}} done",
+    "bookFinished": "Book finished",
+    "gameFinished": "Game finished"
+  },
+  "recap": {
+    "title": "Your {{year}}",
+    "brand": "Palais Mental · {{year}}",
+    "previous": "Previous card",
+    "next": "Next card",
+    "share": "Share",
+    "empty": "Nothing marked this year yet: the story starts with your first tick.",
+    "titles_one": "title got through",
+    "titles_other": "titles got through",
+    "timeEyebrow": "Time well spent",
+    "hours_one": "hour of shows, films and games",
+    "hours_other": "hours of shows, films and games",
+    "days_one": "That's {{count}} whole day.",
+    "days_other": "That's {{count}} whole days.",
+    "showsEyebrow": "Series",
+    "episodes_one": "episode watched",
+    "episodes_other": "episodes watched",
+    "binge_one": "Your biggest binge: {{count}} episode on {{date}}",
+    "binge_other": "Your biggest binge: {{count}} episodes on {{date}}",
+    "topShow_one": "Your most watched: {{count}} episode",
+    "topShow_other": "Your most watched: {{count}} episodes",
+    "kindsEyebrow": "And also",
+    "films_one": "film watched",
+    "films_other": "films watched",
+    "books_one": "book read",
+    "books_other": "books read",
+    "games_one": "game finished",
+    "games_other": "games finished",
+    "pages_one": "{{count}} page turned.",
+    "pages_other": "{{count}} pages turned.",
+    "genreEyebrow": "Your genre",
+    "bestMonth": "Your busiest month: {{month}}.",
+    "topEyebrow": "Your best-rated",
+    "rhythmEyebrow": "Your rhythm",
+    "activeDays_one": "day with something marked",
+    "activeDays_other": "days with something marked",
+    "streak_one": "Longest run: {{count}} day in a row.",
+    "streak_other": "Longest run: {{count}} days in a row.",
+    "busiest_one": "Biggest day: {{count}} mark on {{date}}.",
+    "busiest_other": "Biggest day: {{count}} marks on {{date}}.",
+    "goalDone": "Goal met: {{count}} of {{goal}} {{what}}.",
+    "goalLeft": "Goal: {{count}} of {{goal}} {{what}} so far.",
+    "unit": {
+      "movie_one": "film",
+      "movie_other": "films",
+      "book_one": "book",
+      "book_other": "books",
+      "game_one": "game",
+      "game_other": "games"
+    },
+    "outroEyebrow": "That's a wrap",
+    "outro": "See you next year",
+    "outroBody": "Whatever {{year}} brings, it'll be here.",
+    "banner": "Your {{year}} in review",
+    "bannerBody": "A story of what you watched, read and played."
+  },
+  "pace": {
+    "timeLeft": "About {{time}} left",
+    "pagesLeft_one": "{{count}} page left",
+    "pagesLeft_other": "{{count}} pages left",
+    "hoursLeft_one": "About {{count}} h left",
+    "hoursLeft_other": "About {{count}} h left",
+    "doneBy": "done by {{when}} at your pace",
+    "doneAround": "done around {{when}} at your pace",
+    "far": "at this pace, a while yet"
+  },
+  "tonight": {
+    "title": "Tonight",
+    "subtitle": "How much time do you have?",
+    "link": "Tonight?",
+    "allEvening": "All evening",
+    "draw": "Pick for me",
+    "go": "Let's go",
+    "again": "Another one",
+    "none": "Nothing fits in that time. Try a longer evening, or add something to watch.",
+    "episode": "{{code}}",
+    "episodes_one": "{{count}} episode from {{from}}",
+    "episodes_other": "{{count}} episodes from {{from}}",
+    "film": "Film · {{time}}",
+    "pages_one": "About {{count}} page",
+    "pages_other": "About {{count}} pages",
+    "finishBook_one": "The last page: finish it tonight",
+    "finishBook_other": "The last {{count}} pages: finish it tonight",
+    "session": "A play session"
+  },
+  "lists": {
+    "title": "My lists",
+    "hint": "Your own lists, any kind of title",
+    "addTo": "Add to a list",
+    "new": "New list",
+    "create": "Create and add",
+    "name": "List name",
+    "namePlaceholder": "To watch with Léa, Halloween films…",
+    "count_one": "{{count}} title",
+    "count_other": "{{count}} titles",
+    "emptyTitle": "No lists yet",
+    "emptyBody": "Group shows, films, books and games your way: tap the bookmark at the top of any page.",
+    "emptyList": "An empty list",
+    "emptyListBody": "Open a title and tap the bookmark at the top to add it here.",
+    "rename": "Rename",
+    "delete": "Delete the list",
+    "deleted": "“{{name}}” deleted",
+    "removedFrom": "{{title}} taken off {{list}}",
+    "holdToRemove": "Hold a poster to take it off the list",
+    "gone": "This list no longer exists"
+  },
+  "again": {
+    "watchedOn": "Last watched {{date}}",
+    "watchedTimes_one": "seen {{count}} time",
+    "watchedTimes_other": "seen {{count}} times",
+    "watchedToday": "Watched again",
+    "rewatched": "{{title}} watched again",
+    "reading": "Reading {{title}} again",
+    "playing": "Playing {{title}} again",
+    "readTimes_one": "read {{count}} time",
+    "readTimes_other": "read {{count}} times",
+    "playedTimes_one": "finished {{count}} time",
+    "playedTimes_other": "finished {{count}} times"
+  },
+  "scores": {
+    "title": "Critics and audiences",
+    "credit": "Scores from Wikidata. Tap one to open the site."
+  },
+  "price": {
+    "title": "Price alert",
+    "now": "Best price now: {{price}}",
+    "under": "Alert under",
+    "hint": "You'll get a notification when it drops to {{price}} or less.",
+    "met": "It's at your price right now!",
+    "notifyTitle": "{{title}} is at your price",
+    "notifyBody": "{{price}} right now (your alert: {{target}})."
+  },
+  "send": {
+    "button": "Send to…",
+    "title": "Send to someone",
+    "pick": "Pick someone",
+    "to": "Send to {{name}}",
+    "note": "A few words",
+    "notePlaceholder": "Why they'll love it (optional)",
+    "privacy": "Like everything shared, the group can see it.",
+    "sent": "{{title}} sent to {{name}}",
+    "failed": "Couldn't send it: try again in a moment",
+    "forYou": "Sent to you",
+    "from": "from {{name}}",
+    "dismiss": "Hide"
+  },
+  "widget": {
+    "noGoals": "Set yearly goals in Statistics to see them here."
   }
 }

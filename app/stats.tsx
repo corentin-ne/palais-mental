@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
+import RecapBanner from '@/components/media/RecapBanner';
 import Chips from '@/components/ui/Chips';
 import Empty from '@/components/ui/Empty';
 import { IconName } from '@/components/ui/Icon';
@@ -58,6 +59,7 @@ export default function StatsScreen() {
           <Chips inset={gutter} value={period} onChange={setPeriod} options={[...years.map((y) => ({ value: String(y), label: String(y) })), { value: 'all', label: t('stats.allTime') }]} />
         </View>
 
+        {year != null && !empty && <RecapBanner year={year} style={{ marginTop: 16 }} />}
         {empty ? (
           <Empty icon="chart" title={t('stats.emptyTitle')} body={t('stats.emptyBody')} />
         ) : (

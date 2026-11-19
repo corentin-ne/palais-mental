@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { ActivityIndicator, Keyboard, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Href, useLocalSearchParams, useRouter } from 'expo-router';
@@ -14,7 +15,7 @@ import { FadeIn, ResultSkeleton } from '@/components/ui/Motion';
 import { makeStyles, noOutline, useTheme } from '@/constants/theme';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useLayout } from '@/hooks/useLayout';
-import { SearchResult, popularMovies, popularShows, searchMovies, searchShows } from '@/lib/api';
+import { SearchResult, norm, popularMovies, popularShows, searchMovies, searchShows } from '@/lib/api';
 import { addBook, addGame, addMovie, followShow } from '@/lib/actions';
 import { searchBooks, trendingBooks } from '@/lib/books';
 import { popularGames, searchGames } from '@/lib/games';
@@ -111,6 +112,27 @@ export default function SearchScreen() {
   }, [q, scope, tmdbKey, i18n.language]);
 
   const searching = q.trim().length >= 2;
+  // What you already have, found at once on the phone while the sources answer.
+  const lib = useLibrary(useShallow((s) => ({ shows: s.shows, movies: s.movies, books: s.books, games: s.games })));
+  const mine = useMemo(() => {
+    const needle = norm(q.trim());
+    if (needle.length < 2) return [];
+    const hit = (title: string) => norm(title).includes(needle);
+    const wants = (s: Scope) => scope === 'all' || scope === s;
+    return [
+      ...(wants('shows') ? Object.values(lib.shows).filter((x) => hit(x.title)).map((x) => ({ key: `s${x.id}`, href: `/show/${x.tvmazeId}`, title: x.title, poster: x.poster, kind: 'show' as const })) : []),
+      ...(wants('movies') ? Object.values(lib.movies).filter((x) => hit(x.title)).map((x) => ({ key: `m${x.id}`, href: `/movie/${x.id}`, title: x.title, poster: x.poster, kind: 'movie' as const })) : []),
+      ...(wants('books') ? Object.values(lib.books).filter((x) => hit(x.title)).map((x) => ({ key: `b${x.id}`, href: `/book/${x.id}`, title: x.title, poster: x.cover, kind: 'book' as const })) : []),
+      ...(wants('games') ? Object.values(lib.games).filter((x) => hit(x.title)).map((x) => ({ key: `g${x.id}`, href: `/game/${x.id}`, title: x.title, poster: x.cover, kind: 'game' as const })) : []),
+    ].slice(0, 20);
+  }, [q, scope, lib]);
+  /** In "All", a section shows its first results; this opens the rest. */
+  const more = (to: Scope, count: number, shown: number) =>
+    scope === 'all' && count > shown ? (
+      <PressableScale onPress={() => setScope(to)} hitSlop={8} accessibilityLabel={t('search.seeAll')}>
+        <Text style={styles.more}>{t('search.seeAll', { count })}</Text>
+      </PressableScale>
+    ) : undefined;
   const colW = wide ? Math.floor((inner - gap) / 2) : inner;
   const list = (items: SearchResult[]) => (
     <View style={[styles.results, { gap: wide ? gap : 4 }]}>
@@ -207,33 +229,38 @@ export default function SearchScreen() {
                 </Section>
               )}
             </>
-          ) : loading && !shows.length && !movies.length && !books.length && !games.length ? (
+          ) : loading && !shows.length && !movies.length && !books.length && !games.length && !mine.length ? (
             <View style={{ marginTop: 18 }}>
               {[0, 1, 2, 3, 4].map((i) => (
                 <ResultSkeleton key={i} />
               ))}
             </View>
-          ) : !shows.length && !movies.length && !books.length && !games.length ? (
+          ) : !shows.length && !movies.length && !books.length && !games.length && !mine.length ? (
             <Text style={styles.none}>{t('search.none', { q: q.trim() })}</Text>
           ) : (
             <>
+              {mine.length > 0 && (
+                <Section title={t('search.inLibrary')} count={mine.length} style={{ marginTop: 20 }}>
+                  <PosterRail items={mine} />
+                </Section>
+              )}
               {shows.length > 0 && (
-                <Section title={t('common.shows')} style={{ marginTop: 20 }}>
+                <Section title={t('common.shows')} style={{ marginTop: 20 }} action={more('shows', shows.length, 6)}>
                   {list(scope === 'all' ? shows.slice(0, 6) : shows)}
                 </Section>
               )}
               {movies.length > 0 && (
-                <Section title={t('common.movies')} style={{ marginTop: 26 }}>
+                <Section title={t('common.movies')} style={{ marginTop: 26 }} action={more('movies', movies.length, 8)}>
                   {list(scope === 'all' ? movies.slice(0, 8) : movies)}
                 </Section>
               )}
               {books.length > 0 && (
-                <Section title={t('common.books')} style={{ marginTop: 26 }}>
+                <Section title={t('common.books')} style={{ marginTop: 26 }} action={more('books', books.length, 6)}>
                   {list(scope === 'all' ? books.slice(0, 6) : books)}
                 </Section>
               )}
               {games.length > 0 && (
-                <Section title={t('common.games')} style={{ marginTop: 26 }}>
+                <Section title={t('common.games')} style={{ marginTop: 26 }} action={more('games', games.length, 6)}>
                   {list(scope === 'all' ? games.slice(0, 6) : games)}
                 </Section>
               )}
@@ -327,6 +354,7 @@ const useStyles = makeStyles(({ palette, fonts, radii, type }) => ({
   field: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, height: 46, paddingHorizontal: 14, borderRadius: 23, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.hairline },
   input: { flex: 1, ...fonts.body, fontSize: 16, color: palette.ink, height: 46 },
   clear: { width: 20, height: 20, borderRadius: 10, backgroundColor: palette.inkFaint, alignItems: 'center', justifyContent: 'center' },
+  more: { ...fonts.semibold, fontSize: 13.5, color: palette.primaryText },
   cancel: { ...fonts.semibold, fontSize: 15, color: palette.primaryText },
   results: { flexDirection: 'row', flexWrap: 'wrap' },
   open: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 },

@@ -224,6 +224,17 @@ async function steamBy(role: 'developer' | 'publisher', name: string, exclude: s
   return out.slice(0, 18);
 }
 
+/** The best price across stores right now (CheapShark, US dollars), kept six hours. */
+export async function cheapestPrice(steamId: string): Promise<{ price: number; url: string } | undefined> {
+  const list = await quiet(
+    persisted(`cheapshark:${steamId}`, 6 * 3_600_000, () => getJson<{ cheapest?: string; cheapestDealID?: string }[]>(`https://www.cheapshark.com/api/1.0/games?steamAppID=${steamId}`, { headers: CHEAPSHARK_HEADERS })),
+    [],
+  );
+  const deal = Array.isArray(list) ? list[0] : undefined;
+  const price = Number(deal?.cheapest);
+  return deal?.cheapestDealID && Number.isFinite(price) ? { price, url: `https://www.cheapshark.com/redirect?dealID=${deal.cheapestDealID}` } : undefined;
+}
+
 /** What the store page says beyond the basics: scores, price, features, screenshots, links. */
 function steamPart(app: SteamAppFull, appId: string, lang: string): ShelfExtras {
   const scores: Score[] = [];
